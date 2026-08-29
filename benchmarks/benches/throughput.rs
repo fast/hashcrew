@@ -1,5 +1,12 @@
+use core::hash::Hasher as _;
+use std::io::Cursor;
+
 use divan::counter::BytesCount;
 use divan::{Bencher, black_box};
+
+mod support;
+
+use support::input;
 
 fn main() {
     divan::main();
@@ -26,10 +33,105 @@ const SIZES: &[usize] = &[
 ];
 const SEED: u64 = 0x0123_4567_89ab_cdef;
 
-fn input(len: usize) -> Vec<u8> {
-    (0..len)
-        .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
-        .collect()
+mod cityhash32 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash32(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn cityhasher(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| cityhasher::hash::<u32>(black_box(bytes.as_slice())));
+    }
+}
+
+mod cityhash64 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash64(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn cityhasher(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| cityhasher::hash::<u64>(black_box(bytes.as_slice())));
+    }
+}
+
+mod cityhash64_seeded {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache_one_seed(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash64_with_seed(black_box(&bytes), SEED));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn rache_two_seeds(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash64_with_seeds(black_box(&bytes), SEED, !SEED));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn cityhasher(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| cityhasher::hash_with_seed::<u64>(black_box(bytes.as_slice()), SEED));
+    }
+}
+
+mod cityhash128 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash128(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn cityhash_rs(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| cityhash_rs::cityhash_110_128(black_box(&bytes)));
+    }
+}
+
+mod cityhash128_seeded {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let seed = (u128::from(!SEED) << 64) | u128::from(SEED);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::cityhash128_with_seed(black_box(&bytes), seed));
+    }
 }
 
 mod xxh32 {
@@ -197,5 +299,79 @@ mod xxh3_128_seeded {
         bencher
             .counter(BytesCount::new(len))
             .bench(|| twox_hash::xxhash3_128::Hasher::oneshot_with_seed(SEED, black_box(&bytes)));
+    }
+}
+
+mod murmur3_32 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::murmur3_32(black_box(&bytes), 0));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn murmur3_crate(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            murmur3::murmur3_32(&mut Cursor::new(black_box(bytes.as_slice())), 0).unwrap()
+        });
+    }
+}
+
+mod murmur3_128 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::murmur3_128(black_box(&bytes), 0));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn murmur3_crate(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            murmur3::murmur3_x64_128(&mut Cursor::new(black_box(bytes.as_slice())), 0).unwrap()
+        });
+    }
+}
+
+mod fnv1a_32 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::fnv1a_32(black_box(&bytes)));
+    }
+}
+
+mod fnv1a_64 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::fnv1a_64(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn fnv_crate(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut hash = fnv::FnvHasher::default();
+            hash.write(black_box(&bytes));
+            hash.finish()
+        });
     }
 }

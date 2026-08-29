@@ -7,6 +7,10 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dev-dependencies]
+cityhash-rs.workspace = true
+cityhasher.workspace = true
+fnv.workspace = true
+murmur3.workspace = true
 rache.workspace = true
 xxhash-rust.workspace = true
 

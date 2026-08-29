@@ -1,9 +1,9 @@
 [package]
 name = "rache"
 version = "0.1.0"
-description = "A fast, portable Rust hash library"
+description = "Fast, portable non-cryptographic hashes for Rust"
 documentation = "https://docs.rs/rache"
-keywords = ["hash", "xxhash", "xxh3", "simd"]
+keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
 categories = ["algorithms", "no-std"]
 
 edition.workspace = true

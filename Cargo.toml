@@ -9,7 +9,11 @@ readme = "README.md"
 rust-version = "1.85"
 
 [workspace.dependencies]
+cityhash-rs = "1.0.1"
+cityhasher = "0.1.0"
 divan = "0.1.21"
+fnv = "1.0.7"
+murmur3 = "0.5.2"
 rache = { path = "rache" }
 twox-hash = { version = "2.1.4", default-features = false, features = [
   "std",

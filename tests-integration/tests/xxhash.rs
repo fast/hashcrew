@@ -6,6 +6,10 @@ use rache::{
 };
 use xxhash_rust::{xxh3, xxh32 as reference32, xxh64 as reference64};
 
+mod support;
+
+use support::{next_random, random_input};
+
 const LENGTHS: &[usize] = &[
     0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 95, 96, 97, 127, 128, 129, 159,
     160, 191, 192, 223, 239, 240, 241, 255, 256, 257, 511, 512, 513, 1_023, 1_024, 1_025, 2_047,
@@ -23,22 +27,6 @@ fn input(len: usize) -> Vec<u8> {
             value as u8
         })
         .collect()
-}
-
-fn next_random(state: &mut u64) -> u64 {
-    *state ^= *state >> 12;
-    *state ^= *state << 25;
-    *state ^= *state >> 27;
-    state.wrapping_mul(0x2545_f491_4f6c_dd1d)
-}
-
-fn random_input(state: &mut u64, len: usize) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(len);
-    while bytes.len() < len {
-        bytes.extend_from_slice(&next_random(state).to_le_bytes());
-    }
-    bytes.truncate(len);
-    bytes
 }
 
 #[test]
@@ -261,4 +249,19 @@ fn standard_hash_traits_use_the_raw_stream() {
     assert_eq!(via_trait3.finish(), xxh3_64_with_seed(&bytes, 13));
 
     assert!(rache::kernel::selected_backend().is_available());
+}
+
+#[test]
+fn family_and_compatibility_module_paths_match() {
+    let bytes = input(257);
+
+    assert_eq!(
+        rache::xxhash::xxh32(&bytes, 7),
+        rache::xxh32::xxh32(&bytes, 7)
+    );
+    assert_eq!(
+        rache::xxhash::xxh64(&bytes, 11),
+        rache::xxh64::xxh64(&bytes, 11)
+    );
+    assert_eq!(rache::xxhash::xxh3_64(&bytes), rache::xxh3::xxh3_64(&bytes));
 }

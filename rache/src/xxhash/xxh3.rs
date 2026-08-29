@@ -3,7 +3,7 @@
 use core::fmt;
 use core::hash::{BuildHasher, Hasher};
 
-use crate::kernel::{self, Xxh3Kernel};
+use super::kernel::{self, Xxh3Kernel};
 use crate::util::{mul128_fold64, read_u32, read_u64};
 
 const PRIME32_1: u64 = 0x9e37_79b1;
@@ -381,7 +381,7 @@ fn hash_128_129_to_240(input: &[u8], seed: u64) -> u128 {
 
 #[inline(always)]
 const fn make_u128(low: u64, high: u64) -> u128 {
-    (high as u128) << 64 | low as u128
+    ((high as u128) << 64) | low as u128
 }
 
 #[inline]
@@ -907,12 +907,12 @@ mod tests {
                 let secret = derive_secret(seed);
                 assert_eq!(
                     hash_long_64(kernel, &input, &secret),
-                    hash_long_64(crate::kernel::Scalar, &input, &secret),
+                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
                     "XXH3-64 length={len} seed={seed:#x}"
                 );
                 assert_eq!(
                     hash_long_128(kernel, &input, &secret),
-                    hash_long_128(crate::kernel::Scalar, &input, &secret),
+                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} seed={seed:#x}"
                 );
             }
@@ -943,11 +943,11 @@ mod tests {
             for seed in [0, 1, 0x0123_4567_89ab_cdef] {
                 let secret = derive_secret(seed);
                 assert_eq!(
-                    hash_long_64(crate::kernel::Scalar, &input, &secret),
+                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
                     xxh3_64_with_seed(&input, seed)
                 );
                 assert_eq!(
-                    hash_long_128(crate::kernel::Scalar, &input, &secret),
+                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
                     xxh3_128_with_seed(&input, seed)
                 );
             }
@@ -957,20 +957,24 @@ mod tests {
     #[test]
     fn every_available_hardware_kernel_matches_scalar() {
         #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
-        if crate::kernel::Backend::Neon.is_available() {
+        if crate::xxhash::kernel::Backend::Neon.is_available() {
             // SAFETY: Availability was checked immediately above.
-            assert_kernel_matches_scalar(unsafe { crate::kernel::Neon::new_unchecked() });
+            assert_kernel_matches_scalar(unsafe { crate::xxhash::kernel::Neon::new_unchecked() });
         }
 
         #[cfg(target_arch = "x86_64")]
         {
-            if crate::kernel::Backend::Sse2.is_available() {
+            if crate::xxhash::kernel::Backend::Sse2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe { crate::kernel::Sse2::new_unchecked() });
+                assert_kernel_matches_scalar(unsafe {
+                    crate::xxhash::kernel::Sse2::new_unchecked()
+                });
             }
-            if crate::kernel::Backend::Avx2.is_available() {
+            if crate::xxhash::kernel::Backend::Avx2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe { crate::kernel::Avx2::new_unchecked() });
+                assert_kernel_matches_scalar(unsafe {
+                    crate::xxhash::kernel::Avx2::new_unchecked()
+                });
             }
         }
     }
