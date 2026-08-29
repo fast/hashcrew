@@ -16,5 +16,7 @@
 - Add exhaustive short-input and two-way streaming partition tests, optimized
   CI coverage for MSRV and representative targets, and a reproducible package
   release gate.
+- Adopt the Apache License 2.0 and enforce source headers and Conventional
+  Commit pull-request titles in CI.
 - Group implementations by algorithm family while preserving crate-root xxHash
   module paths.

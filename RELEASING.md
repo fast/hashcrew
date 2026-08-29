@@ -15,6 +15,7 @@ Run the local release gate:
 
 ```console
 cargo +stable fmt --all -- --check
+hawkeye check
 cargo +stable clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo +stable test --workspace --all-features --locked
 cargo +stable test -p tests-integration --release --locked
@@ -28,8 +29,9 @@ cargo +stable publish -p rache --locked --dry-run
 ```
 
 Inspect `cargo +stable package -p rache --locked --list` before publishing.
-The archive must contain the license, README, notices, manifest, lockfile, and
-library sources, without workspace benchmarks or integration-test fixtures.
+The archive must contain the license, NOTICE, README, third-party notices,
+manifest, lockfile, and library sources, without workspace benchmarks or
+integration-test fixtures.
 
 ## Publish
 

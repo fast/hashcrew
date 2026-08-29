@@ -162,5 +162,6 @@ checklist for the complete package and publication gate.
 - [twox-hash](https://github.com/shepmaster/twox-hash) for Rust API design ideas
 - [Apache Asyncband](https://github.com/apache/asyncband) for workspace organization
 
-Licensed under MIT. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for
-implementation references and development-only comparison dependencies.
+Licensed under the Apache License, Version 2.0. See
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for implementation
+references and development-only comparison dependencies.
