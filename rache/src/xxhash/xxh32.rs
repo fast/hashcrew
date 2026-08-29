@@ -96,6 +96,7 @@ pub struct Xxh32 {
     buffer: [u8; 16],
     buffered: usize,
     total_len: u64,
+    length_overflowed: bool,
 }
 
 impl Xxh32 {
@@ -126,6 +127,7 @@ impl Xxh32 {
             buffer: [0; 16],
             buffered: 0,
             total_len: 0,
+            length_overflowed: false,
         }
     }
 
@@ -135,10 +137,14 @@ impl Xxh32 {
         self.seed
     }
 
-    /// Returns the number of bytes written so far.
+    /// Returns the number of bytes written so far, saturating at [`u64::MAX`].
     #[must_use]
     pub const fn total_len(&self) -> u64 {
-        self.total_len
+        if self.length_overflowed {
+            u64::MAX
+        } else {
+            self.total_len
+        }
     }
 
     /// Resets the state while retaining its seed.
@@ -148,7 +154,9 @@ impl Xxh32 {
 
     /// Adds raw bytes to the hash state.
     pub fn update(&mut self, mut input: &[u8]) {
-        self.total_len = self.total_len.wrapping_add(input.len() as u64);
+        let (total_len, overflowed) = self.total_len.overflowing_add(input.len() as u64);
+        self.total_len = total_len;
+        self.length_overflowed |= overflowed;
 
         if self.buffered != 0 {
             let needed = 16 - self.buffered;
@@ -175,7 +183,7 @@ impl Xxh32 {
     /// Returns the XXH32 digest without consuming the state.
     #[must_use]
     pub fn digest(&self) -> u32 {
-        let mut hash = if self.total_len >= 16 {
+        let mut hash = if self.length_overflowed || self.total_len >= 16 {
             self.lanes[0]
                 .rotate_left(1)
                 .wrapping_add(self.lanes[1].rotate_left(7))
@@ -238,5 +246,30 @@ impl BuildHasher for Xxh32Builder {
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
         Xxh32::with_seed(self.seed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn length_overflow_keeps_long_digest_mode() {
+        let mut hash = Xxh32::new();
+        hash.total_len = u64::MAX;
+        hash.update(&[0]);
+
+        assert!(hash.length_overflowed);
+        assert_eq!(hash.total_len(), u64::MAX);
+        let expected = hash.lanes[0]
+            .rotate_left(1)
+            .wrapping_add(hash.lanes[1].rotate_left(7))
+            .wrapping_add(hash.lanes[2].rotate_left(12))
+            .wrapping_add(hash.lanes[3].rotate_left(18))
+            .wrapping_add(hash.total_len as u32);
+        assert_eq!(
+            hash.digest(),
+            consume_tail(expected, &hash.buffer[..hash.buffered])
+        );
     }
 }

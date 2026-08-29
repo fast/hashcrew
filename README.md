@@ -3,7 +3,7 @@
 `rache` is a zero-dependency Rust library for fast, deterministic,
 non-cryptographic hashing. It provides allocation-free one-shot APIs,
 incremental state where the algorithm supports it, stable cross-platform
-digests, and hardware-accelerated XXH3 kernels.
+digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
 ## Algorithms
 
@@ -25,6 +25,11 @@ and would not provide bounded-memory incremental hashing.
 > These algorithms are not cryptographically secure. Deterministic hashers are
 > also unsuitable for hash tables exposed to attacker-controlled keys because
 > they do not protect against deliberate hash flooding.
+
+The cross-platform guarantee applies when the same bytes are passed to the raw
+or streaming APIs. Rust's `Hash`/`BuildHasher` adapters use native typed
+encodings, including platform endianness and `usize` width, and are not a
+portable serialization format.
 
 ## Usage
 

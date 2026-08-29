@@ -19,6 +19,10 @@
 - Add exhaustive short-input and two-way streaming partition tests, optimized
   CI coverage for MSRV and representative targets, and a reproducible package
   release gate.
+- Harden XXH streaming state across 64-bit length-counter wraparound and avoid
+  secret-size arithmetic overflow in XXH3 long-input one-shot hashing.
+- Clarify that cross-platform digest stability applies to identical raw byte
+  streams rather than Rust's native typed `Hash` encoding.
 - Adopt the Apache License 2.0 and enforce source headers and Conventional
   Commit pull-request titles in CI.
 - Group implementations by algorithm family while preserving crate-root xxHash

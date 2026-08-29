@@ -20,7 +20,10 @@
 //! [`fnv`] and re-exported at the crate root. Outputs that fit in 64 bits also
 //! implement [`core::hash::Hasher`].
 //!
-//! These hashes are deterministic and are **not cryptographically secure**.
+//! Raw digests are stable across platforms for identical byte streams. The
+//! [`core::hash`] adapters use Rust's native typed encodings and are not a
+//! portable serialization format. These hashes are deterministic and are
+//! **not cryptographically secure**.
 //!
 //! # Examples
 //!
