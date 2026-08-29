@@ -1,0 +1,20 @@
+[package]
+name = "tests-integration"
+version = "0.0.0"
+publish = false
+
+edition.workspace = true
+rust-version.workspace = true
+
+[dev-dependencies]
+rache.workspace = true
+xxhash-rust.workspace = true
+
+[lib]
+bench = false
+doc = false
+doctest = false
+test = false
+
+[lints]
+workspace = true

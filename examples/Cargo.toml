@@ -1,0 +1,17 @@
+[package]
+name = "examples"
+version = "0.0.0"
+publish = false
+
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rache.workspace = true
+
+[[bin]]
+name = "hash-file"
+path = "src/hash_file.rs"
+
+[lints]
+workspace = true

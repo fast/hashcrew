@@ -1,0 +1,22 @@
+[package]
+name = "rache"
+version = "0.1.0"
+description = "A fast, portable Rust hash library"
+documentation = "https://docs.rs/rache"
+keywords = ["hash", "xxhash", "xxh3", "simd"]
+categories = ["algorithms", "no-std"]
+
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+rust-version.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["std"]
+std = []
+
+[lints]
+workspace = true
