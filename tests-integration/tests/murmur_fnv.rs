@@ -49,6 +49,28 @@ fn murmur_oneshot_matches_reference() {
 }
 
 #[test]
+fn every_length_through_two_kib_matches_murmur_reference() {
+    let bytes = input(2 * 1_024);
+    for len in 0..=bytes.len() {
+        let input = &bytes[..len];
+        let seed = (len as u32)
+            .wrapping_mul(0x9e37_79b1)
+            .rotate_left((len % 32) as u32);
+
+        assert_eq!(
+            murmur3_32(input, seed),
+            murmur3::murmur3_32(&mut Cursor::new(input), seed).unwrap(),
+            "MurmurHash3 x86_32 length={len} seed={seed:#x}"
+        );
+        assert_eq!(
+            murmur3_128(input, seed),
+            murmur3::murmur3_x64_128(&mut Cursor::new(input), seed).unwrap(),
+            "MurmurHash3 x64_128 length={len} seed={seed:#x}"
+        );
+    }
+}
+
+#[test]
 fn randomized_murmur_inputs_match_reference() {
     let mut random = 0x6a09_e667_f3bc_c909;
     for case in 0..256 {
@@ -135,6 +157,61 @@ fn randomized_streaming_partitions_match_oneshot() {
         );
         assert_eq!(fnv32.digest(), fnv1a_32(&bytes), "FNV-1a 32 case={case}");
         assert_eq!(fnv64.digest(), fnv1a_64(&bytes), "FNV-1a 64 case={case}");
+    }
+}
+
+#[test]
+fn every_two_way_partition_matches_oneshot() {
+    let bytes = input(257);
+    for len in 0..=bytes.len() {
+        let input = &bytes[..len];
+        let seed = (len as u32)
+            .wrapping_mul(0x9e37_79b1)
+            .rotate_left((len % 32) as u32);
+        let expected_murmur32 = murmur3_32(input, seed);
+        let expected_murmur128 = murmur3_128(input, seed);
+        let expected_fnv32 = fnv1a_32(input);
+        let expected_fnv64 = fnv1a_64(input);
+
+        assert_eq!(Murmur3_32::oneshot(input, seed), expected_murmur32);
+        assert_eq!(Murmur3_128::oneshot(input, seed), expected_murmur128);
+        assert_eq!(Fnv1a32::oneshot(input), expected_fnv32);
+        assert_eq!(Fnv1a64::oneshot(input), expected_fnv64);
+
+        for split in 0..=len {
+            let mut murmur32 = Murmur3_32::with_seed(seed);
+            let mut murmur128 = Murmur3_128::with_seed(seed);
+            let mut fnv32 = Fnv1a32::new();
+            let mut fnv64 = Fnv1a64::new();
+
+            for chunk in [&[][..], &input[..split], &[][..], &input[split..], &[][..]] {
+                murmur32.update(chunk);
+                murmur128.update(chunk);
+                fnv32.update(chunk);
+                fnv64.update(chunk);
+            }
+
+            assert_eq!(
+                murmur32.digest(),
+                expected_murmur32,
+                "MurmurHash3 x86_32 length={len} split={split}"
+            );
+            assert_eq!(
+                murmur128.digest(),
+                expected_murmur128,
+                "MurmurHash3 x64_128 length={len} split={split}"
+            );
+            assert_eq!(
+                fnv32.digest(),
+                expected_fnv32,
+                "FNV-1a 32 length={len} split={split}"
+            );
+            assert_eq!(
+                fnv64.digest(),
+                expected_fnv64,
+                "FNV-1a 64 length={len} split={split}"
+            );
+        }
     }
 }
 

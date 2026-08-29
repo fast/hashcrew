@@ -1,8 +1,8 @@
 use core::hash::{BuildHasher, Hasher};
 
 use rache::{
-    Xxh3, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, xxh3_64_with_seed,
-    xxh3_128_with_seed, xxh32, xxh64,
+    Xxh3, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, xxh3_64,
+    xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed, xxh32, xxh64,
 };
 use xxhash_rust::{xxh3, xxh32 as reference32, xxh64 as reference64};
 
@@ -27,6 +27,14 @@ fn input(len: usize) -> Vec<u8> {
             value as u8
         })
         .collect()
+}
+
+#[test]
+fn official_empty_vectors_are_stable() {
+    assert_eq!(xxh32(b"", 0), 0x02cc_5d05);
+    assert_eq!(xxh64(b"", 0), 0xef46_db37_51d8_e999);
+    assert_eq!(xxh3_64(b""), 0x2d06_8005_38d3_94c2);
+    assert_eq!(xxh3_128(b""), 0x99aa_06d3_0147_98d8_6001_c324_468d_497f);
 }
 
 #[test]
@@ -195,6 +203,61 @@ fn randomized_streaming_partitions_match_oneshot() {
             xxh3_128_with_seed(&bytes, seed),
             "case={case}"
         );
+    }
+}
+
+#[test]
+fn every_two_way_partition_matches_oneshot() {
+    let bytes = input(257);
+    for len in 0..=bytes.len() {
+        let input = &bytes[..len];
+        let seed = (len as u64)
+            .wrapping_mul(0x9e37_79b1_85eb_ca87)
+            .rotate_left((len % 64) as u32);
+        let expected32 = xxh32(input, seed as u32);
+        let expected64 = xxh64(input, seed);
+        let expected3 = xxh3_64_with_seed(input, seed);
+        let expected128 = xxh3_128_with_seed(input, seed);
+
+        assert_eq!(Xxh32::oneshot(input, seed as u32), expected32);
+        assert_eq!(Xxh64::oneshot(input, seed), expected64);
+        assert_eq!(Xxh3::oneshot_with_seed(input, seed), expected3);
+        assert_eq!(Xxh3_128::oneshot_with_seed(input, seed), expected128);
+
+        for split in 0..=len {
+            let mut hash32 = Xxh32::with_seed(seed as u32);
+            let mut hash64 = Xxh64::with_seed(seed);
+            let mut hash3 = Xxh3::with_seed(seed);
+            let mut hash128 = Xxh3_128::with_seed(seed);
+
+            for chunk in [&[][..], &input[..split], &[][..], &input[split..], &[][..]] {
+                hash32.update(chunk);
+                hash64.update(chunk);
+                hash3.update(chunk);
+                hash128.update(chunk);
+            }
+
+            assert_eq!(
+                hash32.digest(),
+                expected32,
+                "XXH32 length={len} split={split}"
+            );
+            assert_eq!(
+                hash64.digest(),
+                expected64,
+                "XXH64 length={len} split={split}"
+            );
+            assert_eq!(
+                hash3.digest(),
+                expected3,
+                "XXH3-64 length={len} split={split}"
+            );
+            assert_eq!(
+                hash128.digest(),
+                expected128,
+                "XXH3-128 length={len} split={split}"
+            );
+        }
     }
 }
 

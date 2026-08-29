@@ -3,6 +3,8 @@ name = "rache"
 version = "0.1.0"
 description = "Fast, portable non-cryptographic hashes for Rust"
 documentation = "https://docs.rs/rache"
+homepage = "https://github.com/leiysky/rache"
+repository = "https://github.com/leiysky/rache"
 keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
 categories = ["algorithms", "no-std"]
 

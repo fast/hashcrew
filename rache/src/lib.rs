@@ -1,11 +1,28 @@
 //! Fast, portable, non-cryptographic hash functions.
 //!
 //! Use the free functions or [`raw`] module for complete byte slices, and the
-//! state types for incremental input. Implementations are grouped under
-//! [`cityhash`], [`xxhash`], [`murmur`], and [`fnv`] and re-exported at the crate root.
-//! Outputs that fit in 64 bits also implement [`core::hash::Hasher`].
+//! state types for incremental input. CityHash is intentionally one-shot.
+//! Implementations are grouped under [`cityhash`], [`xxhash`], [`murmur`], and
+//! [`fnv`] and re-exported at the crate root. Outputs that fit in 64 bits also
+//! implement [`core::hash::Hasher`].
 //!
 //! These hashes are deterministic and are **not cryptographically secure**.
+//!
+//! # Examples
+//!
+//! Hash a complete byte slice or feed the same bytes incrementally:
+//!
+//! ```
+//! use rache::{Xxh64, raw};
+//!
+//! let expected = raw::xxh64(b"rache", 42);
+//! let mut state = Xxh64::with_seed(42);
+//! state.update(b"ra");
+//! state.update(b"che");
+//!
+//! assert_eq!(state.digest(), expected);
+//! assert_eq!(raw::cityhash64(b"rache"), rache::cityhash::cityhash64(b"rache"));
+//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_debug_implementations)]

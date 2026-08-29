@@ -13,5 +13,8 @@
   streaming writes that do not yet require kernel work.
 - Add `no_std` support, randomized cross-implementation and per-backend tests,
   specification vectors, and one-shot/streaming comparison benchmarks.
+- Add exhaustive short-input and two-way streaming partition tests, optimized
+  CI coverage for MSRV and representative targets, and a reproducible package
+  release gate.
 - Group implementations by algorithm family while preserving crate-root xxHash
   module paths.

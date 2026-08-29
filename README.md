@@ -149,6 +149,10 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo +1.85.0 check -p rache --no-default-features
 ```
 
+Maintainers should use the
+[`RELEASING.md`](https://github.com/leiysky/rache/blob/main/RELEASING.md)
+checklist for the complete package and publication gate.
+
 ## References
 
 - [Google CityHash 1.1.1 reference implementation](https://github.com/google/cityhash)

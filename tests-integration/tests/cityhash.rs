@@ -52,6 +52,38 @@ fn oneshot_matches_independent_implementations() {
 }
 
 #[test]
+fn every_length_through_two_kib_matches_independent_implementations() {
+    let bytes = input(2 * 1_024);
+    for len in 0..=bytes.len() {
+        let input = &bytes[..len];
+        let seed = (len as u64)
+            .wrapping_mul(0x9e37_79b1_85eb_ca87)
+            .rotate_left((len % 64) as u32);
+
+        assert_eq!(
+            cityhash32(input),
+            cityhasher::hash::<u32>(input),
+            "CityHash32 length={len}"
+        );
+        assert_eq!(
+            cityhash64(input),
+            cityhasher::hash::<u64>(input),
+            "CityHash64 length={len}"
+        );
+        assert_eq!(
+            cityhash64_with_seed(input, seed),
+            cityhasher::hash_with_seed::<u64>(input, seed),
+            "CityHash64WithSeed length={len} seed={seed:#x}"
+        );
+        assert_eq!(
+            cityhash128(input),
+            reference_128(input),
+            "CityHash128 length={len}"
+        );
+    }
+}
+
+#[test]
 fn seeded_64_matches_independent_implementation() {
     for &len in LENGTHS {
         let bytes = input(len);

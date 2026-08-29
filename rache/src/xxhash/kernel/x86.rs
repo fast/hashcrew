@@ -51,7 +51,9 @@ unsafe fn accumulate_sse2(acc: &mut [u64; 8], stripe: &[u8; 64], secret: &[u8; 6
 unsafe fn scramble_sse2(acc: &mut [u64; 8], secret: &[u8; 64]) {
     let acc_ptr = acc.as_mut_ptr().cast::<__m128i>();
     let secret_ptr = secret.as_ptr().cast::<__m128i>();
-    // SAFETY: The caller guarantees SSE2 support.
+    // SAFETY: The caller guarantees SSE2 support. This intrinsic is unsafe on
+    // the MSRV and safe on newer compilers.
+    #[allow(unused_unsafe)]
     let factor = unsafe { _mm_set1_epi64x(PRIME32_1) };
 
     for index in 0..4 {
@@ -116,7 +118,9 @@ unsafe fn accumulate_avx2(acc: &mut [u64; 8], stripe: &[u8; 64], secret: &[u8; 6
 unsafe fn scramble_avx2(acc: &mut [u64; 8], secret: &[u8; 64]) {
     let acc_ptr = acc.as_mut_ptr().cast::<__m256i>();
     let secret_ptr = secret.as_ptr().cast::<__m256i>();
-    // SAFETY: The caller guarantees AVX2 support.
+    // SAFETY: The caller guarantees AVX2 support. This intrinsic is unsafe on
+    // the MSRV and safe on newer compilers.
+    #[allow(unused_unsafe)]
     let factor = unsafe { _mm256_set1_epi64x(PRIME32_1) };
 
     for index in 0..2 {
