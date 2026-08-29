@@ -12,4 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Integration-test-only workspace member.
+pub fn input(len: usize) -> Vec<u8> {
+    (0..len)
+        .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
+        .collect()
+}

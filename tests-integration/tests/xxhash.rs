@@ -1,10 +1,28 @@
+// Copyright 2026 rache contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use core::hash::{BuildHasher, Hasher};
 
 use rache::{
-    Xxh3, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, xxh3_64_with_seed,
-    xxh3_128_with_seed, xxh32, xxh64,
+    Xxh3, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, xxh3_64,
+    xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed, xxh32, xxh64,
 };
 use xxhash_rust::{xxh3, xxh32 as reference32, xxh64 as reference64};
+
+mod support;
+
+use support::{next_random, random_input};
 
 const LENGTHS: &[usize] = &[
     0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 95, 96, 97, 127, 128, 129, 159,
@@ -25,20 +43,12 @@ fn input(len: usize) -> Vec<u8> {
         .collect()
 }
 
-fn next_random(state: &mut u64) -> u64 {
-    *state ^= *state >> 12;
-    *state ^= *state << 25;
-    *state ^= *state >> 27;
-    state.wrapping_mul(0x2545_f491_4f6c_dd1d)
-}
-
-fn random_input(state: &mut u64, len: usize) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(len);
-    while bytes.len() < len {
-        bytes.extend_from_slice(&next_random(state).to_le_bytes());
-    }
-    bytes.truncate(len);
-    bytes
+#[test]
+fn official_empty_vectors_are_stable() {
+    assert_eq!(xxh32(b"", 0), 0x02cc_5d05);
+    assert_eq!(xxh64(b"", 0), 0xef46_db37_51d8_e999);
+    assert_eq!(xxh3_64(b""), 0x2d06_8005_38d3_94c2);
+    assert_eq!(xxh3_128(b""), 0x99aa_06d3_0147_98d8_6001_c324_468d_497f);
 }
 
 #[test]
@@ -211,6 +221,61 @@ fn randomized_streaming_partitions_match_oneshot() {
 }
 
 #[test]
+fn every_two_way_partition_matches_oneshot() {
+    let bytes = input(257);
+    for len in 0..=bytes.len() {
+        let input = &bytes[..len];
+        let seed = (len as u64)
+            .wrapping_mul(0x9e37_79b1_85eb_ca87)
+            .rotate_left((len % 64) as u32);
+        let expected32 = xxh32(input, seed as u32);
+        let expected64 = xxh64(input, seed);
+        let expected3 = xxh3_64_with_seed(input, seed);
+        let expected128 = xxh3_128_with_seed(input, seed);
+
+        assert_eq!(Xxh32::oneshot(input, seed as u32), expected32);
+        assert_eq!(Xxh64::oneshot(input, seed), expected64);
+        assert_eq!(Xxh3::oneshot_with_seed(input, seed), expected3);
+        assert_eq!(Xxh3_128::oneshot_with_seed(input, seed), expected128);
+
+        for split in 0..=len {
+            let mut hash32 = Xxh32::with_seed(seed as u32);
+            let mut hash64 = Xxh64::with_seed(seed);
+            let mut hash3 = Xxh3::with_seed(seed);
+            let mut hash128 = Xxh3_128::with_seed(seed);
+
+            for chunk in [&[][..], &input[..split], &[][..], &input[split..], &[][..]] {
+                hash32.update(chunk);
+                hash64.update(chunk);
+                hash3.update(chunk);
+                hash128.update(chunk);
+            }
+
+            assert_eq!(
+                hash32.digest(),
+                expected32,
+                "XXH32 length={len} split={split}"
+            );
+            assert_eq!(
+                hash64.digest(),
+                expected64,
+                "XXH64 length={len} split={split}"
+            );
+            assert_eq!(
+                hash3.digest(),
+                expected3,
+                "XXH3-64 length={len} split={split}"
+            );
+            assert_eq!(
+                hash128.digest(),
+                expected128,
+                "XXH3-128 length={len} split={split}"
+            );
+        }
+    }
+}
+
+#[test]
 fn streaming_state_can_be_finished_cloned_continued_and_reset() {
     let seed = 0x0123_4567_89ab_cdef;
     let prefix = input(1_337);
@@ -261,4 +326,19 @@ fn standard_hash_traits_use_the_raw_stream() {
     assert_eq!(via_trait3.finish(), xxh3_64_with_seed(&bytes, 13));
 
     assert!(rache::kernel::selected_backend().is_available());
+}
+
+#[test]
+fn family_and_compatibility_module_paths_match() {
+    let bytes = input(257);
+
+    assert_eq!(
+        rache::xxhash::xxh32(&bytes, 7),
+        rache::xxh32::xxh32(&bytes, 7)
+    );
+    assert_eq!(
+        rache::xxhash::xxh64(&bytes, 11),
+        rache::xxh64::xxh64(&bytes, 11)
+    );
+    assert_eq!(rache::xxhash::xxh3_64(&bytes), rache::xxh3::xxh3_64(&bytes));
 }

@@ -1,3 +1,17 @@
+// Copyright 2026 rache contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! XXH3 execution backends.
 //!
 //! Short XXH3 inputs use their dedicated scalar algorithms. For inputs larger
@@ -168,33 +182,33 @@ pub(crate) trait Xxh3Kernel: Copy {
 
 macro_rules! dispatch {
     ($function:ident($($argument:expr),* $(,)?)) => {{
-        match $crate::kernel::selected_backend() {
-            $crate::kernel::Backend::Scalar => {
-                $function($crate::kernel::Scalar, $($argument),*)
+        match $crate::xxhash::kernel::selected_backend() {
+            $crate::xxhash::kernel::Backend::Scalar => {
+                $function($crate::xxhash::kernel::Scalar, $($argument),*)
             }
-            $crate::kernel::Backend::Neon => {
+            $crate::xxhash::kernel::Backend::Neon => {
                 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
                 {
                     // SAFETY: Backend selection checked the current CPU for NEON.
-                    $function(unsafe { $crate::kernel::Neon::new_unchecked() }, $($argument),*)
+                    $function(unsafe { $crate::xxhash::kernel::Neon::new_unchecked() }, $($argument),*)
                 }
                 #[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]
                 unreachable!("NEON cannot be selected on this target")
             }
-            $crate::kernel::Backend::Sse2 => {
+            $crate::xxhash::kernel::Backend::Sse2 => {
                 #[cfg(target_arch = "x86_64")]
                 {
                     // SAFETY: Backend selection checked the current CPU for SSE2.
-                    $function(unsafe { $crate::kernel::Sse2::new_unchecked() }, $($argument),*)
+                    $function(unsafe { $crate::xxhash::kernel::Sse2::new_unchecked() }, $($argument),*)
                 }
                 #[cfg(not(target_arch = "x86_64"))]
                 unreachable!("SSE2 cannot be selected on this target")
             }
-            $crate::kernel::Backend::Avx2 => {
+            $crate::xxhash::kernel::Backend::Avx2 => {
                 #[cfg(target_arch = "x86_64")]
                 {
                     // SAFETY: Backend selection checked the current CPU for AVX2.
-                    $function(unsafe { $crate::kernel::Avx2::new_unchecked() }, $($argument),*)
+                    $function(unsafe { $crate::xxhash::kernel::Avx2::new_unchecked() }, $($argument),*)
                 }
                 #[cfg(not(target_arch = "x86_64"))]
                 unreachable!("AVX2 cannot be selected on this target")

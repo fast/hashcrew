@@ -1,44 +1,69 @@
 # Architecture
 
-The public API and algorithm machinery are deliberately separated:
+`rache` separates its public API, portable algorithm cores, and optional
+hardware kernels:
 
 ```text
-raw functions / streaming states / BuildHasher adapters
+crate root / raw API / standard hash adapters
                          |
-                  xxHash family cores
+     cityhash | xxhash | murmur | fnv family modules
                          |
-       scalar short paths + XXH3 long-input kernel
+       portable cores | XXH3 long-input routing
                          |
              scalar | NEON | SSE2 | AVX2
 ```
 
-## API boundary
+## Public API
 
-`rache::raw` is the preferred path for complete byte slices. Streaming types
-retain enough trailing input to finalize XXH3 without allocation or replaying
-the full message. Standard-library hashing traits are adapters over those same
-states, not separate implementations.
+One-shot functions accept complete byte slices and are exposed through
+`rache::raw`, the crate root, and their family modules. Streaming types reuse
+the same compression routines and retain only the state needed for the next
+update. Outputs that fit in `u64` also have deterministic `Hasher` and
+`BuildHasher` adapters; 128-bit variants expose native `u128` digests instead
+of truncating them to satisfy `Hasher`.
 
-## Kernel boundary
+CityHash remains a one-shot family. The reference algorithm incorporates the
+complete input length and reads its tail relative to the end of the message;
+bounded-memory state cannot derive the final digest from independently hashed
+chunks. `CityHash128` values store the reference high word in the most
+significant half and the low word in the least significant half.
+
+The crate-root xxHash module paths remain re-exports of the grouped
+`rache::xxhash` modules. This preserves paths such as `rache::xxh3` and
+`rache::kernel` without duplicating implementations.
+
+## Streaming state
+
+MurmurHash3 retains at most one incomplete 4- or 16-byte block. XXH32 and XXH64
+retain one incomplete stripe. XXH3 uses fixed-size buffers for its secret and
+pending input, so no streaming state allocates or replays the complete message.
+FNV-1a updates its accumulator directly and requires no tail buffer.
+CityHash has no streaming state because a correct facade would need to retain
+and replay the complete input.
+
+## XXH3 kernel boundary
 
 Only XXH3 stripe accumulation and accumulator scrambling vary by hardware.
-Length routing, secret derivation, final merging, and all XXH32/XXH64 behavior
-remain portable Rust. This keeps unsafe intrinsics small and makes every SIMD
-backend directly comparable with the scalar kernel.
+Input-length routing, secret derivation, final merging, XXH32, XXH64,
+CityHash, MurmurHash3, and FNV-1a remain portable Rust. Keeping SIMD behind
+this narrow boundary makes every backend directly comparable with the scalar
+kernel and limits unsafe code to the intrinsic implementations.
 
-Features guaranteed by the compilation target are selected directly. For other
-`std` builds, runtime feature detection is cached once per process. A `no_std`
-build only selects features enabled for its compilation target, so it never
-executes an intrinsic that the target contract does not provide.
+CPU features guaranteed by the compilation target are selected directly.
+Other `std` builds cache runtime feature detection once per process. A
+`no_std` build uses compile-time target features only and otherwise selects the
+scalar backend.
 
-The Arm kernel processes four 64-bit lanes per loop iteration. A compiler-only
-scheduling barrier keeps the independent NEON multiply-accumulate chains from
-being serialized; it does not access memory or change hash semantics.
+The Arm backend processes four 64-bit lanes per loop iteration. Its
+compiler-only scheduling barrier preserves independent NEON
+multiply-accumulate chains without reading memory or changing digest semantics.
 
-## Correctness contract
+## Verification boundary
 
-Every backend must produce the same digest as the scalar kernel. Integration
-tests additionally compare all four algorithms with an independent xxHash
-implementation across boundary lengths, seeds, randomized inputs, and
-streaming partitions. Every hardware kernel available on the test machine is
-also compared directly with the scalar kernel.
+Reference crates are confined to the non-publishable integration-test and
+benchmark packages. Integration tests compare every public variant with an
+independent implementation or published vectors across boundary lengths,
+seeds, randomized inputs, and streaming partitions. Hardware tests compare
+every backend available on the current CPU directly with the scalar kernel.
+CityHash is checked against separate 32/64-bit and 128-bit Rust
+implementations as well as published reference vectors.

@@ -1,3 +1,17 @@
+// Copyright 2026 rache contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use core::arch::x86_64::*;
 
 use super::Xxh3Kernel;
@@ -51,7 +65,10 @@ unsafe fn accumulate_sse2(acc: &mut [u64; 8], stripe: &[u8; 64], secret: &[u8; 6
 unsafe fn scramble_sse2(acc: &mut [u64; 8], secret: &[u8; 64]) {
     let acc_ptr = acc.as_mut_ptr().cast::<__m128i>();
     let secret_ptr = secret.as_ptr().cast::<__m128i>();
-    let factor = _mm_set1_epi64x(PRIME32_1);
+    // SAFETY: The caller guarantees SSE2 support. This intrinsic is unsafe on
+    // the MSRV and safe on newer compilers.
+    #[allow(unused_unsafe)]
+    let factor = unsafe { _mm_set1_epi64x(PRIME32_1) };
 
     for index in 0..4 {
         // SAFETY: All pointers address two lanes within fixed-size arrays. Unaligned
@@ -115,7 +132,10 @@ unsafe fn accumulate_avx2(acc: &mut [u64; 8], stripe: &[u8; 64], secret: &[u8; 6
 unsafe fn scramble_avx2(acc: &mut [u64; 8], secret: &[u8; 64]) {
     let acc_ptr = acc.as_mut_ptr().cast::<__m256i>();
     let secret_ptr = secret.as_ptr().cast::<__m256i>();
-    let factor = _mm256_set1_epi64x(PRIME32_1);
+    // SAFETY: The caller guarantees AVX2 support. This intrinsic is unsafe on
+    // the MSRV and safe on newer compilers.
+    #[allow(unused_unsafe)]
+    let factor = unsafe { _mm256_set1_epi64x(PRIME32_1) };
 
     for index in 0..2 {
         // SAFETY: All pointers address four lanes within fixed-size arrays. Unaligned
