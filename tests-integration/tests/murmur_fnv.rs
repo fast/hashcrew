@@ -17,7 +17,8 @@ use std::io::Cursor;
 
 use rache::{
     Fnv1a32, Fnv1a32Builder, Fnv1a64, Fnv1a64Builder, Murmur3_32, Murmur3_32Builder, Murmur3_128,
-    fnv1a_32, fnv1a_64, murmur3_32, murmur3_128, murmur3_x64_128,
+    fnv1a_32, fnv1a_32_with_offset_basis, fnv1a_64, fnv1a_64_with_offset_basis, murmur3_32,
+    murmur3_128, murmur3_x64_128,
 };
 
 mod support;
@@ -38,6 +39,12 @@ fn input(len: usize) -> Vec<u8> {
 
 fn reference_fnv1a_64(input: &[u8]) -> u64 {
     let mut hash = fnv::FnvHasher::default();
+    hash.write(input);
+    hash.finish()
+}
+
+fn reference_fnv1a_64_with_offset_basis(input: &[u8], offset_basis: u64) -> u64 {
+    let mut hash = fnv::FnvHasher::with_key(offset_basis);
     hash.write(input);
     hash.finish()
 }
@@ -127,6 +134,63 @@ fn fnv_matches_specification_and_reference() {
         let bytes = input(len);
         assert_eq!(fnv1a_64(&bytes), reference_fnv1a_64(&bytes));
     }
+}
+
+#[test]
+fn fnv_custom_offset_basis_matches_chaining_and_reference() {
+    let prefix = b"rache namespace";
+    let suffix = input(4_097);
+    let mut joined = prefix.to_vec();
+    joined.extend_from_slice(&suffix);
+    let basis32 = fnv1a_32(prefix);
+    let basis64 = fnv1a_64(prefix);
+
+    assert_eq!(
+        fnv1a_32_with_offset_basis(&suffix, basis32),
+        fnv1a_32(&joined)
+    );
+    assert_eq!(
+        fnv1a_64_with_offset_basis(&suffix, basis64),
+        fnv1a_64(&joined)
+    );
+
+    for basis in [0, 1, basis64, 0x0123_4567_89ab_cdef, u64::MAX] {
+        assert_eq!(
+            fnv1a_64_with_offset_basis(&suffix, basis),
+            reference_fnv1a_64_with_offset_basis(&suffix, basis),
+            "offset_basis={basis:#x}"
+        );
+    }
+
+    let mut hash32 = Fnv1a32::with_offset_basis(basis32);
+    let mut hash64 = Fnv1a64::with_offset_basis(basis64);
+    for chunk in suffix.chunks(31) {
+        hash32.update(chunk);
+        hash64.update(chunk);
+    }
+    assert_eq!(hash32.offset_basis(), basis32);
+    assert_eq!(hash64.offset_basis(), basis64);
+    assert_eq!(
+        hash32.digest(),
+        Fnv1a32::oneshot_with_offset_basis(&suffix, basis32)
+    );
+    assert_eq!(
+        hash64.digest(),
+        Fnv1a64::oneshot_with_offset_basis(&suffix, basis64)
+    );
+
+    hash32.reset();
+    hash64.reset();
+    hash32.update(&suffix);
+    hash64.update(&suffix);
+    assert_eq!(
+        hash32.digest(),
+        fnv1a_32_with_offset_basis(&suffix, basis32)
+    );
+    assert_eq!(
+        hash64.digest(),
+        fnv1a_64_with_offset_basis(&suffix, basis64)
+    );
 }
 
 #[test]
@@ -268,11 +332,27 @@ fn standard_hash_traits_use_the_raw_stream() {
     murmur.write(&bytes);
     assert_eq!(murmur.finish(), u64::from(murmur3_32(&bytes, 7)));
 
-    let mut fnv32 = Fnv1a32Builder.build_hasher();
+    let mut fnv32 = Fnv1a32Builder::default().build_hasher();
     fnv32.write(&bytes);
     assert_eq!(fnv32.finish(), u64::from(fnv1a_32(&bytes)));
 
-    let mut fnv64 = Fnv1a64Builder.build_hasher();
+    let mut fnv64 = Fnv1a64Builder::default().build_hasher();
     fnv64.write(&bytes);
     assert_eq!(fnv64.finish(), fnv1a_64(&bytes));
+
+    let basis32 = 0x0123_4567;
+    let mut custom32 = Fnv1a32Builder::with_offset_basis(basis32).build_hasher();
+    custom32.write(&bytes);
+    assert_eq!(
+        custom32.finish(),
+        u64::from(fnv1a_32_with_offset_basis(&bytes, basis32))
+    );
+
+    let basis64 = 0x0123_4567_89ab_cdef;
+    let mut custom64 = Fnv1a64Builder::with_offset_basis(basis64).build_hasher();
+    custom64.write(&bytes);
+    assert_eq!(
+        custom64.finish(),
+        fnv1a_64_with_offset_basis(&bytes, basis64)
+    );
 }

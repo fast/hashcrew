@@ -57,13 +57,18 @@ pub use cityhash::{
     cityhash32, cityhash64, cityhash64_with_seed, cityhash64_with_seeds, cityhash128,
     cityhash128_to_64, cityhash128_with_seed,
 };
-pub use fnv::{Fnv1a32, Fnv1a32Builder, Fnv1a64, Fnv1a64Builder, fnv1a_32, fnv1a_64};
+pub use fnv::{
+    Fnv1a32, Fnv1a32Builder, Fnv1a64, Fnv1a64Builder, fnv1a_32, fnv1a_32_with_offset_basis,
+    fnv1a_64, fnv1a_64_with_offset_basis,
+};
 pub use murmur::{
     Murmur3_32, Murmur3_32Builder, Murmur3_128, murmur3_32, murmur3_128, murmur3_x64_128,
 };
 pub use xxhash::{
-    Xxh3, Xxh3_64, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, kernel, xxh3,
-    xxh3_64, xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed, xxh32, xxh64,
+    DEFAULT_SECRET, DEFAULT_SECRET_SIZE, SECRET_SIZE_MIN, Xxh3, Xxh3_64, Xxh3_128, Xxh3Builder,
+    Xxh3SecretBuilder, Xxh3SecretTooShort, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, kernel, xxh3,
+    xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed, xxh3_64_with_seed_and_secret, xxh3_128,
+    xxh3_128_with_secret, xxh3_128_with_seed, xxh3_128_with_seed_and_secret, xxh32, xxh64,
 };
 
 /// Allocation-free one-shot functions for complete byte slices.
@@ -75,9 +80,12 @@ pub mod raw {
         cityhash32, cityhash64, cityhash64_with_seed, cityhash64_with_seeds, cityhash128,
         cityhash128_to_64, cityhash128_with_seed,
     };
-    pub use crate::fnv::{fnv1a_32, fnv1a_64};
+    pub use crate::fnv::{
+        fnv1a_32, fnv1a_32_with_offset_basis, fnv1a_64, fnv1a_64_with_offset_basis,
+    };
     pub use crate::murmur::{murmur3_32, murmur3_128, murmur3_x64_128};
     pub use crate::xxhash::{
-        xxh3_64, xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed, xxh32, xxh64,
+        xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed, xxh3_64_with_seed_and_secret, xxh3_128,
+        xxh3_128_with_secret, xxh3_128_with_seed, xxh3_128_with_seed_and_secret, xxh32, xxh64,
     };
 }

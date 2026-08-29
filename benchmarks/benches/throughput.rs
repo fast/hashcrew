@@ -316,6 +316,132 @@ mod xxh3_128_seeded {
     }
 }
 
+mod xxh3_64_secret {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::xxh3_64_with_secret(black_box(&bytes), black_box(&secret)).unwrap());
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn xxhash_rust(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            xxhash_rust::xxh3::xxh3_64_with_secret(black_box(&bytes), black_box(&secret))
+        });
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            twox_hash::xxhash3_64::Hasher::oneshot_with_secret(
+                black_box(&secret),
+                black_box(&bytes),
+            )
+            .unwrap()
+        });
+    }
+}
+
+mod xxh3_128_secret {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::xxh3_128_with_secret(black_box(&bytes), black_box(&secret)).unwrap());
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn xxhash_rust(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            xxhash_rust::xxh3::xxh3_128_with_secret(black_box(&bytes), black_box(&secret))
+        });
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            twox_hash::xxhash3_128::Hasher::oneshot_with_secret(
+                black_box(&secret),
+                black_box(&bytes),
+            )
+            .unwrap()
+        });
+    }
+}
+
+mod xxh3_64_seed_and_secret {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            rache::xxh3_64_with_seed_and_secret(black_box(&bytes), SEED, black_box(&secret))
+                .unwrap()
+        });
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            twox_hash::xxhash3_64::Hasher::oneshot_with_seed_and_secret(
+                SEED,
+                black_box(&secret),
+                black_box(&bytes),
+            )
+            .unwrap()
+        });
+    }
+}
+
+mod xxh3_128_seed_and_secret {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            rache::xxh3_128_with_seed_and_secret(black_box(&bytes), SEED, black_box(&secret))
+                .unwrap()
+        });
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        let secret = input(rache::DEFAULT_SECRET_SIZE);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            twox_hash::xxhash3_128::Hasher::oneshot_with_seed_and_secret(
+                SEED,
+                black_box(&secret),
+                black_box(&bytes),
+            )
+            .unwrap()
+        });
+    }
+}
+
 mod murmur3_32 {
     use super::*;
 
