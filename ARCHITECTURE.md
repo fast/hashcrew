@@ -22,6 +22,12 @@ update. Outputs that fit in `u64` also have deterministic `Hasher` and
 `BuildHasher` adapters; 128-bit variants expose native `u128` digests instead
 of truncating them to satisfy `Hasher`.
 
+Configuration follows the source algorithm rather than a synthetic common
+interface: xxHash and MurmurHash3 use seeds, CityHash exposes only its official
+seeded one-shot variants, and FNV-1a calls its initial state an offset basis.
+XXH3 additionally accepts custom secrets of any reference-compatible length
+and exposes the seed+secret short/long-input routing defined by xxHash.
+
 CityHash remains a one-shot family. The reference algorithm incorporates the
 complete input length and reads its tail relative to the end of the message;
 bounded-memory state cannot derive the final digest from independently hashed
@@ -35,9 +41,11 @@ The crate-root xxHash module paths remain re-exports of the grouped
 ## Streaming state
 
 MurmurHash3 retains at most one incomplete 4- or 16-byte block. XXH32 and XXH64
-retain one incomplete stripe. XXH3 uses fixed-size buffers for its secret and
-pending input, so no streaming state allocates or replays the complete message.
-FNV-1a updates its accumulator directly and requires no tail buffer.
+retain one incomplete stripe. Seeded XXH3 states own the derived 192-byte
+secret; custom-secret states borrow the validated caller buffer. Both use the
+same fixed-size pending-input and accumulator buffers, so no streaming state
+allocates or replays the complete message. FNV-1a retains its configured offset
+basis so reset restores the same namespace and requires no tail buffer.
 CityHash has no streaming state because a correct facade would need to retain
 and replay the complete input.
 
@@ -63,7 +71,7 @@ multiply-accumulate chains without reading memory or changing digest semantics.
 Reference crates are confined to the non-publishable integration-test and
 benchmark packages. Integration tests compare every public variant with an
 independent implementation or published vectors across boundary lengths,
-seeds, randomized inputs, and streaming partitions. Hardware tests compare
-every backend available on the current CPU directly with the scalar kernel.
-CityHash is checked against separate 32/64-bit and 128-bit Rust
-implementations as well as published reference vectors.
+seeds, custom-secret lengths, offset bases, randomized inputs, and streaming
+partitions. Hardware tests compare every backend available on the current CPU
+directly with the scalar kernel. CityHash is checked against separate 32/64-bit
+and 128-bit Rust implementations as well as published reference vectors.

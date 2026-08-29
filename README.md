@@ -7,12 +7,12 @@ digests, and hardware-accelerated XXH3 kernels.
 
 ## Algorithms
 
-| Family | Variants | Streaming state | `Hasher` / `BuildHasher` |
-|---|---|---|---|
-| CityHash | CityHash32, CityHash64, CityHash128, seeded variants | one-shot only | — |
-| xxHash | XXH32, XXH64, XXH3-64, XXH3-128 | all variants | XXH32, XXH64, XXH3-64 |
-| MurmurHash3 | x86_32, x64_128 | both variants | x86_32 |
-| FNV-1a | 32-bit, 64-bit | both variants | both variants |
+| Family | Variants | Native configuration | Streaming state | `Hasher` / `BuildHasher` |
+|---|---|---|---|---|
+| CityHash | CityHash32, CityHash64, CityHash128 | one/two 64-bit seeds and a 128-bit seed | one-shot only | — |
+| xxHash | XXH32, XXH64, XXH3-64, XXH3-128 | seeds; XXH3 custom secret and seed+secret | all variants | XXH32, XXH64, XXH3-64 |
+| MurmurHash3 | x86_32, x64_128 | 32-bit seed | both variants | x86_32 |
+| FNV-1a | 32-bit, 64-bit | standard or custom offset basis | both variants | both variants |
 
 XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar,
 Arm NEON, x86 SSE2, and x86 AVX2 backends. The other algorithms use compact
@@ -57,6 +57,31 @@ hash.update(b"che");
 assert_eq!(hash.digest(), raw::murmur3_128(b"rache", 42));
 ```
 
+Use each family's native configuration terminology. XXH3 accepts any custom
+secret of at least 136 bytes and returns an error for shorter inputs. Streaming
+states borrow the secret and remain allocation-free:
+
+```rust
+use rache::{Xxh3, raw, xxh3::DEFAULT_SECRET};
+
+let secret = DEFAULT_SECRET; // Replace with application-specific high-entropy bytes.
+let one_shot = raw::xxh3_64_with_secret(b"rache", &secret).unwrap();
+
+let mut streaming = Xxh3::with_secret(&secret).unwrap();
+streaming.update(b"ra");
+streaming.update(b"che");
+assert_eq!(streaming.digest(), one_shot);
+
+let namespace_basis = raw::fnv1a_64(b"my namespace");
+let namespaced = raw::fnv1a_64_with_offset_basis(b"rache", namespace_basis);
+assert_ne!(namespaced, raw::fnv1a_64(b"rache"));
+```
+
+XXH3 seed+secret APIs follow the reference contract: inputs up to 240 bytes
+use the seed, while longer inputs use the custom secret. Custom secrets and
+non-standard FNV offset bases alter deterministic output; neither turns these
+algorithms into cryptographic or adversarially secure hashes.
+
 The main types and functions are re-exported at the crate root. Family-scoped
 paths such as `rache::xxhash::xxh3_64`, `rache::murmur::murmur3_32`, and
 `rache::cityhash::cityhash64` are available when a qualified import is clearer.
@@ -97,7 +122,11 @@ a regression snapshot, not a performance guarantee.
 | XXH32 | 8.03 GB/s | 6.56 GB/s | 6.56 GB/s | 6.56 GB/s (`xxhash-rust`) |
 | XXH64 | 27.39 GB/s | 27.44 GB/s | 27.68 GB/s | 27.80 GB/s (`twox-hash`) |
 | XXH3-64 | 49.30 GB/s | 48.30 GB/s | 48.02 GB/s | 48.30 GB/s (`twox-hash`) |
+| XXH3-64 (custom secret) | 48.91 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
+| XXH3-64 (seed + secret) | 49.29 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
 | XXH3-128 | 49.29 GB/s | 48.30 GB/s | 47.93 GB/s | 48.30 GB/s (`twox-hash`) |
+| XXH3-128 (custom secret) | 48.54 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
+| XXH3-128 (seed + secret) | 48.91 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
 | MurmurHash3 x86_32 | 3.64 GB/s | 3.59 GB/s | 3.59 GB/s | 1.58 GB/s (`murmur3`) |
 | MurmurHash3 x64_128 | 9.15 GB/s | 8.96 GB/s | 8.97 GB/s | 5.90 GB/s (`murmur3`) |
 | FNV-1a 32 | 1.14 GB/s | 1.12 GB/s | 1.12 GB/s | — |
@@ -106,7 +135,7 @@ a regression snapshot, not a performance guarantee.
 The `murmur3` crate exposes a `Read`-based one-shot API, so those rows compare
 complete public-call paths rather than isolated compression loops. Seeded
 CityHash and XXH3 cases, plus additional input boundaries, are included in the
-benchmark suite.
+benchmark suite. Configured XXH3 rows use a 192-byte custom secret.
 
 Reproduce this snapshot with:
 
@@ -138,6 +167,7 @@ kernel. `rache::kernel::selected_backend()` reports the selected backend.
 Integration tests compare CityHash, xxHash, and MurmurHash3 with independent
 implementations, and verify FNV-1a against RFC vectors plus an independent
 64-bit implementation. The suite covers boundary lengths, multiple seeds,
+custom secrets at the minimum and variable lengths, custom FNV offset bases,
 random inputs, every applicable streaming partition, every available hardware
 backend, and both `std` and `no_std` builds.
 
