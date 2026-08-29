@@ -15,8 +15,10 @@
 use core::hash::{BuildHasher, Hasher};
 
 use rache::{
-    Xxh3, Xxh3_128, Xxh3Builder, Xxh32, Xxh32Builder, Xxh64, Xxh64Builder, xxh3_64,
-    xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed, xxh32, xxh64,
+    SECRET_SIZE_MIN, Xxh3, Xxh3_128, Xxh3Builder, Xxh3SecretBuilder, Xxh32, Xxh32Builder, Xxh64,
+    Xxh64Builder, xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed, xxh3_64_with_seed_and_secret,
+    xxh3_128, xxh3_128_with_secret, xxh3_128_with_seed, xxh3_128_with_seed_and_secret, xxh32,
+    xxh64,
 };
 use xxhash_rust::{xxh3, xxh32 as reference32, xxh64 as reference64};
 
@@ -40,6 +42,12 @@ fn input(len: usize) -> Vec<u8> {
                 .wrapping_add(0x5a);
             value as u8
         })
+        .collect()
+}
+
+fn secret(len: usize) -> Vec<u8> {
+    (0..len)
+        .map(|index| index.wrapping_mul(197).wrapping_add(0xa5) as u8)
         .collect()
 }
 
@@ -76,6 +84,137 @@ fn oneshot_matches_reference() {
                 xxh3::xxh3_128_with_seed(&bytes, seed),
                 "XXH3-128 length={len} seed={seed:#x}"
             );
+        }
+    }
+}
+
+#[test]
+fn custom_secret_oneshot_matches_independent_implementations() {
+    for secret_len in [SECRET_SIZE_MIN, SECRET_SIZE_MIN + 1, 192, 255] {
+        let secret = secret(secret_len);
+        for &len in LENGTHS {
+            let bytes = input(len);
+            assert_eq!(
+                xxh3_64_with_secret(&bytes, &secret).unwrap(),
+                xxh3::xxh3_64_with_secret(&bytes, &secret),
+                "XXH3-64 length={len} secret_len={secret_len}"
+            );
+            assert_eq!(
+                xxh3_128_with_secret(&bytes, &secret).unwrap(),
+                xxh3::xxh3_128_with_secret(&bytes, &secret),
+                "XXH3-128 length={len} secret_len={secret_len}"
+            );
+        }
+    }
+}
+
+#[test]
+fn custom_secret_matches_reference_for_every_length_through_variable_blocks() {
+    let bytes = input(2 * 1_024 + 1);
+    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+        let secret = secret(secret_len);
+        for len in 0..bytes.len() {
+            assert_eq!(
+                xxh3_64_with_secret(&bytes[..len], &secret).unwrap(),
+                xxh3::xxh3_64_with_secret(&bytes[..len], &secret),
+                "XXH3-64 length={len} secret_len={secret_len}"
+            );
+            assert_eq!(
+                xxh3_128_with_secret(&bytes[..len], &secret).unwrap(),
+                xxh3::xxh3_128_with_secret(&bytes[..len], &secret),
+                "XXH3-128 length={len} secret_len={secret_len}"
+            );
+        }
+    }
+}
+
+#[test]
+fn seed_and_secret_oneshot_matches_reference_contract() {
+    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+        let secret = secret(secret_len);
+        for &len in LENGTHS {
+            let bytes = input(len);
+            for &seed in SEEDS {
+                assert_eq!(
+                    xxh3_64_with_seed_and_secret(&bytes, seed, &secret).unwrap(),
+                    twox_hash::xxhash3_64::Hasher::oneshot_with_seed_and_secret(
+                        seed, &secret, &bytes,
+                    )
+                    .unwrap(),
+                    "XXH3-64 length={len} seed={seed:#x} secret_len={secret_len}"
+                );
+                assert_eq!(
+                    xxh3_128_with_seed_and_secret(&bytes, seed, &secret).unwrap(),
+                    twox_hash::xxhash3_128::Hasher::oneshot_with_seed_and_secret(
+                        seed, &secret, &bytes,
+                    )
+                    .unwrap(),
+                    "XXH3-128 length={len} seed={seed:#x} secret_len={secret_len}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn custom_secret_length_is_validated() {
+    let short = secret(SECRET_SIZE_MIN - 1);
+    let error = xxh3_64_with_secret(b"rache", &short).unwrap_err();
+    assert_eq!(error.actual_len(), SECRET_SIZE_MIN - 1);
+    assert_eq!(rache::Xxh3SecretTooShort::minimum_len(), SECRET_SIZE_MIN);
+    assert_eq!(
+        error.to_string(),
+        "XXH3 secret is 135 bytes; at least 136 bytes are required"
+    );
+
+    assert!(xxh3_128_with_secret(b"rache", &short).is_err());
+    assert!(xxh3_64_with_seed_and_secret(b"rache", 7, &short).is_err());
+    assert!(xxh3_128_with_seed_and_secret(b"rache", 7, &short).is_err());
+    assert!(Xxh3::with_secret(&short).is_err());
+    assert!(Xxh3::with_seed_and_secret(7, &short).is_err());
+    assert!(Xxh3_128::with_secret(&short).is_err());
+    assert!(Xxh3_128::with_seed_and_secret(7, &short).is_err());
+    assert!(Xxh3SecretBuilder::with_secret(&short).is_err());
+    assert!(Xxh3SecretBuilder::with_seed_and_secret(7, &short).is_err());
+}
+
+#[test]
+fn custom_secret_streaming_matches_oneshot() {
+    let seed = 0x0123_4567_89ab_cdef;
+    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+        let secret = secret(secret_len);
+        for &len in LENGTHS {
+            let bytes = input(len);
+            for chunk_size in [1, 17, 64, 257] {
+                let mut hash64 = Xxh3::with_secret(&secret).unwrap();
+                let mut hash128 = Xxh3_128::with_secret(&secret).unwrap();
+                let mut combined64 = Xxh3::with_seed_and_secret(seed, &secret).unwrap();
+                let mut combined128 = Xxh3_128::with_seed_and_secret(seed, &secret).unwrap();
+
+                for chunk in bytes.chunks(chunk_size) {
+                    hash64.update(chunk);
+                    hash128.update(chunk);
+                    combined64.update(chunk);
+                    combined128.update(chunk);
+                }
+
+                assert_eq!(
+                    hash64.digest(),
+                    xxh3_64_with_secret(&bytes, &secret).unwrap()
+                );
+                assert_eq!(
+                    hash128.digest(),
+                    xxh3_128_with_secret(&bytes, &secret).unwrap()
+                );
+                assert_eq!(
+                    combined64.digest(),
+                    xxh3_64_with_seed_and_secret(&bytes, seed, &secret).unwrap()
+                );
+                assert_eq!(
+                    combined128.digest(),
+                    xxh3_128_with_seed_and_secret(&bytes, seed, &secret).unwrap()
+                );
+            }
         }
     }
 }
@@ -307,6 +446,28 @@ fn streaming_state_can_be_finished_cloned_continued_and_reset() {
     fork128.reset();
     fork128.update(&suffix);
     assert_eq!(fork128.digest(), xxh3_128_with_seed(&suffix, seed));
+
+    let secret = secret(SECRET_SIZE_MIN);
+    let mut custom = Xxh3::with_secret(&secret).unwrap();
+    custom.update(&prefix);
+    let custom_fork = custom.clone();
+    custom.update(&suffix);
+    assert_eq!(
+        custom.digest(),
+        xxh3_64_with_secret(&joined, &secret).unwrap()
+    );
+    assert_eq!(
+        custom_fork.digest(),
+        xxh3_64_with_secret(&prefix, &secret).unwrap()
+    );
+    custom.reset();
+    custom.update(&suffix);
+    assert_eq!(custom.seed(), 0);
+    assert_eq!(custom.total_len(), suffix.len() as u64);
+    assert_eq!(
+        custom.digest(),
+        xxh3_64_with_secret(&suffix, &secret).unwrap()
+    );
 }
 
 #[test]
@@ -324,6 +485,25 @@ fn standard_hash_traits_use_the_raw_stream() {
     let mut via_trait3 = Xxh3Builder::with_seed(13).build_hasher();
     via_trait3.write(&bytes);
     assert_eq!(via_trait3.finish(), xxh3_64_with_seed(&bytes, 13));
+
+    let secret = secret(SECRET_SIZE_MIN);
+    let mut via_secret = Xxh3SecretBuilder::with_secret(&secret)
+        .unwrap()
+        .build_hasher();
+    via_secret.write(&bytes);
+    assert_eq!(
+        via_secret.finish(),
+        xxh3_64_with_secret(&bytes, &secret).unwrap()
+    );
+
+    let mut via_seed_and_secret = Xxh3SecretBuilder::with_seed_and_secret(17, &secret)
+        .unwrap()
+        .build_hasher();
+    via_seed_and_secret.write(&bytes);
+    assert_eq!(
+        via_seed_and_secret.finish(),
+        xxh3_64_with_seed_and_secret(&bytes, 17, &secret).unwrap()
+    );
 
     assert!(rache::kernel::selected_backend().is_available());
 }

@@ -215,6 +215,7 @@ dependencies = [
  "fnv",
  "murmur3",
  "rache",
+ "twox-hash",
  "xxhash-rust",
 ]
 

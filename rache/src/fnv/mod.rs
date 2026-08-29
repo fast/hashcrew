@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! FNV-1a one-shot and streaming APIs.
+//! FNV-1a one-shot and streaming APIs with standard or custom offset bases.
 
 use core::hash::{BuildHasher, Hasher};
 
@@ -45,28 +45,56 @@ fn update_64(mut hash: u64, input: &[u8]) -> u64 {
 #[must_use]
 #[inline]
 pub fn fnv1a_32(input: &[u8]) -> u32 {
-    update_32(FNV1A_32_OFFSET_BASIS, input)
+    fnv1a_32_with_offset_basis(input, FNV1A_32_OFFSET_BASIS)
+}
+
+/// Hashes `input` with 32-bit FNV-1a starting from `offset_basis`.
+///
+/// Digests produced with a non-standard offset basis do not interoperate with
+/// standard FNV-1a digests.
+#[must_use]
+#[inline]
+pub fn fnv1a_32_with_offset_basis(input: &[u8], offset_basis: u32) -> u32 {
+    update_32(offset_basis, input)
 }
 
 /// Hashes `input` with 64-bit FNV-1a.
 #[must_use]
 #[inline]
 pub fn fnv1a_64(input: &[u8]) -> u64 {
-    update_64(FNV1A_64_OFFSET_BASIS, input)
+    fnv1a_64_with_offset_basis(input, FNV1A_64_OFFSET_BASIS)
+}
+
+/// Hashes `input` with 64-bit FNV-1a starting from `offset_basis`.
+///
+/// Digests produced with a non-standard offset basis do not interoperate with
+/// standard FNV-1a digests.
+#[must_use]
+#[inline]
+pub fn fnv1a_64_with_offset_basis(input: &[u8], offset_basis: u64) -> u64 {
+    update_64(offset_basis, input)
 }
 
 /// Incremental 32-bit FNV-1a state.
 #[derive(Clone, Copy, Debug)]
 pub struct Fnv1a32 {
     hash: u32,
+    offset_basis: u32,
 }
 
 impl Fnv1a32 {
     /// Creates a state using the standard offset basis.
     #[must_use]
     pub const fn new() -> Self {
+        Self::with_offset_basis(FNV1A_32_OFFSET_BASIS)
+    }
+
+    /// Creates a state using `offset_basis`.
+    #[must_use]
+    pub const fn with_offset_basis(offset_basis: u32) -> Self {
         Self {
-            hash: FNV1A_32_OFFSET_BASIS,
+            hash: offset_basis,
+            offset_basis,
         }
     }
 
@@ -75,6 +103,13 @@ impl Fnv1a32 {
     #[inline]
     pub fn oneshot(input: &[u8]) -> u32 {
         fnv1a_32(input)
+    }
+
+    /// Hashes a complete byte slice starting from `offset_basis`.
+    #[must_use]
+    #[inline]
+    pub fn oneshot_with_offset_basis(input: &[u8], offset_basis: u32) -> u32 {
+        fnv1a_32_with_offset_basis(input, offset_basis)
     }
 
     /// Adds raw bytes to the hash state.
@@ -89,9 +124,15 @@ impl Fnv1a32 {
         self.hash
     }
 
-    /// Resets the state to the standard offset basis.
+    /// Returns the offset basis retained by this state.
+    #[must_use]
+    pub const fn offset_basis(&self) -> u32 {
+        self.offset_basis
+    }
+
+    /// Resets the state to its configured offset basis.
     pub fn reset(&mut self) {
-        self.hash = FNV1A_32_OFFSET_BASIS;
+        self.hash = self.offset_basis;
     }
 }
 
@@ -117,15 +158,31 @@ impl Hasher for Fnv1a32 {
 ///
 /// FNV-1a is intended for trusted inputs and is not resistant to deliberate
 /// hash-flooding attacks.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Fnv1a32Builder;
+#[derive(Clone, Copy, Debug)]
+pub struct Fnv1a32Builder {
+    offset_basis: u32,
+}
+
+impl Fnv1a32Builder {
+    /// Creates a builder using `offset_basis`.
+    #[must_use]
+    pub const fn with_offset_basis(offset_basis: u32) -> Self {
+        Self { offset_basis }
+    }
+}
+
+impl Default for Fnv1a32Builder {
+    fn default() -> Self {
+        Self::with_offset_basis(FNV1A_32_OFFSET_BASIS)
+    }
+}
 
 impl BuildHasher for Fnv1a32Builder {
     type Hasher = Fnv1a32;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Fnv1a32::new()
+        Fnv1a32::with_offset_basis(self.offset_basis)
     }
 }
 
@@ -133,14 +190,22 @@ impl BuildHasher for Fnv1a32Builder {
 #[derive(Clone, Copy, Debug)]
 pub struct Fnv1a64 {
     hash: u64,
+    offset_basis: u64,
 }
 
 impl Fnv1a64 {
     /// Creates a state using the standard offset basis.
     #[must_use]
     pub const fn new() -> Self {
+        Self::with_offset_basis(FNV1A_64_OFFSET_BASIS)
+    }
+
+    /// Creates a state using `offset_basis`.
+    #[must_use]
+    pub const fn with_offset_basis(offset_basis: u64) -> Self {
         Self {
-            hash: FNV1A_64_OFFSET_BASIS,
+            hash: offset_basis,
+            offset_basis,
         }
     }
 
@@ -149,6 +214,13 @@ impl Fnv1a64 {
     #[inline]
     pub fn oneshot(input: &[u8]) -> u64 {
         fnv1a_64(input)
+    }
+
+    /// Hashes a complete byte slice starting from `offset_basis`.
+    #[must_use]
+    #[inline]
+    pub fn oneshot_with_offset_basis(input: &[u8], offset_basis: u64) -> u64 {
+        fnv1a_64_with_offset_basis(input, offset_basis)
     }
 
     /// Adds raw bytes to the hash state.
@@ -163,9 +235,15 @@ impl Fnv1a64 {
         self.hash
     }
 
-    /// Resets the state to the standard offset basis.
+    /// Returns the offset basis retained by this state.
+    #[must_use]
+    pub const fn offset_basis(&self) -> u64 {
+        self.offset_basis
+    }
+
+    /// Resets the state to its configured offset basis.
     pub fn reset(&mut self) {
-        self.hash = FNV1A_64_OFFSET_BASIS;
+        self.hash = self.offset_basis;
     }
 }
 
@@ -191,15 +269,31 @@ impl Hasher for Fnv1a64 {
 ///
 /// FNV-1a is intended for trusted inputs and is not resistant to deliberate
 /// hash-flooding attacks.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Fnv1a64Builder;
+#[derive(Clone, Copy, Debug)]
+pub struct Fnv1a64Builder {
+    offset_basis: u64,
+}
+
+impl Fnv1a64Builder {
+    /// Creates a builder using `offset_basis`.
+    #[must_use]
+    pub const fn with_offset_basis(offset_basis: u64) -> Self {
+        Self { offset_basis }
+    }
+}
+
+impl Default for Fnv1a64Builder {
+    fn default() -> Self {
+        Self::with_offset_basis(FNV1A_64_OFFSET_BASIS)
+    }
+}
 
 impl BuildHasher for Fnv1a64Builder {
     type Hasher = Fnv1a64;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Fnv1a64::new()
+        Fnv1a64::with_offset_basis(self.offset_basis)
     }
 }
 

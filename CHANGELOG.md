@@ -7,6 +7,9 @@
   128-to-64 reducer as allocation-free one-shot APIs.
 - Add MurmurHash3 x86_32 and x64_128 one-shot and streaming implementations.
 - Add FNV-1a 32 and FNV-1a 64 one-shot and streaming implementations.
+- Add reference-compatible XXH3 custom-secret and seed+secret raw, streaming,
+  and `BuildHasher` APIs without allocation.
+- Add FNV-1a custom offset-basis raw, streaming, and `BuildHasher` APIs.
 - Add allocation-free raw and streaming APIs plus standard hashing adapters.
 - Add scalar, Arm NEON, x86 SSE2, and x86 AVX2 XXH3 kernels.
 - Optimize NEON stripe accumulation and instruction scheduling, plus buffered

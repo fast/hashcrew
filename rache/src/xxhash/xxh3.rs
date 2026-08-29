@@ -31,11 +31,12 @@ const PRIME64_5: u64 = 0x27d4_eb2f_1656_67c5;
 const PRIME_MX1: u64 = 0x1656_6791_9e37_79f9;
 const PRIME_MX2: u64 = 0x9fb2_1c65_1e98_df25;
 
-const SECRET_SIZE: usize = 192;
+/// The minimum number of bytes accepted by the XXH3 custom-secret APIs.
+pub const SECRET_SIZE_MIN: usize = 136;
+/// The number of bytes in the standard XXH3 secret.
+pub const DEFAULT_SECRET_SIZE: usize = 192;
 const STRIPE_SIZE: usize = 64;
 const SECRET_CONSUME_RATE: usize = 8;
-const STRIPES_PER_BLOCK: usize = (SECRET_SIZE - STRIPE_SIZE) / SECRET_CONSUME_RATE;
-const BLOCK_SIZE: usize = STRIPES_PER_BLOCK * STRIPE_SIZE;
 const MIDSIZE_MAX: usize = 240;
 const STREAM_BUFFER_SIZE: usize = STRIPE_SIZE * 4;
 const SECRET_LAST_ACC_START: usize = 7;
@@ -48,7 +49,7 @@ const INITIAL_ACC: [u64; 8] = [
 ];
 
 /// The standard 192-byte XXH3 secret.
-pub const DEFAULT_SECRET: [u8; SECRET_SIZE] = [
+pub const DEFAULT_SECRET: [u8; DEFAULT_SECRET_SIZE] = [
     0xb8, 0xfe, 0x6c, 0x39, 0x23, 0xa4, 0x4b, 0xbe, 0x7c, 0x01, 0x81, 0x2c, 0xf7, 0x21, 0xad, 0x1c,
     0xde, 0xd4, 0x6d, 0xe9, 0x83, 0x90, 0x97, 0xdb, 0x72, 0x40, 0xa4, 0xa4, 0xb7, 0xb3, 0x67, 0x1f,
     0xcb, 0x79, 0xe6, 0x4e, 0xcc, 0xc0, 0xe5, 0x78, 0x82, 0x5a, 0xd0, 0x7d, 0xcc, 0xff, 0x72, 0x21,
@@ -63,12 +64,55 @@ pub const DEFAULT_SECRET: [u8; SECRET_SIZE] = [
     0x45, 0xcb, 0x3a, 0x8f, 0x95, 0x16, 0x04, 0x28, 0xaf, 0xd7, 0xfb, 0xca, 0xbb, 0x4b, 0x40, 0x7e,
 ];
 
+/// Error returned when an XXH3 custom secret is shorter than 136 bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Xxh3SecretTooShort {
+    actual_len: usize,
+}
+
+impl Xxh3SecretTooShort {
+    /// Returns the supplied secret length.
+    #[must_use]
+    pub const fn actual_len(self) -> usize {
+        self.actual_len
+    }
+
+    /// Returns the minimum accepted secret length.
+    #[must_use]
+    pub const fn minimum_len() -> usize {
+        SECRET_SIZE_MIN
+    }
+}
+
+impl fmt::Display for Xxh3SecretTooShort {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "XXH3 secret is {} bytes; at least {SECRET_SIZE_MIN} bytes are required",
+            self.actual_len
+        )
+    }
+}
+
+impl core::error::Error for Xxh3SecretTooShort {}
+
+#[inline]
+fn validate_secret(secret: &[u8]) -> Result<(), Xxh3SecretTooShort> {
+    if secret.len() < SECRET_SIZE_MIN {
+        Err(Xxh3SecretTooShort {
+            actual_len: secret.len(),
+        })
+    } else {
+        Ok(())
+    }
+}
+
 /// Hashes `input` with unseeded XXH3-64.
 #[must_use]
 #[inline]
 pub fn xxh3_64(input: &[u8]) -> u64 {
     if input.len() <= MIDSIZE_MAX {
-        hash_64_short(input, 0)
+        hash_64_short(input, 0, &DEFAULT_SECRET)
     } else {
         kernel::dispatch!(hash_long_64(input, &DEFAULT_SECRET))
     }
@@ -81,11 +125,42 @@ pub fn xxh3_64_with_seed(input: &[u8], seed: u64) -> u64 {
     if seed == 0 {
         xxh3_64(input)
     } else if input.len() <= MIDSIZE_MAX {
-        hash_64_short(input, seed)
+        hash_64_short(input, seed, &DEFAULT_SECRET)
     } else {
         let secret = derive_secret(seed);
         kernel::dispatch!(hash_long_64(input, &secret))
     }
+}
+
+/// Hashes `input` with an XXH3-64 custom secret.
+///
+/// `secret` must contain at least [`SECRET_SIZE_MIN`] bytes and should contain
+/// high-entropy data. A custom secret changes the digest but does not make
+/// XXH3 cryptographically secure.
+pub fn xxh3_64_with_secret(input: &[u8], secret: &[u8]) -> Result<u64, Xxh3SecretTooShort> {
+    validate_secret(secret)?;
+    Ok(if input.len() <= MIDSIZE_MAX {
+        hash_64_short(input, 0, secret)
+    } else {
+        kernel::dispatch!(hash_long_64(input, secret))
+    })
+}
+
+/// Hashes `input` with an XXH3-64 seed and custom secret.
+///
+/// This follows the reference XXH3 contract: inputs up to 240 bytes use
+/// `seed`, while longer inputs use `secret`.
+pub fn xxh3_64_with_seed_and_secret(
+    input: &[u8],
+    seed: u64,
+    secret: &[u8],
+) -> Result<u64, Xxh3SecretTooShort> {
+    validate_secret(secret)?;
+    Ok(if input.len() <= MIDSIZE_MAX {
+        hash_64_short(input, seed, &DEFAULT_SECRET)
+    } else {
+        kernel::dispatch!(hash_long_64(input, secret))
+    })
 }
 
 /// Hashes `input` with unseeded XXH3-128.
@@ -96,7 +171,7 @@ pub fn xxh3_64_with_seed(input: &[u8], seed: u64) -> u64 {
 #[inline]
 pub fn xxh3_128(input: &[u8]) -> u128 {
     if input.len() <= MIDSIZE_MAX {
-        hash_128_short(input, 0)
+        hash_128_short(input, 0, &DEFAULT_SECRET)
     } else {
         kernel::dispatch!(hash_long_128(input, &DEFAULT_SECRET))
     }
@@ -109,21 +184,52 @@ pub fn xxh3_128_with_seed(input: &[u8], seed: u64) -> u128 {
     if seed == 0 {
         xxh3_128(input)
     } else if input.len() <= MIDSIZE_MAX {
-        hash_128_short(input, seed)
+        hash_128_short(input, seed, &DEFAULT_SECRET)
     } else {
         let secret = derive_secret(seed);
         kernel::dispatch!(hash_long_128(input, &secret))
     }
 }
 
+/// Hashes `input` with an XXH3-128 custom secret.
+///
+/// `secret` must contain at least [`SECRET_SIZE_MIN`] bytes and should contain
+/// high-entropy data. A custom secret changes the digest but does not make
+/// XXH3 cryptographically secure.
+pub fn xxh3_128_with_secret(input: &[u8], secret: &[u8]) -> Result<u128, Xxh3SecretTooShort> {
+    validate_secret(secret)?;
+    Ok(if input.len() <= MIDSIZE_MAX {
+        hash_128_short(input, 0, secret)
+    } else {
+        kernel::dispatch!(hash_long_128(input, secret))
+    })
+}
+
+/// Hashes `input` with an XXH3-128 seed and custom secret.
+///
+/// This follows the reference XXH3 contract: inputs up to 240 bytes use
+/// `seed`, while longer inputs use `secret`.
+pub fn xxh3_128_with_seed_and_secret(
+    input: &[u8],
+    seed: u64,
+    secret: &[u8],
+) -> Result<u128, Xxh3SecretTooShort> {
+    validate_secret(secret)?;
+    Ok(if input.len() <= MIDSIZE_MAX {
+        hash_128_short(input, seed, &DEFAULT_SECRET)
+    } else {
+        kernel::dispatch!(hash_long_128(input, secret))
+    })
+}
+
 #[inline]
-fn derive_secret(seed: u64) -> [u8; SECRET_SIZE] {
+fn derive_secret(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
     let mut secret = DEFAULT_SECRET;
     if seed == 0 {
         return secret;
     }
 
-    for offset in (0..SECRET_SIZE).step_by(16) {
+    for offset in (0..DEFAULT_SECRET_SIZE).step_by(16) {
         let low = read_u64(&secret, offset).wrapping_add(seed);
         let high = read_u64(&secret, offset + 8).wrapping_sub(seed);
         secret[offset..offset + 8].copy_from_slice(&low.to_le_bytes());
@@ -166,128 +272,129 @@ fn combined_1_to_3(input: &[u8]) -> u32 {
 }
 
 #[inline(always)]
-fn mix_16(input: &[u8], input_offset: usize, secret_offset: usize, seed: u64) -> u64 {
-    let low =
-        read_u64(input, input_offset) ^ read_u64(&DEFAULT_SECRET, secret_offset).wrapping_add(seed);
-    let high = read_u64(input, input_offset + 8)
-        ^ read_u64(&DEFAULT_SECRET, secret_offset + 8).wrapping_sub(seed);
+fn mix_16(
+    input: &[u8],
+    input_offset: usize,
+    secret: &[u8],
+    secret_offset: usize,
+    seed: u64,
+) -> u64 {
+    let low = read_u64(input, input_offset) ^ read_u64(secret, secret_offset).wrapping_add(seed);
+    let high =
+        read_u64(input, input_offset + 8) ^ read_u64(secret, secret_offset + 8).wrapping_sub(seed);
     mul128_fold64(low, high)
 }
 
 #[inline(always)]
-fn hash_64_short(input: &[u8], seed: u64) -> u64 {
+fn hash_64_short(input: &[u8], seed: u64, secret: &[u8]) -> u64 {
     match input.len() {
         0 => {
-            let bitflip = read_u64(&DEFAULT_SECRET, 56) ^ read_u64(&DEFAULT_SECRET, 64);
+            let bitflip = read_u64(secret, 56) ^ read_u64(secret, 64);
             avalanche_xxh64(seed ^ bitflip)
         }
         1..=3 => {
-            let bitflip = u64::from(read_u32(&DEFAULT_SECRET, 0) ^ read_u32(&DEFAULT_SECRET, 4));
+            let bitflip = u64::from(read_u32(secret, 0) ^ read_u32(secret, 4));
             avalanche_xxh64(u64::from(combined_1_to_3(input)) ^ bitflip.wrapping_add(seed))
         }
         4..=8 => {
             let modified_seed = seed ^ (u64::from((seed as u32).swap_bytes()) << 32);
             let input64 =
                 u64::from(read_u32(input, input.len() - 4)) | (u64::from(read_u32(input, 0)) << 32);
-            let bitflip = (read_u64(&DEFAULT_SECRET, 8) ^ read_u64(&DEFAULT_SECRET, 16))
-                .wrapping_sub(modified_seed);
+            let bitflip = (read_u64(secret, 8) ^ read_u64(secret, 16)).wrapping_sub(modified_seed);
             rrmxmx(input64 ^ bitflip, input.len())
         }
         9..=16 => {
             let low = read_u64(input, 0)
-                ^ (read_u64(&DEFAULT_SECRET, 24) ^ read_u64(&DEFAULT_SECRET, 32))
-                    .wrapping_add(seed);
+                ^ (read_u64(secret, 24) ^ read_u64(secret, 32)).wrapping_add(seed);
             let high = read_u64(input, input.len() - 8)
-                ^ (read_u64(&DEFAULT_SECRET, 40) ^ read_u64(&DEFAULT_SECRET, 48))
-                    .wrapping_sub(seed);
+                ^ (read_u64(secret, 40) ^ read_u64(secret, 48)).wrapping_sub(seed);
             let value = (input.len() as u64)
                 .wrapping_add(low.swap_bytes())
                 .wrapping_add(high)
                 .wrapping_add(mul128_fold64(low, high));
             avalanche(value)
         }
-        17..=128 => hash_64_17_to_128(input, seed),
-        129..=240 => hash_64_129_to_240(input, seed),
+        17..=128 => hash_64_17_to_128(input, seed, secret),
+        129..=240 => hash_64_129_to_240(input, seed, secret),
         _ => unreachable!("short-input dispatch validates the length"),
     }
 }
 
 #[inline]
-fn hash_64_17_to_128(input: &[u8], seed: u64) -> u64 {
+fn hash_64_17_to_128(input: &[u8], seed: u64, secret: &[u8]) -> u64 {
     let len = input.len();
     let mut acc = (len as u64).wrapping_mul(PRIME64_1);
 
-    acc = acc.wrapping_add(mix_16(input, 0, 0, seed));
-    acc = acc.wrapping_add(mix_16(input, len - 16, 16, seed));
+    acc = acc.wrapping_add(mix_16(input, 0, secret, 0, seed));
+    acc = acc.wrapping_add(mix_16(input, len - 16, secret, 16, seed));
     if len > 32 {
-        acc = acc.wrapping_add(mix_16(input, 16, 32, seed));
-        acc = acc.wrapping_add(mix_16(input, len - 32, 48, seed));
+        acc = acc.wrapping_add(mix_16(input, 16, secret, 32, seed));
+        acc = acc.wrapping_add(mix_16(input, len - 32, secret, 48, seed));
     }
     if len > 64 {
-        acc = acc.wrapping_add(mix_16(input, 32, 64, seed));
-        acc = acc.wrapping_add(mix_16(input, len - 48, 80, seed));
+        acc = acc.wrapping_add(mix_16(input, 32, secret, 64, seed));
+        acc = acc.wrapping_add(mix_16(input, len - 48, secret, 80, seed));
     }
     if len > 96 {
-        acc = acc.wrapping_add(mix_16(input, 48, 96, seed));
-        acc = acc.wrapping_add(mix_16(input, len - 64, 112, seed));
+        acc = acc.wrapping_add(mix_16(input, 48, secret, 96, seed));
+        acc = acc.wrapping_add(mix_16(input, len - 64, secret, 112, seed));
     }
     avalanche(acc)
 }
 
 #[inline]
-fn hash_64_129_to_240(input: &[u8], seed: u64) -> u64 {
+fn hash_64_129_to_240(input: &[u8], seed: u64, secret: &[u8]) -> u64 {
     let mut acc = (input.len() as u64).wrapping_mul(PRIME64_1);
     for chunk in 0..8 {
-        acc = acc.wrapping_add(mix_16(input, chunk * 16, chunk * 16, seed));
+        acc = acc.wrapping_add(mix_16(input, chunk * 16, secret, chunk * 16, seed));
     }
     acc = avalanche(acc);
 
     let chunk_count = input.len() / 16;
     for chunk in 8..chunk_count {
-        acc = acc.wrapping_add(mix_16(input, chunk * 16, 3 + (chunk - 8) * 16, seed));
+        acc = acc.wrapping_add(mix_16(
+            input,
+            chunk * 16,
+            secret,
+            3 + (chunk - 8) * 16,
+            seed,
+        ));
     }
-    acc = acc.wrapping_add(mix_16(input, input.len() - 16, 119, seed));
+    acc = acc.wrapping_add(mix_16(input, input.len() - 16, secret, 119, seed));
     avalanche(acc)
 }
 
 #[inline(always)]
-fn hash_128_short(input: &[u8], seed: u64) -> u128 {
+fn hash_128_short(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     match input.len() {
         0 => {
-            let low = avalanche_xxh64(
-                seed ^ read_u64(&DEFAULT_SECRET, 64) ^ read_u64(&DEFAULT_SECRET, 72),
-            );
-            let high = avalanche_xxh64(
-                seed ^ read_u64(&DEFAULT_SECRET, 80) ^ read_u64(&DEFAULT_SECRET, 88),
-            );
+            let low = avalanche_xxh64(seed ^ read_u64(secret, 64) ^ read_u64(secret, 72));
+            let high = avalanche_xxh64(seed ^ read_u64(secret, 80) ^ read_u64(secret, 88));
             make_u128(low, high)
         }
         1..=3 => {
             let combined = combined_1_to_3(input);
-            let low_bitflip =
-                u64::from(read_u32(&DEFAULT_SECRET, 0) ^ read_u32(&DEFAULT_SECRET, 4));
-            let high_bitflip =
-                u64::from(read_u32(&DEFAULT_SECRET, 8) ^ read_u32(&DEFAULT_SECRET, 12));
+            let low_bitflip = u64::from(read_u32(secret, 0) ^ read_u32(secret, 4));
+            let high_bitflip = u64::from(read_u32(secret, 8) ^ read_u32(secret, 12));
             let low = avalanche_xxh64(u64::from(combined) ^ low_bitflip.wrapping_add(seed));
             let high_input = combined.swap_bytes().rotate_left(13);
             let high = avalanche_xxh64(u64::from(high_input) ^ high_bitflip.wrapping_sub(seed));
             make_u128(low, high)
         }
-        4..=8 => hash_128_4_to_8(input, seed),
-        9..=16 => hash_128_9_to_16(input, seed),
-        17..=128 => hash_128_17_to_128(input, seed),
-        129..=240 => hash_128_129_to_240(input, seed),
+        4..=8 => hash_128_4_to_8(input, seed, secret),
+        9..=16 => hash_128_9_to_16(input, seed, secret),
+        17..=128 => hash_128_17_to_128(input, seed, secret),
+        129..=240 => hash_128_129_to_240(input, seed, secret),
         _ => unreachable!("short-input dispatch validates the length"),
     }
 }
 
 #[inline(always)]
-fn hash_128_4_to_8(input: &[u8], seed: u64) -> u128 {
+fn hash_128_4_to_8(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     let modified_seed = seed ^ (u64::from((seed as u32).swap_bytes()) << 32);
     let input64 =
         u64::from(read_u32(input, 0)) | (u64::from(read_u32(input, input.len() - 4)) << 32);
-    let bitflip =
-        (read_u64(&DEFAULT_SECRET, 16) ^ read_u64(&DEFAULT_SECRET, 24)).wrapping_add(modified_seed);
+    let bitflip = (read_u64(secret, 16) ^ read_u64(secret, 24)).wrapping_add(modified_seed);
     let product = u128::from(input64 ^ bitflip).wrapping_mul(u128::from(
         PRIME64_1.wrapping_add((input.len() as u64) << 2),
     ));
@@ -302,14 +409,11 @@ fn hash_128_4_to_8(input: &[u8], seed: u64) -> u128 {
 }
 
 #[inline(always)]
-fn hash_128_9_to_16(input: &[u8], seed: u64) -> u128 {
+fn hash_128_9_to_16(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     let first = read_u64(input, 0);
     let last = read_u64(input, input.len() - 8);
-    let value1 = first
-        ^ last
-        ^ (read_u64(&DEFAULT_SECRET, 32) ^ read_u64(&DEFAULT_SECRET, 40)).wrapping_sub(seed);
-    let value2 =
-        last ^ (read_u64(&DEFAULT_SECRET, 48) ^ read_u64(&DEFAULT_SECRET, 56)).wrapping_add(seed);
+    let value1 = first ^ last ^ (read_u64(secret, 32) ^ read_u64(secret, 40)).wrapping_sub(seed);
+    let value2 = last ^ (read_u64(secret, 48) ^ read_u64(secret, 56)).wrapping_add(seed);
     let product = u128::from(value1).wrapping_mul(u128::from(PRIME64_1));
     let mut low = (product as u64).wrapping_add(((input.len() - 1) as u64) << 54);
     let high = ((product >> 64) as u64)
@@ -326,11 +430,18 @@ fn mix_32(
     input: &[u8],
     first_offset: usize,
     second_offset: usize,
+    secret: &[u8],
     secret_offset: usize,
     seed: u64,
 ) {
-    acc[0] = acc[0].wrapping_add(mix_16(input, first_offset, secret_offset, seed));
-    acc[1] = acc[1].wrapping_add(mix_16(input, second_offset, secret_offset + 16, seed));
+    acc[0] = acc[0].wrapping_add(mix_16(input, first_offset, secret, secret_offset, seed));
+    acc[1] = acc[1].wrapping_add(mix_16(
+        input,
+        second_offset,
+        secret,
+        secret_offset + 16,
+        seed,
+    ));
     acc[0] ^= read_u64(input, second_offset).wrapping_add(read_u64(input, second_offset + 8));
     acc[1] ^= read_u64(input, first_offset).wrapping_add(read_u64(input, first_offset + 8));
 }
@@ -346,28 +457,36 @@ fn finalize_128_medium(acc: [u64; 2], len: u64, seed: u64) -> u128 {
 }
 
 #[inline]
-fn hash_128_17_to_128(input: &[u8], seed: u64) -> u128 {
+fn hash_128_17_to_128(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     let len = input.len();
     let mut acc = [(len as u64).wrapping_mul(PRIME64_1), 0];
     if len > 96 {
-        mix_32(&mut acc, input, 48, len - 64, 96, seed);
+        mix_32(&mut acc, input, 48, len - 64, secret, 96, seed);
     }
     if len > 64 {
-        mix_32(&mut acc, input, 32, len - 48, 64, seed);
+        mix_32(&mut acc, input, 32, len - 48, secret, 64, seed);
     }
     if len > 32 {
-        mix_32(&mut acc, input, 16, len - 32, 32, seed);
+        mix_32(&mut acc, input, 16, len - 32, secret, 32, seed);
     }
-    mix_32(&mut acc, input, 0, len - 16, 0, seed);
+    mix_32(&mut acc, input, 0, len - 16, secret, 0, seed);
     finalize_128_medium(acc, len as u64, seed)
 }
 
 #[inline]
-fn hash_128_129_to_240(input: &[u8], seed: u64) -> u128 {
+fn hash_128_129_to_240(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     let len = input.len() as u64;
     let mut acc = [len.wrapping_mul(PRIME64_1), 0];
     for pair in 0..4 {
-        mix_32(&mut acc, input, pair * 32, pair * 32 + 16, pair * 32, seed);
+        mix_32(
+            &mut acc,
+            input,
+            pair * 32,
+            pair * 32 + 16,
+            secret,
+            pair * 32,
+            seed,
+        );
     }
     acc = acc.map(avalanche);
 
@@ -378,6 +497,7 @@ fn hash_128_129_to_240(input: &[u8], seed: u64) -> u128 {
             input,
             pair * 32,
             pair * 32 + 16,
+            secret,
             3 + (pair - 4) * 32,
             seed,
         );
@@ -387,6 +507,7 @@ fn hash_128_129_to_240(input: &[u8], seed: u64) -> u128 {
         input,
         input.len() - 16,
         input.len() - 32,
+        secret,
         103,
         seed.wrapping_neg(),
     );
@@ -399,7 +520,7 @@ const fn make_u128(low: u64, high: u64) -> u128 {
 }
 
 #[inline]
-fn hash_long_64<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_SIZE]) -> u64 {
+fn hash_long_64<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> u64 {
     let acc = accumulate_long(kernel, input, secret);
     merge_accumulators(
         &acc,
@@ -410,7 +531,7 @@ fn hash_long_64<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_SIZ
 }
 
 #[inline]
-fn hash_long_128<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_SIZE]) -> u128 {
+fn hash_long_128<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> u128 {
     let acc = accumulate_long(kernel, input, secret);
     let len = input.len() as u64;
     let low = merge_accumulators(
@@ -423,17 +544,20 @@ fn hash_long_128<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_SI
         &acc,
         !len.wrapping_mul(PRIME64_2),
         secret,
-        SECRET_SIZE - STRIPE_SIZE - SECRET_MERGE_ACC_START,
+        secret.len() - STRIPE_SIZE - SECRET_MERGE_ACC_START,
     );
     make_u128(low, high)
 }
 
 #[inline]
-fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_SIZE]) -> [u64; 8] {
+fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> [u64; 8] {
     debug_assert!(input.len() > MIDSIZE_MAX);
-    let mut accumulator = Accumulator::new();
-    let full_blocks = input.len() / BLOCK_SIZE;
-    let remainder = input.len() % BLOCK_SIZE;
+    debug_assert!(secret.len() >= SECRET_SIZE_MIN);
+    let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+    let mut accumulator = Accumulator::new(stripes_per_block);
+    let block_size = stripes_per_block * STRIPE_SIZE;
+    let full_blocks = input.len() / block_size;
+    let remainder = input.len() % block_size;
     let blocks_before_last = if remainder == 0 {
         full_blocks - 1
     } else {
@@ -441,14 +565,14 @@ fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_
     };
 
     for block in 0..blocks_before_last {
-        let block_start = block * BLOCK_SIZE;
-        for stripe in 0..STRIPES_PER_BLOCK {
+        let block_start = block * block_size;
+        for stripe in 0..stripes_per_block {
             let offset = block_start + stripe * STRIPE_SIZE;
             accumulator.process(kernel, array_64(input, offset), secret);
         }
     }
 
-    let last_block_start = blocks_before_last * BLOCK_SIZE;
+    let last_block_start = blocks_before_last * block_size;
     let last_block_len = input.len() - last_block_start;
     let full_stripes = last_block_len / STRIPE_SIZE;
     let regular_stripes = if last_block_len % STRIPE_SIZE == 0 {
@@ -461,7 +585,7 @@ fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_
         accumulator.process(kernel, array_64(input, offset), secret);
     }
 
-    let last_secret_offset = SECRET_SIZE - STRIPE_SIZE - SECRET_LAST_ACC_START;
+    let last_secret_offset = secret.len() - STRIPE_SIZE - SECRET_LAST_ACC_START;
     kernel.accumulate(
         &mut accumulator.lanes,
         array_64(input, input.len() - STRIPE_SIZE),
@@ -471,12 +595,7 @@ fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8; SECRET_
 }
 
 #[inline(always)]
-fn merge_accumulators(
-    acc: &[u64; 8],
-    start: u64,
-    secret: &[u8; SECRET_SIZE],
-    secret_offset: usize,
-) -> u64 {
+fn merge_accumulators(acc: &[u64; 8], start: u64, secret: &[u8], secret_offset: usize) -> u64 {
     let mut result = start;
     for pair in 0..4 {
         let offset = secret_offset + pair * 16;
@@ -495,65 +614,93 @@ fn array_64(input: &[u8], offset: usize) -> &[u8; 64] {
         .expect("validated XXH3 stripe range")
 }
 
+#[inline(always)]
+unsafe fn secret_array_64(secret: &[u8], offset: usize) -> &[u8; 64] {
+    debug_assert!(offset + STRIPE_SIZE <= secret.len());
+    // SAFETY: The caller guarantees a complete 64-byte range at `offset`.
+    // `[u8; 64]` has byte alignment, so the cast cannot be misaligned.
+    unsafe { &*secret.as_ptr().add(offset).cast::<[u8; STRIPE_SIZE]>() }
+}
+
 #[derive(Clone, Copy)]
 struct Accumulator {
     lanes: [u64; 8],
     stripe: usize,
+    stripes_per_block: usize,
 }
 
 impl Accumulator {
-    const fn new() -> Self {
+    const fn new(stripes_per_block: usize) -> Self {
         Self {
             lanes: INITIAL_ACC,
             stripe: 0,
+            stripes_per_block,
         }
     }
 
     #[inline(always)]
-    fn process<K: Xxh3Kernel>(
-        &mut self,
-        kernel: K,
-        stripe: &[u8; STRIPE_SIZE],
-        secret: &[u8; SECRET_SIZE],
-    ) {
-        kernel.accumulate(
-            &mut self.lanes,
-            stripe,
-            array_64(secret, self.stripe * SECRET_CONSUME_RATE),
-        );
+    fn process<K: Xxh3Kernel>(&mut self, kernel: K, stripe: &[u8; STRIPE_SIZE], secret: &[u8]) {
+        let secret_offset = self.stripe * SECRET_CONSUME_RATE;
+        // SAFETY: `stripe` is reset at `stripes_per_block`, which was derived
+        // from the validated secret length when the accumulator was created.
+        let secret_stripe = unsafe { secret_array_64(secret, secret_offset) };
+        kernel.accumulate(&mut self.lanes, stripe, secret_stripe);
         self.stripe += 1;
-        if self.stripe == STRIPES_PER_BLOCK {
-            kernel.scramble(&mut self.lanes, array_64(secret, SECRET_SIZE - STRIPE_SIZE));
+        if self.stripe == self.stripes_per_block {
+            // SAFETY: Every validated secret contains a complete 64-byte
+            // suffix, and this offset selects that exact suffix.
+            let scramble_secret = unsafe { secret_array_64(secret, secret.len() - STRIPE_SIZE) };
+            kernel.scramble(&mut self.lanes, scramble_secret);
             self.stripe = 0;
         }
     }
 }
 
 #[derive(Clone)]
-struct StreamState {
+struct StreamState<S> {
     seed: u64,
-    secret: [u8; SECRET_SIZE],
+    secret: S,
+    use_custom_secret_for_short: bool,
     buffer: [u8; STREAM_BUFFER_SIZE],
     buffered: usize,
     accumulator: Accumulator,
     total_len: u64,
 }
 
-impl StreamState {
-    fn new(seed: u64) -> Self {
+impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
+    fn with_seed(seed: u64) -> Self {
+        let stripes_per_block = (DEFAULT_SECRET_SIZE - STRIPE_SIZE) / SECRET_CONSUME_RATE;
         Self {
             seed,
             secret: derive_secret(seed),
+            use_custom_secret_for_short: false,
             buffer: [0; STREAM_BUFFER_SIZE],
             buffered: 0,
-            accumulator: Accumulator::new(),
+            accumulator: Accumulator::new(stripes_per_block),
             total_len: 0,
         }
     }
+}
 
+impl<'a> StreamState<&'a [u8]> {
+    fn with_secret(seed: u64, secret: &'a [u8], use_custom_secret_for_short: bool) -> Self {
+        let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+        Self {
+            seed,
+            secret,
+            use_custom_secret_for_short,
+            buffer: [0; STREAM_BUFFER_SIZE],
+            buffered: 0,
+            accumulator: Accumulator::new(stripes_per_block),
+            total_len: 0,
+        }
+    }
+}
+
+impl<S: AsRef<[u8]>> StreamState<S> {
     fn reset(&mut self) {
         self.buffered = 0;
-        self.accumulator = Accumulator::new();
+        self.accumulator = Accumulator::new(self.accumulator.stripes_per_block);
         self.total_len = 0;
     }
 
@@ -577,7 +724,12 @@ impl StreamState {
     #[inline]
     fn digest_64(&self) -> u64 {
         if self.total_len <= MIDSIZE_MAX as u64 {
-            hash_64_short(&self.buffer[..self.total_len as usize], self.seed)
+            let (seed, secret) = if self.use_custom_secret_for_short {
+                (0, self.secret.as_ref())
+            } else {
+                (self.seed, DEFAULT_SECRET.as_slice())
+            };
+            hash_64_short(&self.buffer[..self.total_len as usize], seed, secret)
         } else {
             kernel::dispatch!(finalize_stream_64(self))
         }
@@ -586,7 +738,12 @@ impl StreamState {
     #[inline]
     fn digest_128(&self) -> u128 {
         if self.total_len <= MIDSIZE_MAX as u64 {
-            hash_128_short(&self.buffer[..self.total_len as usize], self.seed)
+            let (seed, secret) = if self.use_custom_secret_for_short {
+                (0, self.secret.as_ref())
+            } else {
+                (self.seed, DEFAULT_SECRET.as_slice())
+            };
+            hash_128_short(&self.buffer[..self.total_len as usize], seed, secret)
         } else {
             kernel::dispatch!(finalize_stream_128(self))
         }
@@ -594,44 +751,51 @@ impl StreamState {
 }
 
 #[inline]
-fn update_stream<K: Xxh3Kernel>(kernel: K, state: &mut StreamState, mut input: &[u8]) {
-    if state.buffered != 0 {
-        let available = STREAM_BUFFER_SIZE - state.buffered;
+fn update_stream<K: Xxh3Kernel, S: AsRef<[u8]>>(
+    kernel: K,
+    state: &mut StreamState<S>,
+    mut input: &[u8],
+) {
+    let secret = state.secret.as_ref();
+    let buffer = &mut state.buffer;
+    let buffered = &mut state.buffered;
+    let mut accumulator = state.accumulator;
+
+    if *buffered != 0 {
+        let available = STREAM_BUFFER_SIZE - *buffered;
         let copied = available.min(input.len());
-        state.buffer[state.buffered..state.buffered + copied].copy_from_slice(&input[..copied]);
-        state.buffered += copied;
+        buffer[*buffered..*buffered + copied].copy_from_slice(&input[..copied]);
+        *buffered += copied;
         input = &input[copied..];
 
-        if state.buffered < STREAM_BUFFER_SIZE || input.is_empty() {
+        if *buffered < STREAM_BUFFER_SIZE || input.is_empty() {
             return;
         }
 
         for stripe in 0..(STREAM_BUFFER_SIZE / STRIPE_SIZE) {
-            state.accumulator.process(
-                kernel,
-                array_64(&state.buffer, stripe * STRIPE_SIZE),
-                &state.secret,
-            );
+            accumulator.process(kernel, array_64(buffer, stripe * STRIPE_SIZE), secret);
         }
-        state.buffered = 0;
+        *buffered = 0;
     }
 
     if input.len() > STRIPE_SIZE {
         let process_len = ((input.len() - STRIPE_SIZE) / STRIPE_SIZE) * STRIPE_SIZE;
         for offset in (0..process_len).step_by(STRIPE_SIZE) {
-            state
-                .accumulator
-                .process(kernel, array_64(input, offset), &state.secret);
+            accumulator.process(kernel, array_64(input, offset), secret);
         }
         input = &input[process_len..];
     }
 
-    state.buffer[..input.len()].copy_from_slice(input);
-    state.buffered = input.len();
+    buffer[..input.len()].copy_from_slice(input);
+    *buffered = input.len();
+    state.accumulator = accumulator;
 }
 
 #[inline]
-fn finalize_stream_acc<K: Xxh3Kernel>(kernel: K, state: &StreamState) -> [u64; 8] {
+fn finalize_stream_acc<K: Xxh3Kernel, S: AsRef<[u8]>>(
+    kernel: K,
+    state: &StreamState<S>,
+) -> [u64; 8] {
     let mut accumulator = state.accumulator;
     let input = &state.buffer[..state.buffered];
     let full_stripes = input.len() / STRIPE_SIZE;
@@ -641,7 +805,11 @@ fn finalize_stream_acc<K: Xxh3Kernel>(kernel: K, state: &StreamState) -> [u64; 8
         full_stripes
     };
     for stripe in 0..regular_stripes {
-        accumulator.process(kernel, array_64(input, stripe * STRIPE_SIZE), &state.secret);
+        accumulator.process(
+            kernel,
+            array_64(input, stripe * STRIPE_SIZE),
+            state.secret.as_ref(),
+        );
     }
 
     let mut temporary = [0_u8; STRIPE_SIZE];
@@ -655,51 +823,54 @@ fn finalize_stream_acc<K: Xxh3Kernel>(kernel: K, state: &StreamState) -> [u64; 8
         &temporary
     };
 
-    let last_secret_offset = SECRET_SIZE - STRIPE_SIZE - SECRET_LAST_ACC_START;
+    let secret = state.secret.as_ref();
+    let last_secret_offset = secret.len() - STRIPE_SIZE - SECRET_LAST_ACC_START;
     kernel.accumulate(
         &mut accumulator.lanes,
         last_stripe,
-        array_64(&state.secret, last_secret_offset),
+        array_64(secret, last_secret_offset),
     );
     accumulator.lanes
 }
 
 #[inline]
-fn finalize_stream_64<K: Xxh3Kernel>(kernel: K, state: &StreamState) -> u64 {
+fn finalize_stream_64<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamState<S>) -> u64 {
     let acc = finalize_stream_acc(kernel, state);
     merge_accumulators(
         &acc,
         state.total_len.wrapping_mul(PRIME64_1),
-        &state.secret,
+        state.secret.as_ref(),
         SECRET_MERGE_ACC_START,
     )
 }
 
 #[inline]
-fn finalize_stream_128<K: Xxh3Kernel>(kernel: K, state: &StreamState) -> u128 {
+fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamState<S>) -> u128 {
     let acc = finalize_stream_acc(kernel, state);
     let low = merge_accumulators(
         &acc,
         state.total_len.wrapping_mul(PRIME64_1),
-        &state.secret,
+        state.secret.as_ref(),
         SECRET_MERGE_ACC_START,
     );
     let high = merge_accumulators(
         &acc,
         !state.total_len.wrapping_mul(PRIME64_2),
-        &state.secret,
-        SECRET_SIZE - STRIPE_SIZE - SECRET_MERGE_ACC_START,
+        state.secret.as_ref(),
+        state.secret.as_ref().len() - STRIPE_SIZE - SECRET_MERGE_ACC_START,
     );
     make_u128(low, high)
 }
 
 /// Incremental XXH3-64 state.
 ///
-/// The state owns fixed-size buffers and performs no allocation.
+/// The default and seeded forms own a 192-byte secret. Custom-secret forms
+/// borrow the caller's secret. Every form owns fixed-size working buffers and
+/// performs no allocation.
 #[derive(Clone)]
-pub struct Xxh3(StreamState);
+pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
-impl Xxh3 {
+impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-64 state.
     #[must_use]
     pub fn new() -> Self {
@@ -709,7 +880,7 @@ impl Xxh3 {
     /// Creates an XXH3-64 state with `seed`.
     #[must_use]
     pub fn with_seed(seed: u64) -> Self {
-        Self(StreamState::new(seed))
+        Self(StreamState::with_seed(seed))
     }
 
     /// Hashes a complete byte slice without constructing streaming state.
@@ -726,6 +897,40 @@ impl Xxh3 {
         xxh3_64_with_seed(input, seed)
     }
 
+    /// Hashes a complete byte slice with a custom secret.
+    #[inline]
+    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u64, Xxh3SecretTooShort> {
+        xxh3_64_with_secret(input, secret)
+    }
+
+    /// Hashes a complete byte slice with a seed and custom secret.
+    #[inline]
+    pub fn oneshot_with_seed_and_secret(
+        input: &[u8],
+        seed: u64,
+        secret: &[u8],
+    ) -> Result<u64, Xxh3SecretTooShort> {
+        xxh3_64_with_seed_and_secret(input, seed, secret)
+    }
+}
+
+impl<'a> Xxh3<&'a [u8]> {
+    /// Creates an XXH3-64 state borrowing `secret`.
+    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self(StreamState::with_secret(0, secret, true)))
+    }
+
+    /// Creates an XXH3-64 state borrowing `secret` and using `seed` for short inputs.
+    ///
+    /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
+    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self(StreamState::with_secret(seed, secret, false)))
+    }
+}
+
+impl<S: AsRef<[u8]>> Xxh3<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
@@ -739,7 +944,7 @@ impl Xxh3 {
         self.0.digest_64()
     }
 
-    /// Resets the state while retaining its seed and derived secret.
+    /// Resets the state while retaining its seed and secret.
     pub fn reset(&mut self) {
         self.0.reset();
     }
@@ -757,13 +962,13 @@ impl Xxh3 {
     }
 }
 
-impl Default for Xxh3 {
+impl Default for Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Debug for Xxh3 {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Xxh3")
@@ -773,7 +978,7 @@ impl fmt::Debug for Xxh3 {
     }
 }
 
-impl Hasher for Xxh3 {
+impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
         self.update(bytes);
@@ -786,16 +991,16 @@ impl Hasher for Xxh3 {
 }
 
 /// Explicitly named alias for the XXH3-64 streaming state.
-pub type Xxh3_64 = Xxh3;
+pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 
 /// Incremental XXH3-128 state.
 ///
 /// This type has an inherent [`write`](Self::write) method rather than a
 /// [`Hasher`] implementation because that trait only returns 64-bit digests.
 #[derive(Clone)]
-pub struct Xxh3_128(StreamState);
+pub struct Xxh3_128<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
-impl Xxh3_128 {
+impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-128 state.
     #[must_use]
     pub fn new() -> Self {
@@ -805,7 +1010,7 @@ impl Xxh3_128 {
     /// Creates an XXH3-128 state with `seed`.
     #[must_use]
     pub fn with_seed(seed: u64) -> Self {
-        Self(StreamState::new(seed))
+        Self(StreamState::with_seed(seed))
     }
 
     /// Hashes a complete byte slice without constructing streaming state.
@@ -822,6 +1027,40 @@ impl Xxh3_128 {
         xxh3_128_with_seed(input, seed)
     }
 
+    /// Hashes a complete byte slice with a custom secret.
+    #[inline]
+    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u128, Xxh3SecretTooShort> {
+        xxh3_128_with_secret(input, secret)
+    }
+
+    /// Hashes a complete byte slice with a seed and custom secret.
+    #[inline]
+    pub fn oneshot_with_seed_and_secret(
+        input: &[u8],
+        seed: u64,
+        secret: &[u8],
+    ) -> Result<u128, Xxh3SecretTooShort> {
+        xxh3_128_with_seed_and_secret(input, seed, secret)
+    }
+}
+
+impl<'a> Xxh3_128<&'a [u8]> {
+    /// Creates an XXH3-128 state borrowing `secret`.
+    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self(StreamState::with_secret(0, secret, true)))
+    }
+
+    /// Creates an XXH3-128 state borrowing `secret` and using `seed` for short inputs.
+    ///
+    /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
+    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self(StreamState::with_secret(seed, secret, false)))
+    }
+}
+
+impl<S: AsRef<[u8]>> Xxh3_128<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn write(&mut self, input: &[u8]) {
@@ -848,7 +1087,7 @@ impl Xxh3_128 {
         self.digest()
     }
 
-    /// Resets the state while retaining its seed and derived secret.
+    /// Resets the state while retaining its seed and secret.
     pub fn reset(&mut self) {
         self.0.reset();
     }
@@ -866,13 +1105,13 @@ impl Xxh3_128 {
     }
 }
 
-impl Default for Xxh3_128 {
+impl Default for Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Debug for Xxh3_128 {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_128<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Xxh3_128")
@@ -908,6 +1147,62 @@ impl BuildHasher for Xxh3Builder {
     }
 }
 
+/// Deterministic [`BuildHasher`] for an XXH3 custom secret.
+///
+/// The builder borrows the secret and never allocates. It is intended for
+/// trusted inputs and does not make XXH3 resistant to deliberate hash flooding.
+#[derive(Clone, Copy)]
+pub struct Xxh3SecretBuilder<'a> {
+    seed: u64,
+    secret: &'a [u8],
+    use_custom_secret_for_short: bool,
+}
+
+impl<'a> Xxh3SecretBuilder<'a> {
+    /// Creates a builder using `secret` for inputs of every length.
+    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self {
+            seed: 0,
+            secret,
+            use_custom_secret_for_short: true,
+        })
+    }
+
+    /// Creates a builder using `seed` for short inputs and `secret` for long inputs.
+    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret)?;
+        Ok(Self {
+            seed,
+            secret,
+            use_custom_secret_for_short: false,
+        })
+    }
+}
+
+impl fmt::Debug for Xxh3SecretBuilder<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Xxh3SecretBuilder")
+            .field("seed", &self.seed)
+            .field("secret_len", &self.secret.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'a> BuildHasher for Xxh3SecretBuilder<'a> {
+    type Hasher = Xxh3<&'a [u8]>;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        Xxh3(StreamState::with_secret(
+            self.seed,
+            self.secret,
+            self.use_custom_secret_for_short,
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -928,6 +1223,22 @@ mod tests {
                     hash_long_128(kernel, &input, &secret),
                     hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} seed={seed:#x}"
+                );
+            }
+
+            for secret_len in [SECRET_SIZE_MIN, DEFAULT_SECRET_SIZE, 255] {
+                let secret: std::vec::Vec<_> = (0..secret_len)
+                    .map(|index| index.wrapping_mul(197).wrapping_add(0xa5) as u8)
+                    .collect();
+                assert_eq!(
+                    hash_long_64(kernel, &input, &secret),
+                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    "XXH3-64 length={len} secret_len={secret_len}"
+                );
+                assert_eq!(
+                    hash_long_128(kernel, &input, &secret),
+                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    "XXH3-128 length={len} secret_len={secret_len}"
                 );
             }
         }

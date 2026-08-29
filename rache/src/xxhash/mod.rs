@@ -23,7 +23,10 @@ pub mod xxh32;
 pub mod xxh64;
 
 pub use xxh3::{
-    Xxh3, Xxh3_64, Xxh3_128, Xxh3Builder, xxh3_64, xxh3_64_with_seed, xxh3_128, xxh3_128_with_seed,
+    DEFAULT_SECRET, DEFAULT_SECRET_SIZE, SECRET_SIZE_MIN, Xxh3, Xxh3_64, Xxh3_128, Xxh3Builder,
+    Xxh3SecretBuilder, Xxh3SecretTooShort, xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed,
+    xxh3_64_with_seed_and_secret, xxh3_128, xxh3_128_with_secret, xxh3_128_with_seed,
+    xxh3_128_with_seed_and_secret,
 };
 pub use xxh32::{Xxh32, Xxh32Builder, xxh32};
 pub use xxh64::{Xxh64, Xxh64Builder, xxh64};
