@@ -90,7 +90,7 @@ fn oneshot_matches_reference() {
 
 #[test]
 fn custom_secret_oneshot_matches_independent_implementations() {
-    for secret_len in [SECRET_SIZE_MIN, SECRET_SIZE_MIN + 1, 192, 255] {
+    for secret_len in [SECRET_SIZE_MIN, SECRET_SIZE_MIN + 1, 192, 255, 1_024] {
         let secret = secret(secret_len);
         for &len in LENGTHS {
             let bytes = input(len);
@@ -111,7 +111,7 @@ fn custom_secret_oneshot_matches_independent_implementations() {
 #[test]
 fn custom_secret_matches_reference_for_every_length_through_variable_blocks() {
     let bytes = input(2 * 1_024 + 1);
-    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+    for secret_len in [SECRET_SIZE_MIN, 192, 255, 1_024] {
         let secret = secret(secret_len);
         for len in 0..bytes.len() {
             assert_eq!(
@@ -130,7 +130,7 @@ fn custom_secret_matches_reference_for_every_length_through_variable_blocks() {
 
 #[test]
 fn seed_and_secret_oneshot_matches_reference_contract() {
-    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+    for secret_len in [SECRET_SIZE_MIN, 192, 255, 1_024] {
         let secret = secret(secret_len);
         for &len in LENGTHS {
             let bytes = input(len);
@@ -181,7 +181,7 @@ fn custom_secret_length_is_validated() {
 #[test]
 fn custom_secret_streaming_matches_oneshot() {
     let seed = 0x0123_4567_89ab_cdef;
-    for secret_len in [SECRET_SIZE_MIN, 192, 255] {
+    for secret_len in [SECRET_SIZE_MIN, 192, 255, 1_024] {
         let secret = secret(secret_len);
         for &len in LENGTHS {
             let bytes = input(len);

@@ -555,34 +555,12 @@ fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> [u6
     debug_assert!(secret.len() >= SECRET_SIZE_MIN);
     let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
     let mut accumulator = Accumulator::new(stripes_per_block);
-    let block_size = stripes_per_block * STRIPE_SIZE;
-    let full_blocks = input.len() / block_size;
-    let remainder = input.len() % block_size;
-    let blocks_before_last = if remainder == 0 {
-        full_blocks - 1
-    } else {
-        full_blocks
-    };
 
-    for block in 0..blocks_before_last {
-        let block_start = block * block_size;
-        for stripe in 0..stripes_per_block {
-            let offset = block_start + stripe * STRIPE_SIZE;
-            accumulator.process(kernel, array_64(input, offset), secret);
-        }
-    }
-
-    let last_block_start = blocks_before_last * block_size;
-    let last_block_len = input.len() - last_block_start;
-    let full_stripes = last_block_len / STRIPE_SIZE;
-    let regular_stripes = if last_block_len % STRIPE_SIZE == 0 {
-        full_stripes - 1
-    } else {
-        full_stripes
-    };
-    for stripe in 0..regular_stripes {
-        let offset = last_block_start + stripe * STRIPE_SIZE;
-        accumulator.process(kernel, array_64(input, offset), secret);
+    // Excluding the final byte leaves the last full or overlapping stripe for
+    // the dedicated secret suffix below. `Accumulator` handles block scrambles,
+    // so no potentially overflowing secret-derived block size is required.
+    for stripe in input[..input.len() - 1].chunks_exact(STRIPE_SIZE) {
+        accumulator.process(kernel, array_64(stripe, 0), secret);
     }
 
     let last_secret_offset = secret.len() - STRIPE_SIZE - SECRET_LAST_ACC_START;
@@ -665,6 +643,7 @@ struct StreamState<S> {
     buffered: usize,
     accumulator: Accumulator,
     total_len: u64,
+    length_overflowed: bool,
 }
 
 impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
@@ -678,6 +657,7 @@ impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
             buffered: 0,
             accumulator: Accumulator::new(stripes_per_block),
             total_len: 0,
+            length_overflowed: false,
         }
     }
 }
@@ -693,6 +673,7 @@ impl<'a> StreamState<&'a [u8]> {
             buffered: 0,
             accumulator: Accumulator::new(stripes_per_block),
             total_len: 0,
+            length_overflowed: false,
         }
     }
 }
@@ -702,6 +683,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
         self.buffered = 0;
         self.accumulator = Accumulator::new(self.accumulator.stripes_per_block);
         self.total_len = 0;
+        self.length_overflowed = false;
     }
 
     #[inline]
@@ -710,7 +692,9 @@ impl<S: AsRef<[u8]>> StreamState<S> {
             return;
         }
 
-        self.total_len = self.total_len.wrapping_add(input.len() as u64);
+        let (total_len, overflowed) = self.total_len.overflowing_add(input.len() as u64);
+        self.total_len = total_len;
+        self.length_overflowed |= overflowed;
         let available = STREAM_BUFFER_SIZE - self.buffered;
         if input.len() <= available {
             self.buffer[self.buffered..self.buffered + input.len()].copy_from_slice(input);
@@ -723,7 +707,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
 
     #[inline]
     fn digest_64(&self) -> u64 {
-        if self.total_len <= MIDSIZE_MAX as u64 {
+        if !self.length_overflowed && self.total_len <= MIDSIZE_MAX as u64 {
             let (seed, secret) = if self.use_custom_secret_for_short {
                 (0, self.secret.as_ref())
             } else {
@@ -737,7 +721,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
 
     #[inline]
     fn digest_128(&self) -> u128 {
-        if self.total_len <= MIDSIZE_MAX as u64 {
+        if !self.length_overflowed && self.total_len <= MIDSIZE_MAX as u64 {
             let (seed, secret) = if self.use_custom_secret_for_short {
                 (0, self.secret.as_ref())
             } else {
@@ -746,6 +730,14 @@ impl<S: AsRef<[u8]>> StreamState<S> {
             hash_128_short(&self.buffer[..self.total_len as usize], seed, secret)
         } else {
             kernel::dispatch!(finalize_stream_128(self))
+        }
+    }
+
+    const fn reported_total_len(&self) -> u64 {
+        if self.length_overflowed {
+            u64::MAX
+        } else {
+            self.total_len
         }
     }
 }
@@ -955,10 +947,10 @@ impl<S: AsRef<[u8]>> Xxh3<S> {
         self.0.seed
     }
 
-    /// Returns the number of bytes written so far.
+    /// Returns the number of bytes written so far, saturating at [`u64::MAX`].
     #[must_use]
     pub const fn total_len(&self) -> u64 {
-        self.0.total_len
+        self.0.reported_total_len()
     }
 }
 
@@ -1098,10 +1090,10 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
         self.0.seed
     }
 
-    /// Returns the number of bytes written so far.
+    /// Returns the number of bytes written so far, saturating at [`u64::MAX`].
     #[must_use]
     pub const fn total_len(&self) -> u64 {
-        self.0.total_len
+        self.0.reported_total_len()
     }
 }
 
@@ -1226,7 +1218,7 @@ mod tests {
                 );
             }
 
-            for secret_len in [SECRET_SIZE_MIN, DEFAULT_SECRET_SIZE, 255] {
+            for secret_len in [SECRET_SIZE_MIN, DEFAULT_SECRET_SIZE, 255, 1_024] {
                 let secret: std::vec::Vec<_> = (0..secret_len)
                     .map(|index| index.wrapping_mul(197).wrapping_add(0xa5) as u8)
                     .collect();
@@ -1257,6 +1249,29 @@ mod tests {
         hash.reset();
         hash.update(b"after");
         assert_eq!(hash.digest(), xxh3_64_with_seed(b"after", 42));
+    }
+
+    #[test]
+    fn length_overflow_keeps_long_digest_mode() {
+        let mut hash = Xxh3::new();
+        hash.0.total_len = u64::MAX;
+        hash.update(&[0]);
+        assert!(hash.0.length_overflowed);
+        assert_eq!(hash.total_len(), u64::MAX);
+        assert_eq!(
+            hash.digest(),
+            kernel::dispatch!(finalize_stream_64(&hash.0))
+        );
+
+        let mut hash = Xxh3_128::new();
+        hash.0.total_len = u64::MAX;
+        hash.update(&[0]);
+        assert!(hash.0.length_overflowed);
+        assert_eq!(hash.total_len(), u64::MAX);
+        assert_eq!(
+            hash.digest(),
+            kernel::dispatch!(finalize_stream_128(&hash.0))
+        );
     }
 
     #[test]
