@@ -20,9 +20,9 @@ use core::hash::Hasher;
 
 use super::kernel::Xxh3Kernel;
 use super::kernel::{self};
-use crate::util::mul128_fold64;
-use crate::util::read_u32;
-use crate::util::read_u64;
+use crate::mul128_fold64;
+use crate::read_u32;
+use crate::read_u64;
 
 const PRIME32_1: u64 = 0x9e37_79b1;
 const PRIME32_2: u64 = 0x85eb_ca77;

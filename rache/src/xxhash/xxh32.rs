@@ -17,7 +17,7 @@
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
-use crate::util::read_u32;
+use crate::read_u32;
 
 const PRIME1: u32 = 0x9e37_79b1;
 const PRIME2: u32 = 0x85eb_ca77;

@@ -17,8 +17,8 @@
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
-use crate::util::read_u32;
-use crate::util::read_u64;
+use crate::read_u32;
+use crate::read_u64;
 
 const C1_32: u32 = 0xcc9e_2d51;
 const C2_32: u32 = 0x1b87_3593;
