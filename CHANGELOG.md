@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3SecretBuilder<'a>` must use the storage type `Xxh3SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
+- Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy` or `Write::write_all`.
+
 ## 0.1.0
 
 - Add compatible XXH32, XXH64, XXH3-64, and XXH3-128 implementations.
