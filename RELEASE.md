@@ -21,7 +21,7 @@ cargo +stable package -p rache --locked
 cargo +stable publish -p rache --locked --dry-run
 ```
 
-Inspect `cargo +stable package -p rache --locked --list` before publishing. The archive must contain the license, NOTICE, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
+Inspect `cargo +stable package -p rache --locked --list` before publishing. The archive must contain the license, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
 
 ## Publish
 

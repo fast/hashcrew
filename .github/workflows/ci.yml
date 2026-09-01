@@ -165,7 +165,7 @@ jobs:
         shell: bash
         run: |
           package_files="$(cargo package --package rache --locked --list)"
-          for required in Cargo.lock Cargo.toml README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md src/lib.rs; do
+          for required in Cargo.lock Cargo.toml README.md LICENSE THIRD_PARTY_NOTICES.md src/lib.rs; do
             grep -Fxq "$required" <<< "$package_files" || {
               echo "missing required package file: $required" >&2
               exit 1
