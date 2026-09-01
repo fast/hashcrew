@@ -23,7 +23,7 @@ The individual xxHash variants and hardware kernel are nested under `rache::xxha
 
 ## Streaming state
 
-MurmurHash3 retains at most one incomplete 4- or 16-byte block. XXH32 and XXH64 retain one incomplete stripe. Seeded XXH3 states own the derived 192-byte secret; custom-secret states borrow the validated caller buffer. Both use the same fixed-size pending-input and accumulator buffers, so no streaming state allocates or replays the complete message. FNV-1a retains its configured offset basis so reset restores the same namespace and requires no tail buffer. CityHash has no streaming state because a correct facade would need to retain and replay the complete input.
+MurmurHash3 retains at most one incomplete 4- or 16-byte block. XXH32 and XXH64 retain one incomplete stripe. Seeded XXH3 states own the derived 192-byte secret; custom-secret states own or borrow validated caller-provided storage. Both use the same fixed-size pending-input and accumulator buffers, so no streaming state allocates or replays the complete message. FNV-1a retains its configured offset basis so reset restores the same namespace and requires no tail buffer. CityHash has no streaming state because a correct facade would need to retain and replay the complete input.
 
 ## XXH3 kernel boundary
 
