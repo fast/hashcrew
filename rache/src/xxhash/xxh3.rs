@@ -15,10 +15,14 @@
 //! XXH3-64 and XXH3-128 one-shot and streaming APIs.
 
 use core::fmt;
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use super::kernel::{self, Xxh3Kernel};
-use crate::util::{mul128_fold64, read_u32, read_u64};
+use super::kernel::Xxh3Kernel;
+use super::kernel::{self};
+use crate::util::mul128_fold64;
+use crate::util::read_u32;
+use crate::util::read_u64;
 
 const PRIME32_1: u64 = 0x9e37_79b1;
 const PRIME32_2: u64 = 0x85eb_ca77;

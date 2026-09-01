@@ -14,9 +14,11 @@
 
 //! XXH64 one-shot and streaming APIs.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use crate::util::{read_u32, read_u64};
+use crate::util::read_u32;
+use crate::util::read_u64;
 
 const PRIME1: u64 = 0x9e37_79b1_85eb_ca87;
 const PRIME2: u64 = 0xc2b2_ae3d_27d4_eb4f;

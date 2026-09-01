@@ -12,9 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::{Cursor, Write};
+use std::io::Cursor;
+use std::io::Write;
 
-use rache::{Fnv1a32, Fnv1a64, Murmur3_32, Murmur3_128, Xxh3, Xxh3_128, Xxh32, Xxh64, xxh3_64};
+use rache::Fnv1a32;
+use rache::Fnv1a64;
+use rache::Murmur3_32;
+use rache::Murmur3_128;
+use rache::Xxh3;
+use rache::Xxh3_128;
+use rache::Xxh32;
+use rache::Xxh64;
+use rache::xxh3_64;
 
 #[test]
 fn streaming_states_are_standard_io_writers() {

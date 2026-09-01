@@ -15,8 +15,9 @@
 use core::hash::Hasher as _;
 use std::io::Cursor;
 
+use divan::Bencher;
+use divan::black_box;
 use divan::counter::BytesCount;
-use divan::{Bencher, black_box};
 
 mod support;
 

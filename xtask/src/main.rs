@@ -200,7 +200,7 @@ fn make_check_cmd(all_features: bool) -> StdCommand {
 
 fn make_format_cmd(fix: bool) -> StdCommand {
     let mut cmd = cargo();
-    cmd.args(["fmt", "--all"]);
+    cmd.args(["+nightly", "fmt", "--all"]);
     if !fix {
         cmd.args(["--", "--check"]);
     }

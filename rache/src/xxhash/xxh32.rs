@@ -14,7 +14,8 @@
 
 //! XXH32 one-shot and streaming APIs.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
 use crate::util::read_u32;
 

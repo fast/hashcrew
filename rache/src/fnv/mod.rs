@@ -14,7 +14,8 @@
 
 //! FNV-1a one-shot and streaming APIs with standard or custom offset bases.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
 /// Standard 32-bit FNV offset basis.
 pub const FNV1A_32_OFFSET_BASIS: u32 = 0x811c_9dc5;

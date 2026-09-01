@@ -12,20 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 use std::collections::HashMap;
 
-use rache::{
-    SECRET_SIZE_MIN, Xxh3, Xxh3_128, Xxh3Builder, Xxh3SecretBuilder, Xxh32, Xxh32Builder, Xxh64,
-    Xxh64Builder, xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed, xxh3_64_with_seed_and_secret,
-    xxh3_128, xxh3_128_with_secret, xxh3_128_with_seed, xxh3_128_with_seed_and_secret, xxh32,
-    xxh64,
-};
-use xxhash_rust::{xxh3, xxh32 as reference32, xxh64 as reference64};
+use rache::SECRET_SIZE_MIN;
+use rache::Xxh3;
+use rache::Xxh3_128;
+use rache::Xxh3Builder;
+use rache::Xxh3SecretBuilder;
+use rache::Xxh32;
+use rache::Xxh32Builder;
+use rache::Xxh64;
+use rache::Xxh64Builder;
+use rache::xxh3_64;
+use rache::xxh3_64_with_secret;
+use rache::xxh3_64_with_seed;
+use rache::xxh3_64_with_seed_and_secret;
+use rache::xxh3_128;
+use rache::xxh3_128_with_secret;
+use rache::xxh3_128_with_seed;
+use rache::xxh3_128_with_seed_and_secret;
+use rache::xxh32;
+use rache::xxh64;
+use xxhash_rust::xxh3;
+use xxhash_rust::xxh32 as reference32;
+use xxhash_rust::xxh64 as reference64;
 
 mod support;
 
-use support::{next_random, random_input};
+use support::next_random;
+use support::random_input;
 
 const LENGTHS: &[usize] = &[
     0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 95, 96, 97, 127, 128, 129, 159,
