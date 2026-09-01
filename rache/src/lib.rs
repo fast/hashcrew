@@ -14,10 +14,11 @@
 
 //! Fast, portable, non-cryptographic hash functions.
 //!
-//! Use the [`raw`] module for complete byte slices, and the family modules for
-//! state types and family-specific APIs. CityHash is intentionally one-shot.
-//! Outputs that fit in 64 bits also implement [`core::hash::Hasher`]. With the
-//! default `std` feature, every incremental state also implements
+//! APIs are grouped by family under [`cityhash`], [`xxhash`], [`murmur`], and
+//! [`fnv`]. Use the free functions for complete byte slices and state types for
+//! incremental input. CityHash is intentionally one-shot. Outputs that fit in
+//! 64 bits also implement [`core::hash::Hasher`]. With the default `std`
+//! feature, every incremental state also implements
 //! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
@@ -30,19 +31,15 @@
 //! Hash a complete byte slice or feed the same bytes incrementally:
 //!
 //! ```
-//! use rache::raw;
 //! use rache::xxhash::Xxh64;
+//! use rache::xxhash::xxh64;
 //!
-//! let expected = raw::xxh64(b"rache", 42);
+//! let expected = xxh64(b"rache", 42);
 //! let mut state = Xxh64::with_seed(42);
 //! state.update(b"ra");
 //! state.update(b"che");
 //!
 //! assert_eq!(state.digest(), expected);
-//! assert_eq!(
-//!     raw::cityhash64(b"rache"),
-//!     rache::cityhash::cityhash64(b"rache")
-//! );
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -80,33 +77,3 @@ pub mod cityhash;
 pub mod fnv;
 pub mod murmur;
 pub mod xxhash;
-
-/// Allocation-free one-shot functions for complete byte slices.
-///
-/// The same functions are also available inside their family modules.
-pub mod raw {
-    pub use crate::cityhash::cityhash32;
-    pub use crate::cityhash::cityhash64;
-    pub use crate::cityhash::cityhash64_with_seed;
-    pub use crate::cityhash::cityhash64_with_seeds;
-    pub use crate::cityhash::cityhash128;
-    pub use crate::cityhash::cityhash128_to_64;
-    pub use crate::cityhash::cityhash128_with_seed;
-    pub use crate::fnv::fnv1a_32;
-    pub use crate::fnv::fnv1a_32_with_offset_basis;
-    pub use crate::fnv::fnv1a_64;
-    pub use crate::fnv::fnv1a_64_with_offset_basis;
-    pub use crate::murmur::murmur3_32;
-    pub use crate::murmur::murmur3_128;
-    pub use crate::murmur::murmur3_x64_128;
-    pub use crate::xxhash::xxh3_64;
-    pub use crate::xxhash::xxh3_64_with_secret;
-    pub use crate::xxhash::xxh3_64_with_seed;
-    pub use crate::xxhash::xxh3_64_with_seed_and_secret;
-    pub use crate::xxhash::xxh3_128;
-    pub use crate::xxhash::xxh3_128_with_secret;
-    pub use crate::xxhash::xxh3_128_with_seed;
-    pub use crate::xxhash::xxh3_128_with_seed_and_secret;
-    pub use crate::xxhash::xxh32;
-    pub use crate::xxhash::xxh64;
-}

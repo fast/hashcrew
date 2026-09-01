@@ -550,18 +550,3 @@ fn standard_hash_traits_use_the_raw_stream() {
 
     assert!(rache::xxhash::kernel::selected_backend().is_available());
 }
-
-#[test]
-fn raw_and_family_paths_match() {
-    let bytes = input(257);
-
-    assert_eq!(
-        rache::xxhash::xxh32(&bytes, 7),
-        rache::raw::xxh32(&bytes, 7)
-    );
-    assert_eq!(
-        rache::xxhash::xxh64(&bytes, 11),
-        rache::raw::xxh64(&bytes, 11)
-    );
-    assert_eq!(rache::xxhash::xxh3_64(&bytes), rache::raw::xxh3_64(&bytes));
-}

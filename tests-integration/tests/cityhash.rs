@@ -166,11 +166,3 @@ fn seeded_apis_preserve_official_word_order_and_relationships() {
         cityhash128_with_seed(&bytes[16..], seed128)
     );
 }
-
-#[test]
-fn raw_and_family_paths_match() {
-    let bytes = input(257);
-    assert_eq!(rache::raw::cityhash32(&bytes), cityhash32(&bytes));
-    assert_eq!(rache::cityhash::cityhash64(&bytes), cityhash64(&bytes));
-    assert_eq!(rache::raw::cityhash128(&bytes), cityhash128(&bytes));
-}

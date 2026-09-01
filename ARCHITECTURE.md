@@ -5,8 +5,8 @@ hardware kernels:
 
 ```text
 public API
-├── raw one-shot functions
 └── cityhash | xxhash | murmur | fnv
+    ├── one-shot functions
     ├── streaming states and standard adapters
     └── portable cores
         └── XXH3 kernel: scalar | NEON | SSE2 | AVX2
@@ -14,7 +14,7 @@ public API
 
 ## Public API
 
-One-shot functions accept complete byte slices and are exposed through `rache::raw` and their family modules. Streaming types reuse the same compression routines and retain only the state needed for the next update. Outputs that fit in `u64` also have deterministic `Hasher` and `BuildHasher` adapters; 128-bit variants expose native `u128` digests instead of truncating them to satisfy `Hasher`.
+One-shot functions accept complete byte slices and live beside their streaming types in the corresponding family module. Streaming types reuse the same compression routines and retain only the state needed for the next update. Outputs that fit in `u64` also have deterministic `Hasher` and `BuildHasher` adapters; 128-bit variants expose native `u128` digests instead of truncating them to satisfy `Hasher`.
 
 Configuration follows the source algorithm rather than a synthetic common
 interface: xxHash and MurmurHash3 use seeds, CityHash exposes only its official

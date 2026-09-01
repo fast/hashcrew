@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-- Remove duplicate crate-root algorithm re-exports. Import one-shot functions from `rache::raw` or their family module, and import streaming states, builders, constants, and the XXH3 kernel from `rache::{cityhash, fnv, murmur, xxhash}`; for example, replace `rache::Xxh3` with `rache::xxhash::Xxh3` and `rache::kernel` with `rache::xxhash::kernel`.
+- Remove duplicate crate-root and `raw` algorithm re-exports so each public API has one family-qualified home. Import functions, states, builders, constants, and kernels from `rache::{cityhash, fnv, murmur, xxhash}`; for example, replace `rache::Xxh3` with `rache::xxhash::Xxh3`, `rache::raw::xxh3_64` with `rache::xxhash::xxh3_64`, and `rache::kernel` with `rache::xxhash::kernel`.
 - Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3SecretBuilder<'a>` must use the storage type `Xxh3SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
 - Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy` or `Write::write_all`.
 
