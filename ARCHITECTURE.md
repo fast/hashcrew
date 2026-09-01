@@ -4,23 +4,17 @@
 hardware kernels:
 
 ```text
-crate root / raw API / standard hash adapters
-                         |
-     cityhash | xxhash | murmur | fnv family modules
-                         |
-       portable cores | XXH3 long-input routing
-                         |
-             scalar | NEON | SSE2 | AVX2
+public API
+├── raw one-shot functions
+└── cityhash | xxhash | murmur | fnv
+    ├── streaming states and standard adapters
+    └── portable cores
+        └── XXH3 kernel: scalar | NEON | SSE2 | AVX2
 ```
 
 ## Public API
 
-One-shot functions accept complete byte slices and are exposed through
-`rache::raw`, the crate root, and their family modules. Streaming types reuse
-the same compression routines and retain only the state needed for the next
-update. Outputs that fit in `u64` also have deterministic `Hasher` and
-`BuildHasher` adapters; 128-bit variants expose native `u128` digests instead
-of truncating them to satisfy `Hasher`.
+One-shot functions accept complete byte slices and are exposed through `rache::raw` and their family modules. Streaming types reuse the same compression routines and retain only the state needed for the next update. Outputs that fit in `u64` also have deterministic `Hasher` and `BuildHasher` adapters; 128-bit variants expose native `u128` digests instead of truncating them to satisfy `Hasher`.
 
 Configuration follows the source algorithm rather than a synthetic common
 interface: xxHash and MurmurHash3 use seeds, CityHash exposes only its official
@@ -34,9 +28,7 @@ bounded-memory state cannot derive the final digest from independently hashed
 chunks. `CityHash128` values store the reference high word in the most
 significant half and the low word in the least significant half.
 
-The crate-root xxHash module paths remain re-exports of the grouped
-`rache::xxhash` modules. This preserves paths such as `rache::xxh3` and
-`rache::kernel` without duplicating implementations.
+The individual xxHash variants and hardware kernel are nested under `rache::xxhash`; no compatibility modules are re-exported at the crate root.
 
 ## Streaming state
 

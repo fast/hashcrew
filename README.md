@@ -59,7 +59,8 @@ assert_ne!(fnv, 0);
 Use a state type when data arrives incrementally:
 
 ```rust
-use rache::{Murmur3_128, raw};
+use rache::murmur::Murmur3_128;
+use rache::raw;
 
 let mut hash = Murmur3_128::with_seed(42);
 hash.update(b"ra");
@@ -71,7 +72,8 @@ assert_eq!(hash.digest(), raw::murmur3_128(b"rache", 42));
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
 
 ```rust
-use rache::{Xxh3, raw};
+use rache::raw;
+use rache::xxhash::Xxh3;
 
 let secret = [0xa5; 192];
 let expected = raw::xxh3_64_with_secret(b"rache", &secret).unwrap();
@@ -81,7 +83,7 @@ hash.update(b"rache");
 assert_eq!(hash.digest(), expected);
 ```
 
-The main types and functions are re-exported at the crate root. Family-scoped paths such as `rache::xxhash::xxh3_64`, `rache::murmur::murmur3_32`, and `rache::cityhash::cityhash64` remain available when a qualified import is clearer.
+One-shot functions are available through `rache::raw` or their family module. Streaming states, builders, constants, and kernel APIs live in the corresponding family module, avoiding duplicate crate-root paths.
 
 ## Choosing an algorithm
 
@@ -93,7 +95,8 @@ With the default `std` feature, every streaming state implements [`std::io::Writ
 
 ```rust
 use std::io::{self, Cursor};
-use rache::{Xxh3, raw};
+use rache::raw;
+use rache::xxhash::Xxh3;
 
 let mut source = Cursor::new(b"rache");
 let mut hash = Xxh3::new();
@@ -106,7 +109,7 @@ The 32-bit and 64-bit streaming states also implement `core::hash::Hasher`, with
 
 ```rust
 use std::collections::HashMap;
-use rache::Xxh3Builder;
+use rache::xxhash::Xxh3Builder;
 
 let mut counts = HashMap::with_hasher(Xxh3Builder::with_seed(7));
 counts.insert("rache", 1);
@@ -131,7 +134,7 @@ XXH3 accepts custom secrets of at least 136 bytes and returns an error for short
 
 Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use native typed encodings, including platform endianness and `usize` width, and are not a portable serialization format.
 
-Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`rache::kernel::selected_backend()`](https://docs.rs/rache/*/rache/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
+Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`rache::xxhash::kernel::selected_backend()`](https://docs.rs/rache/*/rache/xxhash/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
 
 ## Examples and benchmarks
 

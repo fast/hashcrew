@@ -15,15 +15,15 @@
 use std::io::Cursor;
 use std::io::Write;
 
-use rache::Fnv1a32;
-use rache::Fnv1a64;
-use rache::Murmur3_32;
-use rache::Murmur3_128;
-use rache::Xxh3;
-use rache::Xxh3_128;
-use rache::Xxh32;
-use rache::Xxh64;
-use rache::xxh3_64;
+use rache::fnv::Fnv1a32;
+use rache::fnv::Fnv1a64;
+use rache::murmur::Murmur3_32;
+use rache::murmur::Murmur3_128;
+use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_128;
+use rache::xxhash::Xxh32;
+use rache::xxhash::Xxh64;
+use rache::xxhash::xxh3_64;
 
 #[test]
 fn streaming_states_are_standard_io_writers() {

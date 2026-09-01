@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rache::cityhash32;
-use rache::cityhash64;
-use rache::cityhash64_with_seed;
-use rache::cityhash64_with_seeds;
-use rache::cityhash128;
-use rache::cityhash128_to_64;
-use rache::cityhash128_with_seed;
+use rache::cityhash::cityhash32;
+use rache::cityhash::cityhash64;
+use rache::cityhash::cityhash64_with_seed;
+use rache::cityhash::cityhash64_with_seeds;
+use rache::cityhash::cityhash128;
+use rache::cityhash::cityhash128_to_64;
+use rache::cityhash::cityhash128_with_seed;
 
 mod support;
 
@@ -168,7 +168,7 @@ fn seeded_apis_preserve_official_word_order_and_relationships() {
 }
 
 #[test]
-fn raw_root_and_family_paths_match() {
+fn raw_and_family_paths_match() {
     let bytes = input(257);
     assert_eq!(rache::raw::cityhash32(&bytes), cityhash32(&bytes));
     assert_eq!(rache::cityhash::cityhash64(&bytes), cityhash64(&bytes));

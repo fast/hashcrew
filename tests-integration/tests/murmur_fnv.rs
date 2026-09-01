@@ -16,20 +16,20 @@ use core::hash::BuildHasher;
 use core::hash::Hasher;
 use std::io::Cursor;
 
-use rache::Fnv1a32;
-use rache::Fnv1a32Builder;
-use rache::Fnv1a64;
-use rache::Fnv1a64Builder;
-use rache::Murmur3_32;
-use rache::Murmur3_32Builder;
-use rache::Murmur3_128;
-use rache::fnv1a_32;
-use rache::fnv1a_32_with_offset_basis;
-use rache::fnv1a_64;
-use rache::fnv1a_64_with_offset_basis;
-use rache::murmur3_32;
-use rache::murmur3_128;
-use rache::murmur3_x64_128;
+use rache::fnv::Fnv1a32;
+use rache::fnv::Fnv1a32Builder;
+use rache::fnv::Fnv1a64;
+use rache::fnv::Fnv1a64Builder;
+use rache::fnv::fnv1a_32;
+use rache::fnv::fnv1a_32_with_offset_basis;
+use rache::fnv::fnv1a_64;
+use rache::fnv::fnv1a_64_with_offset_basis;
+use rache::murmur::Murmur3_32;
+use rache::murmur::Murmur3_32Builder;
+use rache::murmur::Murmur3_128;
+use rache::murmur::murmur3_32;
+use rache::murmur::murmur3_128;
+use rache::murmur::murmur3_x64_128;
 
 mod support;
 

@@ -14,8 +14,8 @@
 
 //! xxHash family implementations and XXH3 hardware kernels.
 //!
-//! The family module mirrors the crate-root API while keeping the individual
-//! variants and the XXH3 kernel layer together in the source tree.
+//! The family module keeps the individual variants and the XXH3 kernel layer
+//! together under one public namespace.
 
 pub mod kernel;
 pub mod xxh3;

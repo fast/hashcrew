@@ -16,25 +16,25 @@ use core::hash::BuildHasher;
 use core::hash::Hasher;
 use std::collections::HashMap;
 
-use rache::SECRET_SIZE_MIN;
-use rache::Xxh3;
-use rache::Xxh3_128;
-use rache::Xxh3Builder;
-use rache::Xxh3SecretBuilder;
-use rache::Xxh32;
-use rache::Xxh32Builder;
-use rache::Xxh64;
-use rache::Xxh64Builder;
-use rache::xxh3_64;
-use rache::xxh3_64_with_secret;
-use rache::xxh3_64_with_seed;
-use rache::xxh3_64_with_seed_and_secret;
-use rache::xxh3_128;
-use rache::xxh3_128_with_secret;
-use rache::xxh3_128_with_seed;
-use rache::xxh3_128_with_seed_and_secret;
-use rache::xxh32;
-use rache::xxh64;
+use rache::xxhash::SECRET_SIZE_MIN;
+use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_128;
+use rache::xxhash::Xxh3Builder;
+use rache::xxhash::Xxh3SecretBuilder;
+use rache::xxhash::Xxh32;
+use rache::xxhash::Xxh32Builder;
+use rache::xxhash::Xxh64;
+use rache::xxhash::Xxh64Builder;
+use rache::xxhash::xxh3_64;
+use rache::xxhash::xxh3_64_with_secret;
+use rache::xxhash::xxh3_64_with_seed;
+use rache::xxhash::xxh3_64_with_seed_and_secret;
+use rache::xxhash::xxh3_128;
+use rache::xxhash::xxh3_128_with_secret;
+use rache::xxhash::xxh3_128_with_seed;
+use rache::xxhash::xxh3_128_with_seed_and_secret;
+use rache::xxhash::xxh32;
+use rache::xxhash::xxh64;
 use xxhash_rust::xxh3;
 use xxhash_rust::xxh32 as reference32;
 use xxhash_rust::xxh64 as reference64;
@@ -179,7 +179,10 @@ fn custom_secret_length_is_validated() {
     let short = secret(SECRET_SIZE_MIN - 1);
     let error = xxh3_64_with_secret(b"rache", &short).unwrap_err();
     assert_eq!(error.actual_len(), SECRET_SIZE_MIN - 1);
-    assert_eq!(rache::Xxh3SecretTooShort::minimum_len(), SECRET_SIZE_MIN);
+    assert_eq!(
+        rache::xxhash::Xxh3SecretTooShort::minimum_len(),
+        SECRET_SIZE_MIN
+    );
     assert_eq!(
         error.to_string(),
         "XXH3 secret is 135 bytes; at least 136 bytes are required"
@@ -545,20 +548,20 @@ fn standard_hash_traits_use_the_raw_stream() {
         xxh3_64_with_seed_and_secret(&bytes, 17, &secret).unwrap()
     );
 
-    assert!(rache::kernel::selected_backend().is_available());
+    assert!(rache::xxhash::kernel::selected_backend().is_available());
 }
 
 #[test]
-fn family_and_compatibility_module_paths_match() {
+fn raw_and_family_paths_match() {
     let bytes = input(257);
 
     assert_eq!(
         rache::xxhash::xxh32(&bytes, 7),
-        rache::xxh32::xxh32(&bytes, 7)
+        rache::raw::xxh32(&bytes, 7)
     );
     assert_eq!(
         rache::xxhash::xxh64(&bytes, 11),
-        rache::xxh64::xxh64(&bytes, 11)
+        rache::raw::xxh64(&bytes, 11)
     );
-    assert_eq!(rache::xxhash::xxh3_64(&bytes), rache::xxh3::xxh3_64(&bytes));
+    assert_eq!(rache::xxhash::xxh3_64(&bytes), rache::raw::xxh3_64(&bytes));
 }
