@@ -209,7 +209,13 @@ fn make_format_cmd(fix: bool) -> StdCommand {
 
 fn make_clippy_cmd(fix: bool) -> StdCommand {
     let mut cmd = cargo();
-    cmd.args(["clippy", "--workspace", "--all-targets", "--all-features"]);
+    cmd.args([
+        "+nightly",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+    ]);
     if fix {
         cmd.args(["--allow-staged", "--allow-dirty", "--fix"]);
     } else {
