@@ -154,6 +154,8 @@ impl Hasher for Fnv1a32 {
     }
 }
 
+impl_std_io_write!(Fnv1a32);
+
 /// Deterministic [`BuildHasher`] for [`Fnv1a32`].
 ///
 /// FNV-1a is intended for trusted inputs and is not resistant to deliberate
@@ -264,6 +266,8 @@ impl Hasher for Fnv1a64 {
         self.digest()
     }
 }
+
+impl_std_io_write!(Fnv1a64);
 
 /// Deterministic [`BuildHasher`] for [`Fnv1a64`].
 ///

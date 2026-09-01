@@ -50,6 +50,39 @@
 #[cfg(test)]
 extern crate std;
 
+macro_rules! impl_std_io_write {
+    ($hash:ty) => {
+        #[cfg(feature = "std")]
+        impl std::io::Write for $hash {
+            #[inline]
+            fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+                self.update(input);
+                Ok(input.len())
+            }
+
+            #[inline]
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+    };
+    ($hash:ty, $storage:ident) => {
+        #[cfg(feature = "std")]
+        impl<$storage: AsRef<[u8]>> std::io::Write for $hash {
+            #[inline]
+            fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+                self.update(input);
+                Ok(input.len())
+            }
+
+            #[inline]
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+    };
+}
+
 pub mod cityhash;
 pub mod fnv;
 pub mod murmur;

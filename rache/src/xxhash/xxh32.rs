@@ -223,6 +223,8 @@ impl Hasher for Xxh32 {
     }
 }
 
+impl_std_io_write!(Xxh32);
+
 /// Deterministic [`BuildHasher`] for [`Xxh32`].
 ///
 /// XXH32 only provides 32 bits of output and is usually a poor choice for a

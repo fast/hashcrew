@@ -176,6 +176,8 @@ impl Hasher for Murmur3_32 {
     }
 }
 
+impl_std_io_write!(Murmur3_32);
+
 /// Deterministic [`BuildHasher`] for [`Murmur3_32`].
 ///
 /// MurmurHash3 is intended for trusted inputs and is not resistant to
@@ -406,6 +408,8 @@ impl Default for Murmur3_128 {
         Self::new()
     }
 }
+
+impl_std_io_write!(Murmur3_128);
 
 #[cfg(test)]
 mod tests {

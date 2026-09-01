@@ -982,6 +982,8 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
     }
 }
 
+impl_std_io_write!(Xxh3<S>, S);
+
 /// Explicitly named alias for the XXH3-64 streaming state.
 pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 
@@ -1113,6 +1115,8 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_128<S> {
             .finish_non_exhaustive()
     }
 }
+
+impl_std_io_write!(Xxh3_128<S>, S);
 
 /// Deterministic [`BuildHasher`] for [`Xxh3`].
 ///

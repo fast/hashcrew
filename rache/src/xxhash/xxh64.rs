@@ -249,6 +249,8 @@ impl Hasher for Xxh64 {
     }
 }
 
+impl_std_io_write!(Xxh64);
+
 /// Deterministic [`BuildHasher`] for [`Xxh64`].
 ///
 /// This builder is intended for trusted inputs. It does not randomize its seed
