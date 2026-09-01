@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use core::hash::{BuildHasher, Hasher};
+use std::collections::HashMap;
 
 use rache::{
     SECRET_SIZE_MIN, Xxh3, Xxh3_128, Xxh3Builder, Xxh3SecretBuilder, Xxh32, Xxh32Builder, Xxh64,
@@ -176,6 +177,29 @@ fn custom_secret_length_is_validated() {
     assert!(Xxh3_128::with_seed_and_secret(7, &short).is_err());
     assert!(Xxh3SecretBuilder::with_secret(&short).is_err());
     assert!(Xxh3SecretBuilder::with_seed_and_secret(7, &short).is_err());
+}
+
+#[test]
+fn custom_secret_states_and_builders_can_own_their_storage() {
+    let bytes = input(4_097);
+    let owned_secret = secret(255);
+    let expected64 = xxh3_64_with_secret(&bytes, &owned_secret).unwrap();
+    let mut hash64 = Xxh3::with_secret(owned_secret).unwrap();
+    hash64.update(&bytes);
+    assert_eq!(hash64.digest(), expected64);
+
+    let secret = [0xa5; 192];
+    let mut hash128 = Xxh3_128::with_seed_and_secret(7, secret).unwrap();
+    hash128.update(&bytes);
+    assert_eq!(
+        hash128.digest(),
+        xxh3_128_with_seed_and_secret(&bytes, 7, &secret).unwrap()
+    );
+
+    let builder = Xxh3SecretBuilder::with_secret(secret).unwrap();
+    let mut map = HashMap::with_hasher(builder);
+    map.insert("rache", 2);
+    assert_eq!(map["rache"], 2);
 }
 
 #[test]

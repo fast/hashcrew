@@ -662,9 +662,9 @@ impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> StreamState<&'a [u8]> {
-    fn with_secret(seed: u64, secret: &'a [u8], use_custom_secret_for_short: bool) -> Self {
-        let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+impl<S: AsRef<[u8]>> StreamState<S> {
+    fn with_secret(seed: u64, secret: S, use_custom_secret_for_short: bool) -> Self {
+        let stripes_per_block = (secret.as_ref().len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
         Self {
             seed,
             secret,
@@ -676,9 +676,7 @@ impl<'a> StreamState<&'a [u8]> {
             length_overflowed: false,
         }
     }
-}
 
-impl<S: AsRef<[u8]>> StreamState<S> {
     fn reset(&mut self) {
         self.buffered = 0;
         self.accumulator = Accumulator::new(self.accumulator.stripes_per_block);
@@ -856,9 +854,10 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 
 /// Incremental XXH3-64 state.
 ///
-/// The default and seeded forms own a 192-byte secret. Custom-secret forms
-/// borrow the caller's secret. Every form owns fixed-size working buffers and
-/// performs no allocation.
+/// The default and seeded forms own a 192-byte secret. A custom-secret form
+/// owns or borrows its secret according to the storage passed to
+/// [`with_secret`](Self::with_secret). Every form owns fixed-size working
+/// buffers and performs no allocation itself.
 #[derive(Clone)]
 pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -906,23 +905,24 @@ impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> Xxh3<&'a [u8]> {
-    /// Creates an XXH3-64 state borrowing `secret`.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+impl<S: AsRef<[u8]>> Xxh3<S> {
+    /// Creates an XXH3-64 state with custom secret storage.
+    ///
+    /// Pass an owned array or another `AsRef<[u8]>` value when the state should
+    /// own the secret, or pass a reference to borrow it.
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(0, secret, true)))
     }
 
-    /// Creates an XXH3-64 state borrowing `secret` and using `seed` for short inputs.
+    /// Creates an XXH3-64 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(seed, secret, false)))
     }
-}
 
-impl<S: AsRef<[u8]>> Xxh3<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
@@ -1036,23 +1036,24 @@ impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> Xxh3_128<&'a [u8]> {
-    /// Creates an XXH3-128 state borrowing `secret`.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+impl<S: AsRef<[u8]>> Xxh3_128<S> {
+    /// Creates an XXH3-128 state with custom secret storage.
+    ///
+    /// Pass an owned array or another `AsRef<[u8]>` value when the state should
+    /// own the secret, or pass a reference to borrow it.
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(0, secret, true)))
     }
 
-    /// Creates an XXH3-128 state borrowing `secret` and using `seed` for short inputs.
+    /// Creates an XXH3-128 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(seed, secret, false)))
     }
-}
 
-impl<S: AsRef<[u8]>> Xxh3_128<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn write(&mut self, input: &[u8]) {
@@ -1141,19 +1142,22 @@ impl BuildHasher for Xxh3Builder {
 
 /// Deterministic [`BuildHasher`] for an XXH3 custom secret.
 ///
-/// The builder borrows the secret and never allocates. It is intended for
-/// trusted inputs and does not make XXH3 resistant to deliberate hash flooding.
+/// The builder owns or borrows its secret according to its storage type. It
+/// copies that storage into each new hasher without allocating, so the storage
+/// must implement [`Copy`]. Arrays and references to slices both satisfy this
+/// requirement. The builder is intended for trusted inputs and does not make
+/// XXH3 resistant to deliberate hash flooding.
 #[derive(Clone, Copy)]
-pub struct Xxh3SecretBuilder<'a> {
+pub struct Xxh3SecretBuilder<S> {
     seed: u64,
-    secret: &'a [u8],
+    secret: S,
     use_custom_secret_for_short: bool,
 }
 
-impl<'a> Xxh3SecretBuilder<'a> {
+impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
     /// Creates a builder using `secret` for inputs of every length.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self {
             seed: 0,
             secret,
@@ -1162,8 +1166,8 @@ impl<'a> Xxh3SecretBuilder<'a> {
     }
 
     /// Creates a builder using `seed` for short inputs and `secret` for long inputs.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self {
             seed,
             secret,
@@ -1172,18 +1176,18 @@ impl<'a> Xxh3SecretBuilder<'a> {
     }
 }
 
-impl fmt::Debug for Xxh3SecretBuilder<'_> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Xxh3SecretBuilder")
             .field("seed", &self.seed)
-            .field("secret_len", &self.secret.len())
+            .field("secret_len", &self.secret.as_ref().len())
             .finish_non_exhaustive()
     }
 }
 
-impl<'a> BuildHasher for Xxh3SecretBuilder<'a> {
-    type Hasher = Xxh3<&'a [u8]>;
+impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
+    type Hasher = Xxh3<S>;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
