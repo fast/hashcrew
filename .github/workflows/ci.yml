@@ -51,8 +51,6 @@ jobs:
 
       - name: Restore Rust cache
         uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: lint
 
       - name: Install repository tools
         uses: taiki-e/install-action@37f7c5781271959fb65b6b35224e28652ff2b63d # v2.87.0
@@ -86,8 +84,6 @@ jobs:
 
       - name: Restore Rust cache
         uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: test-${{ matrix.rust }}
 
       - name: Run tests
         run: cargo x test
@@ -133,7 +129,7 @@ jobs:
       - name: Restore Rust cache
         uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: target-${{ matrix.target }}
+          key: ${{ matrix.target }}
 
       - name: Check target
         run: cargo check --package rache --target "${{ matrix.target }}" --locked ${{ matrix.features }}
@@ -155,8 +151,6 @@ jobs:
 
       - name: Restore Rust cache
         uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: package
 
       - name: Validate package contents
         shell: bash
