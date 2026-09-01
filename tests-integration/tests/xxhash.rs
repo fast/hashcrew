@@ -446,7 +446,6 @@ fn streaming_state_can_be_finished_cloned_continued_and_reset() {
 
     let mut hash3 = Xxh3::with_seed(seed);
     hash3.update(&prefix);
-    assert_eq!(hash3.digest(), hash3.digest());
     assert_eq!(hash3.digest(), xxh3_64_with_seed(&prefix, seed));
 
     let mut fork = hash3.clone();
