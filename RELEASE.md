@@ -6,7 +6,7 @@ Only the `rache` workspace package is published. Benchmarks, examples, and integ
 
 1. Work from a clean commit on the default branch.
 2. Update the crate version and `CHANGELOG.md`.
-3. Refresh the README benchmark snapshot only when performance-relevant code changed.
+3. Run the release-comparison inputs in the [benchmark guide](benchmarks/README.md) when performance-relevant code changed.
 4. Require every CI job to pass.
 
 Run the local release gate:
