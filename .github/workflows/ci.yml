@@ -1,4 +1,4 @@
-# Copyright 2026 rache contributors
+# Copyright 2026 FastLabs Developers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,13 +44,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install HawkEye
+      - name: Install repository tools
         uses: taiki-e/install-action@37f7c5781271959fb65b6b35224e28652ff2b63d # v2.87.0
         with:
-          tool: hawkeye@7.0.0
-
-      - name: Check license headers
-        run: hawkeye check
+          tool: hawkeye@7.0.0,taplo-cli,typos-cli
 
       - name: Install stable Rust
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
@@ -71,29 +68,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-quality-${{ steps.rust.outputs.cache-key }}-
 
-      - name: Check formatting
-        run: cargo +stable fmt --all -- --check
+      - name: Run quality checks
+        run: cargo x lint
 
-      - name: Lint every target
-        run: cargo +stable clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Check feature configurations
+        run: cargo x check
 
-      - name: Test workspace
-        run: cargo +stable test --workspace --all-features --locked
-
-      - name: Test optimized implementations
-        run: cargo +stable test -p tests-integration --release --locked
-
-      - name: Test no_std configuration
-        run: cargo +stable test -p rache --no-default-features --locked
-
-      - name: Build warning-free documentation
-        env:
-          RUSTDOCFLAGS: -D warnings
-        run: cargo +stable doc -p rache --all-features --no-deps --locked
+      - name: Test workspace and no_std configuration
+        run: cargo x test
 
       - name: Build release benchmarks
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-        run: cargo +stable bench -p benchmarks --no-run --locked
+        run: cargo x bench --no-run
 
   compatibility:
     name: MSRV and target compatibility
@@ -132,9 +118,9 @@ jobs:
             ${{ runner.os }}-compat-${{ steps.rust.outputs.cache-key }}-
 
       - name: Test minimum supported Rust version
-        run: |
-          cargo +1.85.0 test --workspace --all-features --locked
-          cargo +1.85.0 check -p rache --no-default-features --locked
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
+        run: cargo x test
 
       - name: Check compile-time AVX2 selection
         env:

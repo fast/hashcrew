@@ -1,39 +1,38 @@
 # rache
 
-`rache` is a zero-dependency Rust library for fast, deterministic,
-non-cryptographic hashing. It provides allocation-free one-shot APIs,
-incremental state where the algorithm supports it, stable cross-platform
-digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
+[![Crates.io][crates-badge]][crates-url]
+[![Documentation][docs-badge]][docs-url]
+[![MSRV 1.85][msrv-badge]](https://www.whatrustisit.com)
+[![Apache 2.0 licensed][license-badge]][license-url]
+[![Build Status][actions-badge]][actions-url]
 
-## Algorithms
+[crates-badge]: https://img.shields.io/crates/v/rache.svg
+[crates-url]: https://crates.io/crates/rache
+[docs-badge]: https://docs.rs/rache/badge.svg
+[docs-url]: https://docs.rs/rache
+[msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
+[license-badge]: https://img.shields.io/crates/l/rache
+[license-url]: LICENSE
+[actions-badge]: https://github.com/fast/rache/actions/workflows/ci.yml/badge.svg
+[actions-url]: https://github.com/fast/rache/actions/workflows/ci.yml
 
-| Family | Variants | Native configuration | Streaming state | `Hasher` / `BuildHasher` |
-|---|---|---|---|---|
-| CityHash | CityHash32, CityHash64, CityHash128 | one/two 64-bit seeds and a 128-bit seed | one-shot only | — |
-| xxHash | XXH32, XXH64, XXH3-64, XXH3-128 | seeds; XXH3 custom secret and seed+secret | all variants | XXH32, XXH64, XXH3-64 |
-| MurmurHash3 | x86_32, x64_128 | 32-bit seed | both variants | x86_32 |
-| FNV-1a | 32-bit, 64-bit | standard or custom offset basis | both variants | both variants |
+## Overview
 
-XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar,
-Arm NEON, x86 SSE2, and x86 AVX2 backends. The other algorithms use compact
-portable Rust cores. Every implementation supports `no_std`.
+Rache is a zero-dependency Rust library for fast, deterministic, non-cryptographic hashing. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
-CityHash is intentionally one-shot. Its digest depends on the complete input
-length and tail, so a streaming facade would have to retain the entire message
-and would not provide bounded-memory incremental hashing.
+Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, Arm NEON, x86 SSE2, and x86 AVX2 backends; the other algorithms use compact portable Rust cores.
 
-> These algorithms are not cryptographically secure. Deterministic hashers are
-> also unsuitable for hash tables exposed to attacker-controlled keys because
-> they do not protect against deliberate hash flooding.
+> [!WARNING]
+>
+> These algorithms are not cryptographically secure. Deterministic hashers are also unsuitable for hash tables exposed to attacker-controlled keys because they do not protect against deliberate hash flooding.
 
-The cross-platform guarantee applies when the same bytes are passed to the raw
-or streaming APIs. Rust's `Hash`/`BuildHasher` adapters use native typed
-encodings, including platform endianness and `usize` width, and are not a
-portable serialization format.
+## Getting started
 
-## Usage
+```shell
+cargo add rache
+```
 
-Use `raw` when the complete input is already in memory:
+Use the `raw` module when the complete input is already in memory:
 
 ```rust
 use rache::raw;
@@ -50,7 +49,7 @@ assert_ne!(murmur, 0);
 assert_ne!(fnv, 0);
 ```
 
-Use a streaming state when data arrives in chunks:
+Use a state type when data arrives incrementally:
 
 ```rust
 use rache::{Murmur3_128, raw};
@@ -62,141 +61,46 @@ hash.update(b"che");
 assert_eq!(hash.digest(), raw::murmur3_128(b"rache", 42));
 ```
 
-Use each family's native configuration terminology. XXH3 accepts any custom
-secret of at least 136 bytes and returns an error for shorter inputs. Streaming
-states borrow the secret and remain allocation-free:
+The main types and functions are re-exported at the crate root. Family-scoped paths such as `rache::xxhash::xxh3_64`, `rache::murmur::murmur3_32`, and `rache::cityhash::cityhash64` remain available when a qualified import is clearer.
 
-```rust
-use rache::{Xxh3, raw, xxh3::DEFAULT_SECRET};
+## Algorithms
 
-let secret = DEFAULT_SECRET; // Replace with application-specific high-entropy bytes.
-let one_shot = raw::xxh3_64_with_secret(b"rache", &secret).unwrap();
+| Family      | Variants                            | Native configuration                      | Streaming state | `Hasher` / `BuildHasher` |
+|-------------|-------------------------------------|-------------------------------------------|-----------------|--------------------------|
+| CityHash    | CityHash32, CityHash64, CityHash128 | one/two 64-bit seeds and a 128-bit seed   | one-shot only   | —                        |
+| xxHash      | XXH32, XXH64, XXH3-64, XXH3-128     | seeds; XXH3 custom secret and seed+secret | all variants    | XXH32, XXH64, XXH3-64    |
+| MurmurHash3 | x86_32, x64_128                     | 32-bit seed                               | both variants   | x86_32                   |
+| FNV-1a      | 32-bit, 64-bit                      | standard or custom offset basis           | both variants   | both variants            |
 
-let mut streaming = Xxh3::with_secret(&secret).unwrap();
-streaming.update(b"ra");
-streaming.update(b"che");
-assert_eq!(streaming.digest(), one_shot);
+CityHash is intentionally one-shot. Its digest depends on the complete input length and tail, so a streaming facade would have to retain the entire message and would not provide bounded-memory incremental hashing.
 
-let namespace_basis = raw::fnv1a_64(b"my namespace");
-let namespaced = raw::fnv1a_64_with_offset_basis(b"rache", namespace_basis);
-assert_ne!(namespaced, raw::fnv1a_64(b"rache"));
-```
+XXH3 accepts custom secrets of at least 136 bytes and returns an error for shorter inputs. Its seed-and-secret APIs follow the reference contract: inputs up to 240 bytes use the seed, while longer inputs use the custom secret. Custom secrets and non-standard FNV offset bases alter deterministic output; neither makes these algorithms cryptographically secure.
 
-XXH3 seed+secret APIs follow the reference contract: inputs up to 240 bytes
-use the seed, while longer inputs use the custom secret. Custom secrets and
-non-standard FNV offset bases alter deterministic output; neither turns these
-algorithms into cryptographic or adversarially secure hashes.
+## Portability
 
-The main types and functions are re-exported at the crate root. Family-scoped
-paths such as `rache::xxhash::xxh3_64`, `rache::murmur::murmur3_32`, and
-`rache::cityhash::cityhash64` are available when a qualified import is clearer.
+Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use native typed encodings, including platform endianness and `usize` width, and are not a portable serialization format.
 
-## Repository layout
+Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`rache::kernel::selected_backend()`](https://docs.rs/rache/*/rache/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
 
-The publishable crate is isolated from all development-only dependencies:
+## Examples and benchmarks
 
-```text
-.
-├── rache/                 publishable library crate
-│   └── src/
-│       ├── cityhash/       CityHash portable one-shot core
-│       ├── xxhash/        XXH32, XXH64, XXH3, and hardware kernels
-│       ├── murmur/        MurmurHash3 portable core and state
-│       ├── fnv/           FNV-1a portable core and state
-│       └── lib.rs         public exports and raw API
-├── benchmarks/            Divan one-shot and streaming comparisons
-├── examples/              runnable programs
-└── tests-integration/     specification and cross-implementation tests
-```
+Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-This workspace separation follows the same broad pattern as Apache Asyncband:
-the `rache` package remains dependency-free while benchmarks and conformance
-tests can use independent reference crates.
-
-## Benchmark snapshot
-
-The table records median throughput from the public APIs. One-shot cases use
-4 KiB and 1 MiB inputs; streaming cases hash 1 MiB in 64 KiB chunks. Values are
-a regression snapshot, not a performance guarantee.
-
-| Algorithm | One-shot 4 KiB | One-shot 1 MiB | Streaming 1 MiB | Reference one-shot 1 MiB |
-|---|---:|---:|---:|---:|
-| CityHash32 | 9.37 GB/s | 9.27 GB/s | — | 9.16 GB/s (`cityhasher`) |
-| CityHash64 | 28.64 GB/s | 28.53 GB/s | — | 28.50 GB/s (`cityhasher`) |
-| CityHash128 | 28.13 GB/s | 28.66 GB/s | — | 28.66 GB/s (`cityhash-rs`) |
-| XXH32 | 8.03 GB/s | 6.56 GB/s | 6.56 GB/s | 6.56 GB/s (`xxhash-rust`) |
-| XXH64 | 27.39 GB/s | 27.44 GB/s | 27.68 GB/s | 27.80 GB/s (`twox-hash`) |
-| XXH3-64 | 49.30 GB/s | 48.30 GB/s | 48.02 GB/s | 48.30 GB/s (`twox-hash`) |
-| XXH3-64 (custom secret) | 48.91 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
-| XXH3-64 (seed + secret) | 49.29 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
-| XXH3-128 | 49.29 GB/s | 48.30 GB/s | 47.93 GB/s | 48.30 GB/s (`twox-hash`) |
-| XXH3-128 (custom secret) | 48.54 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
-| XXH3-128 (seed + secret) | 48.91 GB/s | 48.30 GB/s | 48.39 GB/s | 48.30 GB/s (`twox-hash`) |
-| MurmurHash3 x86_32 | 3.64 GB/s | 3.59 GB/s | 3.59 GB/s | 1.58 GB/s (`murmur3`) |
-| MurmurHash3 x64_128 | 9.15 GB/s | 8.96 GB/s | 8.97 GB/s | 5.90 GB/s (`murmur3`) |
-| FNV-1a 32 | 1.14 GB/s | 1.12 GB/s | 1.12 GB/s | — |
-| FNV-1a 64 | 1.13 GB/s | 1.12 GB/s | 1.12 GB/s | 1.12 GB/s (`fnv`) |
-
-The `murmur3` crate exposes a `Read`-based one-shot API, so those rows compare
-complete public-call paths rather than isolated compression loops. Seeded
-CityHash and XXH3 cases, plus additional input boundaries, are included in the
-benchmark suite. Configured XXH3 rows use a 192-byte custom secret.
-
-Reproduce this snapshot with:
+Use the repository workflow commands to run them:
 
 ```console
-cargo bench -p benchmarks --bench throughput -- 4096 1048576 --min-time 0.1 --max-time 0.25
-cargo bench -p benchmarks --bench streaming -- 1048576 --min-time 0.1 --max-time 0.25
+cargo x test
+cargo x bench
 ```
 
-Run every configured input size with:
+## Correctness
 
-```console
-cargo bench -p benchmarks --bench throughput
-cargo bench -p benchmarks --bench streaming
-```
+Integration tests compare CityHash, xxHash, and MurmurHash3 with independent implementations, and verify FNV-1a against RFC vectors plus an independent 64-bit implementation. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
 
-See [`benchmarks/README.md`](benchmarks/README.md) for filters and the complete
-case matrix.
+## Minimum Supported Rust Version (MSRV)
 
-## Kernel selection
+Rache's minimum supported rustc version is 1.85.0. The MSRV may be increased in a minor release.
 
-XXH3 routes inputs up to 240 bytes through specialized scalar paths and longer
-inputs through 64-byte stripes. Target-guaranteed CPU features are selected at
-compile time. Other `std` builds cache runtime feature detection; `no_std`
-builds use compile-time features only and otherwise fall back to the scalar
-kernel. `rache::kernel::selected_backend()` reports the selected backend.
+## License and acknowledgements
 
-## Correctness and compatibility
-
-Integration tests compare CityHash, xxHash, and MurmurHash3 with independent
-implementations, and verify FNV-1a against RFC vectors plus an independent
-64-bit implementation. The suite covers boundary lengths, multiple seeds,
-custom secrets at the minimum and variable lengths, custom FNV offset bases,
-random inputs, every applicable streaming partition, every available hardware
-backend, and both `std` and `no_std` builds.
-
-The minimum supported Rust version is 1.85. Run the primary checks with:
-
-```console
-cargo +1.85.0 test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo +1.85.0 check -p rache --no-default-features
-```
-
-Maintainers should use the
-[`RELEASING.md`](https://github.com/leiysky/rache/blob/main/RELEASING.md)
-checklist for the complete package and publication gate.
-
-## References
-
-- [Google CityHash 1.1.1 reference implementation](https://github.com/google/cityhash)
-- [xxHash specification](https://github.com/Cyan4973/xxHash/blob/dev/doc/xxhash_spec.md)
-- [MurmurHash3 reference implementation](https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp)
-- [FNV specification (RFC 9923)](https://www.rfc-editor.org/rfc/rfc9923.html)
-- [twox-hash](https://github.com/shepmaster/twox-hash) for Rust API design ideas
-- [Apache Asyncband](https://github.com/apache/asyncband) for workspace organization
-
-Licensed under the Apache License, Version 2.0. See
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for implementation
-references and development-only comparison dependencies.
+This project is licensed under [Apache License, Version 2.0](LICENSE). See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Rache.

@@ -1,4 +1,4 @@
-# Copyright 2026 rache contributors
+# Copyright 2026 FastLabs Developers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,14 @@
 # limitations under the License.
 
 [package]
-name = "rache"
-version = "0.1.0"
+categories = ["algorithms", "no-std"]
 description = "Fast, portable non-cryptographic hashes for Rust"
 documentation = "https://docs.rs/rache"
-homepage = "https://github.com/leiysky/rache"
-repository = "https://github.com/leiysky/rache"
+homepage = "https://github.com/fast/rache"
 keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
-categories = ["algorithms", "no-std"]
+name = "rache"
+repository = "https://github.com/fast/rache"
+version = "0.1.0"
 
 edition.workspace = true
 license.workspace = true

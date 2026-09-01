@@ -14,16 +14,11 @@ integration-test packages must remain development-only.
 Run the local release gate:
 
 ```console
-cargo +stable fmt --all -- --check
-hawkeye check
-cargo +stable clippy --workspace --all-targets --all-features --locked -- -D warnings
-cargo +stable test --workspace --all-features --locked
-cargo +stable test -p tests-integration --release --locked
-cargo +stable test -p rache --no-default-features --locked
-cargo +1.85.0 test --workspace --all-features --locked
-cargo +1.85.0 check -p rache --no-default-features --locked
-RUSTDOCFLAGS="-D warnings" cargo +stable doc -p rache --all-features --no-deps --locked
-cargo +stable bench -p benchmarks --no-run --locked
+cargo x lint
+cargo x check
+cargo x test
+RUSTUP_TOOLCHAIN=1.85.0 cargo x test
+cargo x bench --no-run
 cargo +stable package -p rache --locked
 cargo +stable publish -p rache --locked --dry-run
 ```

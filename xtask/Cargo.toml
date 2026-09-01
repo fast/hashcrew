@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[header]
-builtin = "Apache-2.0"
+[package]
+name = "x"
+publish = false
 
-[files]
-includes = ["**/*.rs", "**/*.toml", "**/*.yaml", "**/*.yml"]
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+rust-version.workspace = true
 
-[props]
-copyright_owner = "FastLabs Developers"
-inception_year = 2026
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+which = { workspace = true }
+
+[lints]
+workspace = true

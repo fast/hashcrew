@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[header]
-builtin = "Apache-2.0"
+[alias]
+x = "run --package x --"
 
-[files]
-includes = ["**/*.rs", "**/*.toml", "**/*.yaml", "**/*.yml"]
-
-[props]
-copyright_owner = "FastLabs Developers"
-inception_year = 2026
+[env]
+CARGO_WORKSPACE_DIR = { value = "", relative = true }

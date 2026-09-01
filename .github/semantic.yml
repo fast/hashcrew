@@ -12,12 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[header]
-builtin = "Apache-2.0"
+# Pull request titles follow `<type>[optional scope]: <description>`.
+# See https://github.com/Ezard/semantic-prs#configuration for configuration details.
 
-[files]
-includes = ["**/*.rs", "**/*.toml", "**/*.yaml", "**/*.yml"]
+enabled: true
 
-[props]
-copyright_owner = "FastLabs Developers"
-inception_year = 2026
+titleOnly: true
+
+types:
+  - feat
+  - fix
+  - docs
+  - style
+  - refactor
+  - perf
+  - test
+  - build
+  - ci
+  - chore
+  - revert
+
+targetUrl: https://github.com/fast/rache/blob/main/.github/semantic.yml
