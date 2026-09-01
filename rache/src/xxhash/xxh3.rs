@@ -991,6 +991,8 @@ pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 ///
 /// This type has an inherent [`write`](Self::write) method rather than a
 /// [`Hasher`] implementation because that trait only returns 64-bit digests.
+/// With the `std` feature, it also implements
+/// [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 #[derive(Clone)]
 pub struct Xxh3_128<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 

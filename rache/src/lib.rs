@@ -18,7 +18,9 @@
 //! state types for incremental input. CityHash is intentionally one-shot.
 //! Implementations are grouped under [`cityhash`], [`xxhash`], [`murmur`], and
 //! [`fnv`] and re-exported at the crate root. Outputs that fit in 64 bits also
-//! implement [`core::hash::Hasher`].
+//! implement [`core::hash::Hasher`]. With the default `std` feature, every
+//! incremental state also implements
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
 //! [`core::hash`] adapters use Rust's native typed encodings and are not a
