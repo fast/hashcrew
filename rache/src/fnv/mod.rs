@@ -155,7 +155,19 @@ impl Hasher for Fnv1a32 {
     }
 }
 
-impl_std_io_write!(Fnv1a32);
+#[cfg(feature = "std")]
+impl std::io::Write for Fnv1a32 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Deterministic [`BuildHasher`] for [`Fnv1a32`].
 ///
@@ -268,7 +280,19 @@ impl Hasher for Fnv1a64 {
     }
 }
 
-impl_std_io_write!(Fnv1a64);
+#[cfg(feature = "std")]
+impl std::io::Write for Fnv1a64 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Deterministic [`BuildHasher`] for [`Fnv1a64`].
 ///

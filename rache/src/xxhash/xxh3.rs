@@ -986,7 +986,19 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
     }
 }
 
-impl_std_io_write!(Xxh3<S>, S);
+#[cfg(feature = "std")]
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Explicitly named alias for the XXH3-64 streaming state.
 pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
@@ -1122,7 +1134,19 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_128<S> {
     }
 }
 
-impl_std_io_write!(Xxh3_128<S>, S);
+#[cfg(feature = "std")]
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Deterministic [`BuildHasher`] for [`Xxh3`].
 ///

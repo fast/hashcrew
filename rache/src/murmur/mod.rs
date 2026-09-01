@@ -178,7 +178,19 @@ impl Hasher for Murmur3_32 {
     }
 }
 
-impl_std_io_write!(Murmur3_32);
+#[cfg(feature = "std")]
+impl std::io::Write for Murmur3_32 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Deterministic [`BuildHasher`] for [`Murmur3_32`].
 ///
@@ -411,7 +423,19 @@ impl Default for Murmur3_128 {
     }
 }
 
-impl_std_io_write!(Murmur3_128);
+#[cfg(feature = "std")]
+impl std::io::Write for Murmur3_128 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
