@@ -1235,6 +1235,8 @@ impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
 
 #[cfg(test)]
 mod tests {
+    use std::vec::Vec;
+
     use super::*;
 
     fn assert_kernel_matches_scalar<K: Xxh3Kernel>(kernel: K) {
