@@ -34,149 +34,146 @@ env:
   RUST_BACKTRACE: "1"
 
 jobs:
-  quality:
-    name: Quality and tests
+  lint:
+    name: Lint
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt --no-self-update
+
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Install repository tools
         uses: taiki-e/install-action@37f7c5781271959fb65b6b35224e28652ff2b63d # v2.87.0
         with:
           tool: hawkeye@7.0.0,taplo-cli,typos-cli
 
-      - name: Install stable Rust
-        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
-
-      - name: Compute compiler cache key
-        id: rust
-        run: echo "cache-key=$(rustc +stable -vV | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore Cargo cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: ${{ runner.os }}-quality-${{ steps.rust.outputs.cache-key }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-quality-${{ steps.rust.outputs.cache-key }}-
-
-      - name: Run quality checks
+      - name: Lint workspace
         run: cargo x lint
 
       - name: Check feature configurations
         run: cargo x check
 
-      - name: Test workspace and no_std configuration
-        run: cargo x test
-
-      - name: Build release benchmarks
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-        run: cargo x bench --no-run
-
-  compatibility:
-    name: MSRV and target compatibility
+  test:
+    name: Test (${{ matrix.rust }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, "1.85.0"]
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install compatibility toolchains
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add --toolchain stable aarch64-unknown-linux-gnu
-          rustup target add --toolchain stable wasm32-unknown-unknown
-          rustup target add --toolchain stable thumbv7em-none-eabi
-          rustup toolchain install 1.85.0 --profile minimal
+      - name: Install Rust
+        run: rustup toolchain install "${{ matrix.rust }}" --profile minimal --no-self-update
 
-      - name: Compute compiler cache key
-        id: rust
-        run: |
-          cache_key="$({ rustc +stable -vV; rustc +1.85.0 -vV; } | sha256sum | cut -d ' ' -f 1)"
-          echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
-      - name: Restore Cargo cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: ${{ runner.os }}-compat-${{ steps.rust.outputs.cache-key }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-compat-${{ steps.rust.outputs.cache-key }}-
-
-      - name: Test minimum supported Rust version
-        env:
-          RUSTUP_TOOLCHAIN: 1.85.0
+      - name: Run tests
         run: cargo x test
 
-      - name: Check compile-time AVX2 selection
-        env:
-          RUSTFLAGS: -D warnings -C target-feature=+avx2
-        run: cargo +stable check -p rache --all-features --target x86_64-unknown-linux-gnu --locked
+  target:
+    name: Target (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86_64 AVX2
+            target: x86_64-unknown-linux-gnu
+            features: --all-features
+            rustflags: -C target-feature=+avx2
+          - name: AArch64 NEON
+            target: aarch64-unknown-linux-gnu
+            features: --no-default-features
+            rustflags: -C target-feature=+neon
+          - name: WebAssembly
+            target: wasm32-unknown-unknown
+            features: --no-default-features
+            rustflags: ""
+          - name: bare metal
+            target: thumbv7em-none-eabi
+            features: --no-default-features
+            rustflags: ""
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      RUSTFLAGS: -D warnings ${{ matrix.rustflags }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Check AArch64 NEON no_std build
-        env:
-          RUSTFLAGS: -D warnings -C target-feature=+neon
-        run: cargo +stable check -p rache --no-default-features --target aarch64-unknown-linux-gnu --locked
+      - name: Install Rust target
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup target add "${{ matrix.target }}"
 
-      - name: Check WebAssembly no_std build
-        env:
-          RUSTFLAGS: -D warnings
-        run: cargo +stable check -p rache --no-default-features --target wasm32-unknown-unknown --locked
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Check bare-metal no_std build
-        env:
-          RUSTFLAGS: -D warnings
-        run: cargo +stable check -p rache --no-default-features --target thumbv7em-none-eabi --locked
+      - name: Check target
+        run: cargo check --package rache --target "${{ matrix.target }}" --locked ${{ matrix.features }}
 
   package:
-    name: Publishable package
-    needs: [quality, compatibility]
+    name: Package
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install stable Rust
-        run: rustup toolchain install stable --profile minimal
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --no-self-update
 
-      - name: Validate package file set
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Validate package contents
         shell: bash
         run: |
-          package_files="$(cargo +stable package -p rache --locked --list)"
+          package_files="$(cargo package --package rache --locked --list)"
           for required in Cargo.lock Cargo.toml README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md src/lib.rs; do
             grep -Fxq "$required" <<< "$package_files" || {
               echo "missing required package file: $required" >&2
               exit 1
             }
           done
-          if grep -Eq '^(benchmarks|examples|tests-integration|target)/' <<< "$package_files"; then
+          if grep -Eq '^(benchmarks|examples|tests-integration|xtask|target)/' <<< "$package_files"; then
             echo "development-only files leaked into the package" >&2
             exit 1
           fi
 
-      - name: Build package archive
-        run: cargo +stable package -p rache --locked
+      - name: Build package
+        run: cargo package --package rache --locked
 
-      - name: Test packaged crate
+      - name: Test package
+        shell: bash
         run: |
           package_dir="$(find target/package -mindepth 1 -maxdepth 1 -type d -name 'rache-*' -print -quit)"
           test -n "$package_dir"
-          cargo +stable test --manifest-path "$package_dir/Cargo.toml" --all-features --locked
-          cargo +stable test --manifest-path "$package_dir/Cargo.toml" --no-default-features --locked
+          cargo test --manifest-path "$package_dir/Cargo.toml" --all-features --locked
+          cargo test --manifest-path "$package_dir/Cargo.toml" --no-default-features --locked
