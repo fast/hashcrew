@@ -23,7 +23,7 @@ cargo bench -p benchmarks --bench throughput
 cargo bench -p benchmarks --bench streaming
 ```
 
-Reproduce the snapshot recorded in the repository README:
+Run the release-comparison input sizes:
 
 ```console
 cargo bench -p benchmarks --bench throughput -- 4096 1048576 --min-time 0.1 --max-time 0.25
