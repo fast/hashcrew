@@ -18,9 +18,9 @@
 //! together under one public namespace.
 
 pub mod kernel;
-pub mod xxh3;
-pub mod xxh32;
-pub mod xxh64;
+mod xxh3;
+mod xxh32;
+mod xxh64;
 
 pub use self::xxh3::DEFAULT_SECRET;
 pub use self::xxh3::DEFAULT_SECRET_SIZE;
