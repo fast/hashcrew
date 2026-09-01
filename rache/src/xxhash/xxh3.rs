@@ -976,13 +976,13 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3<S> {
 
 impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
     }
 }
 
@@ -1239,35 +1239,35 @@ mod tests {
 
     fn assert_kernel_matches_scalar<K: Xxh3Kernel>(kernel: K) {
         for len in [241_usize, 256, 1_023, 1_024, 1_025, 4_097] {
-            let input: std::vec::Vec<_> = (0..len)
+            let input: Vec<_> = (0..len)
                 .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
                 .collect();
             for seed in [0, 1, 0x0123_4567_89ab_cdef] {
                 let secret = derive_secret(seed);
                 assert_eq!(
                     hash_long_64(kernel, &input, &secret),
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     "XXH3-64 length={len} seed={seed:#x}"
                 );
                 assert_eq!(
                     hash_long_128(kernel, &input, &secret),
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} seed={seed:#x}"
                 );
             }
 
             for secret_len in [SECRET_SIZE_MIN, DEFAULT_SECRET_SIZE, 255, 1_024] {
-                let secret: std::vec::Vec<_> = (0..secret_len)
+                let secret: Vec<_> = (0..secret_len)
                     .map(|index| index.wrapping_mul(197).wrapping_add(0xa5) as u8)
                     .collect();
                 assert_eq!(
                     hash_long_64(kernel, &input, &secret),
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     "XXH3-64 length={len} secret_len={secret_len}"
                 );
                 assert_eq!(
                     hash_long_128(kernel, &input, &secret),
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} secret_len={secret_len}"
                 );
             }
@@ -1315,17 +1315,17 @@ mod tests {
     #[test]
     fn scalar_kernel_matches_selected_backend() {
         for len in [241_usize, 256, 1_023, 1_024, 1_025, 4_097] {
-            let input: std::vec::Vec<_> = (0..len)
+            let input: Vec<_> = (0..len)
                 .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
                 .collect();
             for seed in [0, 1, 0x0123_4567_89ab_cdef] {
                 let secret = derive_secret(seed);
                 assert_eq!(
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     xxh3_64_with_seed(&input, seed)
                 );
                 assert_eq!(
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     xxh3_128_with_seed(&input, seed)
                 );
             }
@@ -1335,24 +1335,20 @@ mod tests {
     #[test]
     fn every_available_hardware_kernel_matches_scalar() {
         #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
-        if crate::xxhash::kernel::Backend::Neon.is_available() {
+        if kernel::Backend::Neon.is_available() {
             // SAFETY: Availability was checked immediately above.
-            assert_kernel_matches_scalar(unsafe { crate::xxhash::kernel::Neon::new_unchecked() });
+            assert_kernel_matches_scalar(unsafe { kernel::Neon::new_unchecked() });
         }
 
         #[cfg(target_arch = "x86_64")]
         {
-            if crate::xxhash::kernel::Backend::Sse2.is_available() {
+            if kernel::Backend::Sse2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe {
-                    crate::xxhash::kernel::Sse2::new_unchecked()
-                });
+                assert_kernel_matches_scalar(unsafe { kernel::Sse2::new_unchecked() });
             }
-            if crate::xxhash::kernel::Backend::Avx2.is_available() {
+            if kernel::Backend::Avx2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe {
-                    crate::xxhash::kernel::Avx2::new_unchecked()
-                });
+                assert_kernel_matches_scalar(unsafe { kernel::Avx2::new_unchecked() });
             }
         }
     }

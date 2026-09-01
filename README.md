@@ -138,11 +138,11 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 ## Examples and benchmarks
 
-Runnable examples live in the [`examples`](https://github.com/fast/rache/tree/main/examples) workspace crate. The [`benchmarks`](https://github.com/fast/rache/tree/main/benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](https://github.com/fast/rache/blob/main/benchmarks/README.md) for filters, input sizes, and the complete case matrix.
+Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
 Use the repository workflow commands to run them:
 
-```console
+```shell
 cargo x test
 cargo x bench
 ```

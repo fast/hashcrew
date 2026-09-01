@@ -145,13 +145,13 @@ impl Default for Fnv1a32 {
 
 impl Hasher for Fnv1a32 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        u64::from(self.digest())
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        u64::from(self.digest())
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
     }
 }
 
@@ -270,13 +270,13 @@ impl Default for Fnv1a64 {
 
 impl Hasher for Fnv1a64 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
     }
 }
 

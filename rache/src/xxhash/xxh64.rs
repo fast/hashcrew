@@ -241,13 +241,13 @@ impl Default for Xxh64 {
 
 impl Hasher for Xxh64 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
     }
 }
 
