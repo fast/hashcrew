@@ -12,33 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[package]
-name = "benchmarks"
-publish = false
-version = "0.0.0"
+[alias]
+x = "run --package x --"
 
-edition.workspace = true
-rust-version.workspace = true
-
-[dev-dependencies]
-cityhash-rs.workspace = true
-cityhasher.workspace = true
-divan.workspace = true
-fnv.workspace = true
-murmur3.workspace = true
-rache.workspace = true
-twox-hash.workspace = true
-xxhash-rust.workspace = true
-
-[[bench]]
-harness = false
-name = "throughput"
-path = "benches/throughput.rs"
-
-[[bench]]
-harness = false
-name = "streaming"
-path = "benches/streaming.rs"
-
-[lints]
-workspace = true
+[env]
+CARGO_WORKSPACE_DIR = { value = "", relative = true }

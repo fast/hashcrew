@@ -13,32 +13,17 @@
 # limitations under the License.
 
 [package]
-name = "benchmarks"
+name = "x"
 publish = false
-version = "0.0.0"
 
 edition.workspace = true
+license.workspace = true
+readme.workspace = true
 rust-version.workspace = true
 
-[dev-dependencies]
-cityhash-rs.workspace = true
-cityhasher.workspace = true
-divan.workspace = true
-fnv.workspace = true
-murmur3.workspace = true
-rache.workspace = true
-twox-hash.workspace = true
-xxhash-rust.workspace = true
-
-[[bench]]
-harness = false
-name = "throughput"
-path = "benches/throughput.rs"
-
-[[bench]]
-harness = false
-name = "streaming"
-path = "benches/streaming.rs"
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+which = { workspace = true }
 
 [lints]
 workspace = true

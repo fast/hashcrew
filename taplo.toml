@@ -12,33 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[package]
-name = "benchmarks"
-publish = false
-version = "0.0.0"
+exclude = ["target/**"]
+include = ["Cargo.toml", "**/*.toml"]
 
-edition.workspace = true
-rust-version.workspace = true
-
-[dev-dependencies]
-cityhash-rs.workspace = true
-cityhasher.workspace = true
-divan.workspace = true
-fnv.workspace = true
-murmur3.workspace = true
-rache.workspace = true
-twox-hash.workspace = true
-xxhash-rust.workspace = true
-
-[[bench]]
-harness = false
-name = "throughput"
-path = "benches/throughput.rs"
-
-[[bench]]
-harness = false
-name = "streaming"
-path = "benches/streaming.rs"
-
-[lints]
-workspace = true
+[formatting]
+align_entries = false
+allowed_blank_lines = 1
+array_auto_collapse = true
+array_auto_expand = true
+array_trailing_comma = true
+column_width = 80
+compact_arrays = true
+compact_inline_tables = false
+crlf = false
+indent_string = "  "
+indent_tables = false
+reorder_keys = true
+trailing_newline = true
