@@ -268,6 +268,22 @@ mod murmur3_32 {
     }
 }
 
+mod murmur3_x86_128 {
+    use super::*;
+
+    #[divan::bench(args = CASES)]
+    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut hasher = rache::murmur::Murmur3X86_128::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                hasher.update(chunk);
+            }
+            hasher.digest()
+        });
+    }
+}
+
 mod murmur3_x64_128 {
     use super::*;
 

@@ -467,6 +467,26 @@ mod murmur3_32 {
     }
 }
 
+mod murmur3_x86_128 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| rache::murmur::murmur3_x86_128(black_box(&bytes), 0));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn murmur3_crate(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            murmur3::murmur3_x86_128(&mut Cursor::new(black_box(bytes.as_slice())), 0).unwrap()
+        });
+    }
+}
+
 mod murmur3_x64_128 {
     use super::*;
 

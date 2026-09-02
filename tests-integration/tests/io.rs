@@ -19,7 +19,9 @@ use rache::fnv::Fnv1a32;
 use rache::fnv::Fnv1a64;
 use rache::murmur::Murmur3_32;
 use rache::murmur::Murmur3X64_128;
+use rache::murmur::Murmur3X86_128;
 use rache::murmur::murmur3_x64_128;
+use rache::murmur::murmur3_x86_128;
 use rache::xxhash::Xxh3;
 use rache::xxhash::Xxh3_128;
 use rache::xxhash::Xxh32;
@@ -34,6 +36,7 @@ fn streaming_states_are_standard_io_writers() {
     assert_writer::<Fnv1a32>();
     assert_writer::<Fnv1a64>();
     assert_writer::<Murmur3_32>();
+    assert_writer::<Murmur3X86_128>();
     assert_writer::<Murmur3X64_128>();
     assert_writer::<Xxh32>();
     assert_writer::<Xxh64>();
@@ -44,6 +47,10 @@ fn streaming_states_are_standard_io_writers() {
     let mut hash = Xxh3::new();
     std::io::copy(&mut Cursor::new(input), &mut hash).unwrap();
     assert_eq!(hash.digest(), xxh3_64(input));
+
+    let mut hash = Murmur3X86_128::new();
+    assert_eq!(hash.write(input).unwrap(), input.len());
+    assert_eq!(hash.digest(), murmur3_x86_128(input, 0));
 
     let mut hash = Murmur3X64_128::new();
     assert_eq!(hash.write(input).unwrap(), input.len());
