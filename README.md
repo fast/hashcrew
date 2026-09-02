@@ -13,8 +13,8 @@
 [msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
 [license-badge]: https://img.shields.io/crates/l/hashcrew
 [license-url]: LICENSE
-[actions-badge]: https://github.com/fast/rache/actions/workflows/ci.yml/badge.svg
-[actions-url]: https://github.com/fast/rache/actions/workflows/ci.yml
+[actions-badge]: https://github.com/fast/hashcrew/actions/workflows/ci.yml/badge.svg
+[actions-url]: https://github.com/fast/hashcrew/actions/workflows/ci.yml
 
 ## Overview
 
