@@ -180,10 +180,6 @@ fn custom_secret_length_is_validated() {
     let error = xxh3_64_with_secret(b"hashcrew", &short).unwrap_err();
     assert_eq!(error.actual_len(), SECRET_SIZE_MIN - 1);
     assert_eq!(
-        hashcrew::xxhash::Xxh3SecretTooShort::minimum_len(),
-        SECRET_SIZE_MIN
-    );
-    assert_eq!(
         error.to_string(),
         "XXH3 secret is 135 bytes; at least 136 bytes are required"
     );

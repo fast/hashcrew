@@ -80,12 +80,6 @@ impl Xxh3SecretTooShort {
     pub const fn actual_len(self) -> usize {
         self.actual_len
     }
-
-    /// Returns the minimum accepted secret length.
-    #[must_use]
-    pub const fn minimum_len() -> usize {
-        SECRET_SIZE_MIN
-    }
 }
 
 impl fmt::Display for Xxh3SecretTooShort {
