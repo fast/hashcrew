@@ -17,10 +17,11 @@
 //! The family module keeps the individual variants and the XXH3 kernel layer
 //! together under one public namespace.
 
-pub mod kernel;
 mod xxh3;
 mod xxh32;
 mod xxh64;
+
+pub mod kernel;
 
 pub use self::xxh3::DEFAULT_SECRET;
 pub use self::xxh3::DEFAULT_SECRET_SIZE;
