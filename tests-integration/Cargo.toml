@@ -28,11 +28,5 @@ murmur3 = { workspace = true }
 twox-hash = { workspace = true }
 xxhash-rust = { workspace = true }
 
-[lib]
-bench = false
-doc = false
-doctest = false
-test = false
-
 [lints]
 workspace = true
