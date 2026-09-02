@@ -552,8 +552,8 @@ fn finish_x64_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
 ///
 /// The returned integer stores the reference algorithm's second 64-bit word
 /// in the most significant half and its first word in the least significant
-/// half. The architecture is part of the name because MurmurHash3 also defines
-/// a different x86_128 algorithm, which this crate does not implement.
+/// half. The architecture is part of the name because MurmurHash3 defines a
+/// distinct x86_128 algorithm; use [`murmur3_x86_128`] for that variant.
 #[must_use]
 #[inline]
 pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
