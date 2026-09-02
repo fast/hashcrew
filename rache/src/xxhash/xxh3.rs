@@ -348,7 +348,7 @@ fn hash_64_short(input: &[u8], seed: u64, secret: &[u8]) -> u64 {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn hash_64_17_to_128(input: &[u8], seed: u64, secret: &[u8]) -> u64 {
     let len = input.len();
     let mut acc = (len as u64).wrapping_mul(PRIME64_1);

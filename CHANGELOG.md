@@ -6,6 +6,7 @@
 - Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3SecretBuilder<'a>` must use the storage type `Xxh3SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
 - Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy` or `Write::write_all`.
 - Cache the derived secret in seeded `Xxh3Builder` values so hash collections do not repeat 192-byte seed expansion for every key.
+- Improve one-shot XXH3-64 throughput for 17-to-128-byte inputs by ensuring the specialized medium-length path is inlined.
 
 ## 0.1.0
 
