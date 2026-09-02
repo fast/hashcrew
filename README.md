@@ -89,9 +89,11 @@ All public APIs are grouped under the [`cityhash`](https://docs.rs/rache/*/rache
 
 Use XXH3 for a new general-purpose checksum, cache key, or trusted-input hash table unless interoperability requires another family. Choose a 128-bit result when the application hashes enough distinct values for 64-bit collision probability to matter. XXH32, XXH64, CityHash, MurmurHash3, and FNV-1a are primarily useful for matching an existing format, protocol, or data set; their different outputs are not interchangeable.
 
-## Standard adapters
+## Streaming input
 
-With the default `std` feature, every streaming state implements [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html), so files and network streams can be hashed with `std::io::copy`:
+Call `update` when the application already has byte slices, as in the getting-started example above. With the default `std` feature, every streaming state can also be used as the destination of `std::io::copy` or another producer that accepts `std::io::Write`.
+
+The adapter treats every written byte as hash input; it accepts the complete buffer and has nothing to flush. It does not write the digest anywhere. Finish the producer first, then call `digest` on the state:
 
 ```rust
 use std::io::{self, Cursor};
@@ -105,7 +107,11 @@ io::copy(&mut source, &mut hash).unwrap();
 assert_eq!(hash.digest(), xxh3_64(b"rache"));
 ```
 
-The 32-bit and 64-bit streaming states also implement `core::hash::Hasher`, with matching `BuildHasher` types for trusted-input hash tables:
+This adapter is only needed for `std` interoperability. The direct `update` API is available in both `std` and `no_std` builds.
+
+## Hash tables
+
+The 32-bit and 64-bit streaming states implement `core::hash::Hasher`, with matching `BuildHasher` types for trusted-input hash tables:
 
 ```rust
 use std::collections::HashMap;
