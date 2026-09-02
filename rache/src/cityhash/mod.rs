@@ -17,6 +17,7 @@
 //! CityHash depends on the complete input length and tail, so this module does
 //! not expose a streaming state that would need to retain the entire message.
 
+use crate::fmix32;
 use crate::read_u32;
 use crate::read_u64;
 
@@ -26,15 +27,6 @@ const K2: u64 = 0x9ae1_6a3b_2f90_404f;
 const C1: u32 = 0xcc9e_2d51;
 const C2: u32 = 0x1b87_3593;
 const HASH128_MUL: u64 = 0x9ddf_ea08_eb38_2d69;
-
-#[inline(always)]
-fn fmix32(mut value: u32) -> u32 {
-    value ^= value >> 16;
-    value = value.wrapping_mul(0x85eb_ca6b);
-    value ^= value >> 13;
-    value = value.wrapping_mul(0xc2b2_ae35);
-    value ^ (value >> 16)
-}
 
 #[inline(always)]
 fn mur32(mut value: u32, mut hash: u32) -> u32 {

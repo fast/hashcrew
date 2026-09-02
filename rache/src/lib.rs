@@ -92,6 +92,15 @@ fn read_u64(input: &[u8], offset: usize) -> u64 {
 }
 
 #[inline(always)]
+fn fmix32(mut value: u32) -> u32 {
+    value ^= value >> 16;
+    value = value.wrapping_mul(0x85eb_ca6b);
+    value ^= value >> 13;
+    value = value.wrapping_mul(0xc2b2_ae35);
+    value ^ (value >> 16)
+}
+
+#[inline(always)]
 fn mul128_fold64(lhs: u64, rhs: u64) -> u64 {
     let product = u128::from(lhs) * u128::from(rhs);
     product as u64 ^ (product >> 64) as u64
