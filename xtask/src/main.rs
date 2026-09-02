@@ -143,8 +143,7 @@ impl CommandLint {
         run_command(make_taplo_cmd(self.fix));
         run_command(make_typos_cmd());
         run_command(make_hawkeye_cmd(self.fix));
-        run_command(make_doc_cmd(false));
-        run_command(make_doc_cmd(true));
+        run_command(make_doc_cmd());
     }
 }
 
@@ -252,15 +251,16 @@ fn make_taplo_cmd(fix: bool) -> StdCommand {
     cmd
 }
 
-fn make_doc_cmd(all_features: bool) -> StdCommand {
+fn make_doc_cmd() -> StdCommand {
     let mut cmd = cargo();
     cmd.env("RUSTDOCFLAGS", "-D warnings");
-    cmd.args(["doc", "--package", PACKAGE_NAME, "--no-deps"]);
-    if all_features {
-        cmd.arg("--all-features");
-    } else {
-        cmd.arg("--no-default-features");
-    }
+    cmd.args([
+        "doc",
+        "--package",
+        PACKAGE_NAME,
+        "--all-features",
+        "--no-deps",
+    ]);
     cmd
 }
 
