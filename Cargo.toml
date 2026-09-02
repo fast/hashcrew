@@ -52,6 +52,12 @@ dbg_macro = "deny"
 missing_safety_doc = "deny"
 undocumented_unsafe_blocks = "deny"
 
+[workspace.metadata.release]
+pre-release-commit-message = "chore: release v{{version}}"
+shared-version = true
+sign-tag = true
+tag-name = "v{{version}}"
+
 [profile.release]
 codegen-units = 1
 lto = "thin"
