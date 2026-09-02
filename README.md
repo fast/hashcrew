@@ -47,7 +47,7 @@ use rache::{cityhash, fnv, murmur, xxhash};
 let data = b"rache";
 let city = cityhash::cityhash64(data);
 let xxh3 = xxhash::xxh3_64(data);
-let murmur = murmur::murmur3_128(data, 42);
+let murmur = murmur::murmur3_x64_128(data, 42);
 let fnv = fnv::fnv1a_64(data);
 
 assert_ne!(city, 0);
@@ -59,25 +59,25 @@ assert_ne!(fnv, 0);
 Use a state type when data arrives incrementally:
 
 ```rust
-use rache::murmur::Murmur3_128;
-use rache::murmur::murmur3_128;
+use rache::murmur::Murmur3X64_128;
+use rache::murmur::murmur3_x64_128;
 
-let mut hash = Murmur3_128::with_seed(42);
+let mut hash = Murmur3X64_128::with_seed(42);
 hash.update(b"ra");
 hash.update(b"che");
 
-assert_eq!(hash.digest(), murmur3_128(b"rache", 42));
+assert_eq!(hash.digest(), murmur3_x64_128(b"rache", 42));
 ```
 
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
 
 ```rust
-use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_64;
 use rache::xxhash::xxh3_64_with_secret;
 
 let secret = [0xa5; 192];
 let expected = xxh3_64_with_secret(b"rache", &secret).unwrap();
-let mut hash = Xxh3::with_secret(secret).unwrap();
+let mut hash = Xxh3_64::with_secret(secret).unwrap();
 hash.update(b"rache");
 
 assert_eq!(hash.digest(), expected);
@@ -92,11 +92,9 @@ Rache exposes the same algorithm at different integration boundaries. Pick the n
 | Input or caller                                      | Interface                                                                 | What it does                                                                                 |
 |------------------------------------------------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
 | One complete byte slice                             | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                    |
-| Byte slices arriving incrementally                  | A state such as `Xxh3`: construct, call `update`, then call `digest`       | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
+| Byte slices arriving incrementally                  | A state such as `Xxh3_64`: construct, call `update`, then call `digest`       | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
 | A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.       |
 | A Rust hash collection or generic `Hash` caller     | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                |
-
-Every streaming type also provides associated `oneshot` functions that delegate to the corresponding module-level functions. They are namespaced conveniences, not a different hashing mode.
 
 `Hasher` only supports a `u64` result, so 128-bit states deliberately expose `digest() -> u128` instead of truncating their output. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
 
@@ -104,21 +102,22 @@ Every streaming type also provides associated `oneshot` functions that delegate 
 
 The table names the canonical module-level function for complete input. A trailing `*` means the family also provides explicitly named seeded, custom-secret, or custom-offset-basis forms.
 
-| Variant             | Complete input          | Incremental state              | Digest | `Hasher` / `BuildHasher`                     |
-|---------------------|-------------------------|--------------------------------|--------|----------------------------------------------|
-| CityHash32          | `cityhash32`            | —                              | `u32`  | —                                            |
-| CityHash64          | `cityhash64*`           | —                              | `u64`  | —                                            |
-| CityHash128         | `cityhash128*`          | —                              | `u128` | —                                            |
-| XXH32               | `xxh32`                 | `Xxh32`                        | `u32`  | `Xxh32` / `Xxh32Builder`                     |
-| XXH64               | `xxh64`                 | `Xxh64`                        | `u64`  | `Xxh64` / `Xxh64Builder`                     |
-| XXH3-64             | `xxh3_64*`              | `Xxh3` (`Xxh3_64` alias)       | `u64`  | `Xxh3` / `Xxh3Builder` or secret builder     |
-| XXH3-128            | `xxh3_128*`             | `Xxh3_128`                     | `u128` | —                                            |
-| MurmurHash3 x86_32  | `murmur3_32`            | `Murmur3_32`                   | `u32`  | `Murmur3_32` / `Murmur3_32Builder`           |
-| MurmurHash3 x64_128 | `murmur3_128`           | `Murmur3_128`                  | `u128` | —                                            |
-| FNV-1a 32           | `fnv1a_32*`             | `Fnv1a32`                      | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                 |
-| FNV-1a 64           | `fnv1a_64*`             | `Fnv1a64`                      | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                 |
+| Variant             | Complete input    | Incremental state | Digest | `Hasher` / `BuildHasher`                       |
+|---------------------|-------------------|-------------------|--------|------------------------------------------------|
+| CityHash32          | `cityhash32`      | —                 | `u32`  | —                                              |
+| CityHash64          | `cityhash64*`     | —                 | `u64`  | —                                              |
+| CityHash128         | `cityhash128*`    | —                 | `u128` | —                                              |
+| XXH32               | `xxh32`           | `Xxh32`           | `u32`  | `Xxh32` / `Xxh32Builder`                       |
+| XXH64               | `xxh64`           | `Xxh64`           | `u64`  | `Xxh64` / `Xxh64Builder`                       |
+| XXH3-64             | `xxh3_64*`        | `Xxh3_64`         | `u64`  | `Xxh3_64` / `Xxh3_64Builder` or secret builder |
+| XXH3-128            | `xxh3_128*`       | `Xxh3_128`        | `u128` | —                                              |
+| MurmurHash3 x86_32  | `murmur3_x86_32`  | `Murmur3X86_32`   | `u32`  | `Murmur3X86_32` / `Murmur3X86_32Builder`       |
+| MurmurHash3 x86_128 | `murmur3_x86_128` | `Murmur3X86_128`  | `u128` | —                                              |
+| MurmurHash3 x64_128 | `murmur3_x64_128` | `Murmur3X64_128`  | `u128` | —                                              |
+| FNV-1a 32           | `fnv1a_32*`       | `Fnv1a32`         | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                   |
+| FNV-1a 64           | `fnv1a_64*`       | `Fnv1a64`         | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                   |
 
-`murmur3_x64_128` is an explicit-name alias of `murmur3_128`. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
+Rache implements all three variants from the original MurmurHash3 family under their reference-qualified `x86_32`, `x86_128`, and `x64_128` names. These architecture labels distinguish algorithms and do not restrict which target can run them. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
 ## Choosing an algorithm
 
@@ -132,11 +131,11 @@ The adapter treats every written byte as hash input; it accepts the complete buf
 
 ```rust
 use std::io::{self, Cursor};
-use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_64;
 use rache::xxhash::xxh3_64;
 
 let mut source = Cursor::new(b"rache");
-let mut hash = Xxh3::new();
+let mut hash = Xxh3_64::new();
 io::copy(&mut source, &mut hash).unwrap();
 
 assert_eq!(hash.digest(), xxh3_64(b"rache"));
@@ -150,9 +149,9 @@ The 32-bit and 64-bit streaming states implement `core::hash::Hasher`, with matc
 
 ```rust
 use std::collections::HashMap;
-use rache::xxhash::Xxh3Builder;
+use rache::xxhash::Xxh3_64Builder;
 
-let mut counts = HashMap::with_hasher(Xxh3Builder::with_seed(7));
+let mut counts = HashMap::with_hasher(Xxh3_64Builder::with_seed(7));
 counts.insert("rache", 1);
 
 assert_eq!(counts["rache"], 1);

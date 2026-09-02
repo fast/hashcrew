@@ -922,9 +922,9 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
 #[derive(Clone)]
-pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
+pub struct Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
-impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
+impl Xxh3_64<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-64 state.
     #[must_use]
     pub fn new() -> Self {
@@ -936,39 +936,9 @@ impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     pub fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
     }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u64 {
-        xxh3_64(input)
-    }
-
-    /// Hashes a complete byte slice with `seed`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_seed(input: &[u8], seed: u64) -> u64 {
-        xxh3_64_with_seed(input, seed)
-    }
-
-    /// Hashes a complete byte slice with a custom secret.
-    #[inline]
-    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u64, Xxh3SecretTooShort> {
-        xxh3_64_with_secret(input, secret)
-    }
-
-    /// Hashes a complete byte slice with a seed and custom secret.
-    #[inline]
-    pub fn oneshot_with_seed_and_secret(
-        input: &[u8],
-        seed: u64,
-        secret: &[u8],
-    ) -> Result<u64, Xxh3SecretTooShort> {
-        xxh3_64_with_seed_and_secret(input, seed, secret)
-    }
 }
 
-impl<S: AsRef<[u8]>> Xxh3<S> {
+impl<S: AsRef<[u8]>> Xxh3_64<S> {
     /// Creates an XXH3-64 state with custom secret storage.
     ///
     /// Pass an owned array or another `AsRef<[u8]>` value when the state should
@@ -1015,23 +985,23 @@ impl<S: AsRef<[u8]>> Xxh3<S> {
     }
 }
 
-impl Default for Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
+impl Default for Xxh3_64<[u8; DEFAULT_SECRET_SIZE]> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: AsRef<[u8]>> fmt::Debug for Xxh3<S> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_64<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3")
+            .debug_struct("Xxh3_64")
             .field("seed", &self.seed())
             .field("total_len", &self.total_len())
             .finish_non_exhaustive()
     }
 }
 
-impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
+impl<S: AsRef<[u8]>> Hasher for Xxh3_64<S> {
     #[inline]
     fn finish(&self) -> u64 {
         self.digest()
@@ -1044,7 +1014,7 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
 }
 
 #[cfg(feature = "std")]
-impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3_64<S> {
     #[inline]
     fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
         self.update(input);
@@ -1056,9 +1026,6 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
         Ok(())
     }
 }
-
-/// Explicitly named alias for the XXH3-64 streaming state.
-pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 
 /// Incremental XXH3-128 state.
 ///
@@ -1083,36 +1050,6 @@ impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     #[must_use]
     pub fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u128 {
-        xxh3_128(input)
-    }
-
-    /// Hashes a complete byte slice with `seed`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_seed(input: &[u8], seed: u64) -> u128 {
-        xxh3_128_with_seed(input, seed)
-    }
-
-    /// Hashes a complete byte slice with a custom secret.
-    #[inline]
-    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u128, Xxh3SecretTooShort> {
-        xxh3_128_with_secret(input, secret)
-    }
-
-    /// Hashes a complete byte slice with a seed and custom secret.
-    #[inline]
-    pub fn oneshot_with_seed_and_secret(
-        input: &[u8],
-        seed: u64,
-        secret: &[u8],
-    ) -> Result<u128, Xxh3SecretTooShort> {
-        xxh3_128_with_seed_and_secret(input, seed, secret)
     }
 }
 
@@ -1143,13 +1080,6 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
     #[inline]
     pub fn digest(&self) -> u128 {
         self.0.digest_128()
-    }
-
-    /// Alias for [`digest`](Self::digest), matching common XXH3 APIs.
-    #[must_use]
-    #[inline]
-    pub fn finish_128(&self) -> u128 {
-        self.digest()
     }
 
     /// Resets the state while retaining its seed and secret.
@@ -1200,7 +1130,7 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
     }
 }
 
-/// Deterministic [`BuildHasher`] for [`Xxh3`].
+/// Deterministic [`BuildHasher`] for [`Xxh3_64`].
 ///
 /// The builder retains the derived 192-byte secret so constructing each hasher
 /// does not repeat seed expansion. Construct it once and reuse it through a
@@ -1209,12 +1139,12 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
 /// This builder is intended for trusted inputs. It does not randomize its seed
 /// and is not resistant to deliberate hash-flooding attacks.
 #[derive(Clone, Copy)]
-pub struct Xxh3Builder {
+pub struct Xxh3_64Builder {
     seed: u64,
     secret: [u8; DEFAULT_SECRET_SIZE],
 }
 
-impl Xxh3Builder {
+impl Xxh3_64Builder {
     /// Creates a builder using `seed`.
     #[must_use]
     pub const fn with_seed(seed: u64) -> Self {
@@ -1225,27 +1155,27 @@ impl Xxh3Builder {
     }
 }
 
-impl Default for Xxh3Builder {
+impl Default for Xxh3_64Builder {
     fn default() -> Self {
         Self::with_seed(0)
     }
 }
 
-impl fmt::Debug for Xxh3Builder {
+impl fmt::Debug for Xxh3_64Builder {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3Builder")
+            .debug_struct("Xxh3_64Builder")
             .field("seed", &self.seed)
             .finish()
     }
 }
 
-impl BuildHasher for Xxh3Builder {
-    type Hasher = Xxh3;
+impl BuildHasher for Xxh3_64Builder {
+    type Hasher = Xxh3_64;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Xxh3(StreamState::with_derived_secret(self.seed, self.secret))
+        Xxh3_64(StreamState::with_derived_secret(self.seed, self.secret))
     }
 }
 
@@ -1259,14 +1189,14 @@ impl BuildHasher for Xxh3Builder {
 /// Building a hasher panics if custom storage exposes a different slice length
 /// from the one validated by the constructor.
 #[derive(Clone, Copy)]
-pub struct Xxh3SecretBuilder<S> {
+pub struct Xxh3_64SecretBuilder<S> {
     seed: u64,
     secret: S,
     secret_len: usize,
     use_custom_secret_for_short: bool,
 }
 
-impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
+impl<S: AsRef<[u8]> + Copy> Xxh3_64SecretBuilder<S> {
     /// Creates a builder using `secret` for inputs of every length.
     pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
         let secret_len = secret.as_ref().len();
@@ -1292,23 +1222,23 @@ impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
     }
 }
 
-impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_64SecretBuilder<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3SecretBuilder")
+            .debug_struct("Xxh3_64SecretBuilder")
             .field("seed", &self.seed)
             .field("secret_len", &self.secret_len)
             .finish_non_exhaustive()
     }
 }
 
-impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
-    type Hasher = Xxh3<S>;
+impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3_64SecretBuilder<S> {
+    type Hasher = Xxh3_64<S>;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
         let _ = checked_secret(&self.secret, self.secret_len);
-        Xxh3(StreamState::with_validated_secret(
+        Xxh3_64(StreamState::with_validated_secret(
             self.seed,
             self.secret,
             self.secret_len,
@@ -1391,7 +1321,7 @@ mod tests {
 
     #[test]
     fn reset_reuses_state() {
-        let mut hash = Xxh3::with_seed(42);
+        let mut hash = Xxh3_64::with_seed(42);
         hash.update(b"before");
         hash.reset();
         hash.update(b"after");
@@ -1401,12 +1331,12 @@ mod tests {
     #[test]
     fn custom_secret_length_changes_are_rejected_before_use() {
         let use_empty = Cell::new(false);
-        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let mut hash = Xxh3_64::with_secret(ChangingSecret(&use_empty)).unwrap();
         use_empty.set(true);
         assert_panics(|| hash.update(&[0; STREAM_BUFFER_SIZE + 1]));
 
         let use_empty = Cell::new(false);
-        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let mut hash = Xxh3_64::with_secret(ChangingSecret(&use_empty)).unwrap();
         hash.update(&[0; STREAM_BUFFER_SIZE + 1]);
         use_empty.set(true);
         assert_panics(|| {
@@ -1414,7 +1344,7 @@ mod tests {
         });
 
         let use_empty = Cell::new(false);
-        let builder = Xxh3SecretBuilder::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let builder = Xxh3_64SecretBuilder::with_secret(ChangingSecret(&use_empty)).unwrap();
         use_empty.set(true);
         assert_panics(|| {
             let _ = builder.build_hasher();
@@ -1423,7 +1353,7 @@ mod tests {
 
     #[test]
     fn length_overflow_keeps_long_digest_mode() {
-        let mut hash = Xxh3::new();
+        let mut hash = Xxh3_64::new();
         hash.0.total_len = u64::MAX;
         hash.update(&[0]);
         assert!(hash.0.length_overflowed);

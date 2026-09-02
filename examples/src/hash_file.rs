@@ -16,14 +16,14 @@ use std::env;
 use std::fs::File;
 use std::io;
 
-use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_64;
 
 fn main() -> io::Result<()> {
     let path = env::args_os()
         .nth(1)
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "usage: hash-file <path>"))?;
     let mut file = File::open(&path)?;
-    let mut hasher = Xxh3::new();
+    let mut hasher = Xxh3_64::new();
     io::copy(&mut file, &mut hasher)?;
 
     println!("{:016x}  {}", hasher.digest(), path.to_string_lossy());

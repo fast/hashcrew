@@ -125,13 +125,6 @@ impl Xxh32 {
         }
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u32) -> u32 {
-        xxh32(input, seed)
-    }
-
     /// Returns the seed used by this state.
     #[must_use]
     pub const fn seed(&self) -> u32 {
@@ -241,7 +234,7 @@ impl std::io::Write for Xxh32 {
 /// Deterministic [`BuildHasher`] for [`Xxh32`].
 ///
 /// XXH32 only provides 32 bits of output and is usually a poor choice for a
-/// general-purpose `HashMap`; prefer [`crate::xxhash::Xxh3Builder`] on 64-bit
+/// general-purpose `HashMap`; prefer [`crate::xxhash::Xxh3_64Builder`] on 64-bit
 /// systems.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Xxh32Builder {
