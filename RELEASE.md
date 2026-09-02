@@ -32,4 +32,4 @@ release_version=0.1.0
 cargo release "$release_version" --package hashcrew --execute
 ```
 
-This publishes the crate, creates the configured signed `v<version>` tag, and pushes the branch and tag. Do not create a second tag manually. After crates.io confirms the release, create the matching GitHub Release and verify the crate page and docs.rs build.
+This publishes the crate, creates the configured signed `v<version>` tag, and pushes the branch and tag. Do not create a second tag manually. After crates.io confirms the release, verify the crate page and docs.rs build.
