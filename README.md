@@ -114,11 +114,11 @@ The table names the canonical module-level function for complete input. A traili
 | XXH3-64             | `xxh3_64*`              | `Xxh3` (`Xxh3_64` alias)       | `u64`  | `Xxh3` / `Xxh3Builder` or secret builder     |
 | XXH3-128            | `xxh3_128*`             | `Xxh3_128`                     | `u128` | —                                            |
 | MurmurHash3 x86_32  | `murmur3_32`            | `Murmur3_32`                   | `u32`  | `Murmur3_32` / `Murmur3_32Builder`           |
-| MurmurHash3 x64_128 | `murmur3_128`           | `Murmur3_128`                  | `u128` | —                                            |
+| MurmurHash3 x64_128 | `murmur3_x64_128`       | `Murmur3_128`                  | `u128` | —                                            |
 | FNV-1a 32           | `fnv1a_32*`             | `Fnv1a32`                      | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                 |
 | FNV-1a 64           | `fnv1a_64*`             | `Fnv1a64`                      | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                 |
 
-`murmur3_x64_128` is an explicit-name alias of `murmur3_128`. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
+The original MurmurHash3 family defines `x86_32`, `x86_128`, and `x64_128` variants. Rache implements `x86_32` as `murmur3_32` and `x64_128` as `murmur3_x64_128`; it does not implement `x86_128`. The shorter `murmur3_128` name is retained as an equivalent convenience API. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
 ## Choosing an algorithm
 
