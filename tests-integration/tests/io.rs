@@ -17,7 +17,7 @@ use std::io::Write;
 
 use rache::fnv::Fnv1a32;
 use rache::fnv::Fnv1a64;
-use rache::murmur::Murmur3_32;
+use rache::murmur::Murmur3X86_32;
 use rache::murmur::Murmur3X64_128;
 use rache::murmur::Murmur3X86_128;
 use rache::murmur::murmur3_x64_128;
@@ -35,7 +35,7 @@ fn streaming_states_are_standard_io_writers() {
 
     assert_writer::<Fnv1a32>();
     assert_writer::<Fnv1a64>();
-    assert_writer::<Murmur3_32>();
+    assert_writer::<Murmur3X86_32>();
     assert_writer::<Murmur3X86_128>();
     assert_writer::<Murmur3X64_128>();
     assert_writer::<Xxh32>();

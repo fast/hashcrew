@@ -24,11 +24,11 @@ use rache::fnv::fnv1a_32;
 use rache::fnv::fnv1a_32_with_offset_basis;
 use rache::fnv::fnv1a_64;
 use rache::fnv::fnv1a_64_with_offset_basis;
-use rache::murmur::Murmur3_32;
-use rache::murmur::Murmur3_32Builder;
+use rache::murmur::Murmur3X86_32;
+use rache::murmur::Murmur3X86_32Builder;
 use rache::murmur::Murmur3X64_128;
 use rache::murmur::Murmur3X86_128;
-use rache::murmur::murmur3_32;
+use rache::murmur::murmur3_x86_32;
 use rache::murmur::murmur3_x64_128;
 use rache::murmur::murmur3_x86_128;
 
@@ -67,7 +67,7 @@ fn murmur_oneshot_matches_reference() {
         let bytes = input(len);
         for &seed in SEEDS {
             assert_eq!(
-                murmur3_32(&bytes, seed),
+                murmur3_x86_32(&bytes, seed),
                 murmur3::murmur3_32(&mut Cursor::new(&bytes), seed).unwrap(),
                 "MurmurHash3 x86_32 length={len} seed={seed:#x}"
             );
@@ -95,7 +95,7 @@ fn every_length_through_two_kib_matches_murmur_reference() {
             .rotate_left((len % 32) as u32);
 
         assert_eq!(
-            murmur3_32(input, seed),
+            murmur3_x86_32(input, seed),
             murmur3::murmur3_32(&mut Cursor::new(input), seed).unwrap(),
             "MurmurHash3 x86_32 length={len} seed={seed:#x}"
         );
@@ -121,7 +121,7 @@ fn randomized_murmur_inputs_match_reference() {
         let bytes = random_input(&mut random, len);
 
         assert_eq!(
-            murmur3_32(&bytes, seed),
+            murmur3_x86_32(&bytes, seed),
             murmur3::murmur3_32(&mut Cursor::new(&bytes), seed).unwrap(),
             "MurmurHash3 x86_32 case={case} length={len}"
         );
@@ -226,7 +226,7 @@ fn randomized_streaming_partitions_match_oneshot() {
         let len = next_random(&mut random) as usize % (64 * 1_024);
         let seed = next_random(&mut random) as u32;
         let bytes = random_input(&mut random, len);
-        let mut murmur32 = Murmur3_32::with_seed(seed);
+        let mut murmur32 = Murmur3X86_32::with_seed(seed);
         let mut murmur_x86_128 = Murmur3X86_128::with_seed(seed);
         let mut murmur_x64_128 = Murmur3X64_128::with_seed(seed);
         let mut fnv32 = Fnv1a32::new();
@@ -254,7 +254,7 @@ fn randomized_streaming_partitions_match_oneshot() {
 
         assert_eq!(
             murmur32.digest(),
-            murmur3_32(&bytes, seed),
+            murmur3_x86_32(&bytes, seed),
             "MurmurHash3 x86_32 case={case}"
         );
         assert_eq!(
@@ -280,14 +280,14 @@ fn every_two_way_partition_matches_oneshot() {
         let seed = (len as u32)
             .wrapping_mul(0x9e37_79b1)
             .rotate_left((len % 32) as u32);
-        let expected_murmur32 = murmur3_32(input, seed);
+        let expected_murmur32 = murmur3_x86_32(input, seed);
         let expected_murmur_x86_128 = murmur3_x86_128(input, seed);
         let expected_murmur_x64_128 = murmur3_x64_128(input, seed);
         let expected_fnv32 = fnv1a_32(input);
         let expected_fnv64 = fnv1a_64(input);
 
         for split in 0..=len {
-            let mut murmur32 = Murmur3_32::with_seed(seed);
+            let mut murmur32 = Murmur3X86_32::with_seed(seed);
             let mut murmur_x86_128 = Murmur3X86_128::with_seed(seed);
             let mut murmur_x64_128 = Murmur3X64_128::with_seed(seed);
             let mut fnv32 = Fnv1a32::new();
@@ -376,9 +376,9 @@ fn streaming_states_can_be_cloned_finished_continued_and_reset() {
 fn standard_hash_traits_use_the_raw_stream() {
     let bytes = input(4_097);
 
-    let mut murmur = Murmur3_32Builder::with_seed(7).build_hasher();
+    let mut murmur = Murmur3X86_32Builder::with_seed(7).build_hasher();
     murmur.write(&bytes);
-    assert_eq!(murmur.finish(), u64::from(murmur3_32(&bytes, 7)));
+    assert_eq!(murmur.finish(), u64::from(murmur3_x86_32(&bytes, 7)));
 
     let mut fnv32 = Fnv1a32Builder::default().build_hasher();
     fnv32.write(&bytes);

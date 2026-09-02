@@ -14,17 +14,15 @@
 
 //! MurmurHash3 x86_32, x86_128, and x64_128 one-shot and streaming APIs.
 //!
-//! [`murmur3_32`] and [`Murmur3_32`] produce the x86_32 variant;
+//! [`murmur3_x86_32`] and [`Murmur3X86_32`] produce the x86_32 variant;
 //! [`murmur3_x86_128`] and [`Murmur3X86_128`] produce x86_128; and
 //! [`murmur3_x64_128`] and [`Murmur3X64_128`] produce x64_128. The architecture
 //! names distinguish incompatible algorithms, not target requirements: all
-//! three implementations are portable. The only 32-bit variant keeps the
-//! shorter Rust name; both 128-bit variants retain their architecture names to
-//! remain unambiguous. All forms accept a 32-bit seed.
+//! three implementations are portable. All forms accept a 32-bit seed.
 //!
 //! All three states support `update`, non-consuming `digest`, and `reset`, and
 //! implement [`std::io::Write`] with the default `std` feature. Only the 32-bit
-//! state implements [`Hasher`] and has a [`Murmur3_32Builder`], because
+//! state implements [`Hasher`] and has a [`Murmur3X86_32Builder`], because
 //! [`Hasher::finish`] can return only `u64`.
 //!
 //! ```
@@ -80,7 +78,7 @@ fn finish_32(mut hash: u32, tail: &[u8], total_len: u64) -> u32 {
 /// Hashes `input` with the 32-bit x86 variant of MurmurHash3.
 #[must_use]
 #[inline]
-pub fn murmur3_32(input: &[u8], seed: u32) -> u32 {
+pub fn murmur3_x86_32(input: &[u8], seed: u32) -> u32 {
     let mut hash = seed;
     let mut offset = 0;
     while offset + 4 <= input.len() {
@@ -92,7 +90,7 @@ pub fn murmur3_32(input: &[u8], seed: u32) -> u32 {
 
 /// Incremental state for the 32-bit x86 variant of MurmurHash3.
 #[derive(Clone, Debug)]
-pub struct Murmur3_32 {
+pub struct Murmur3X86_32 {
     seed: u32,
     hash: u32,
     buffer: [u8; 4],
@@ -100,7 +98,7 @@ pub struct Murmur3_32 {
     total_len: u64,
 }
 
-impl Murmur3_32 {
+impl Murmur3X86_32 {
     /// Creates a state with seed zero.
     #[must_use]
     pub const fn new() -> Self {
@@ -168,13 +166,13 @@ impl Murmur3_32 {
     }
 }
 
-impl Default for Murmur3_32 {
+impl Default for Murmur3X86_32 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Hasher for Murmur3_32 {
+impl Hasher for Murmur3X86_32 {
     #[inline]
     fn finish(&self) -> u64 {
         u64::from(self.digest())
@@ -187,7 +185,7 @@ impl Hasher for Murmur3_32 {
 }
 
 #[cfg(feature = "std")]
-impl std::io::Write for Murmur3_32 {
+impl std::io::Write for Murmur3X86_32 {
     #[inline]
     fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
         self.update(input);
@@ -200,16 +198,16 @@ impl std::io::Write for Murmur3_32 {
     }
 }
 
-/// Deterministic [`BuildHasher`] for [`Murmur3_32`].
+/// Deterministic [`BuildHasher`] for [`Murmur3X86_32`].
 ///
 /// MurmurHash3 is intended for trusted inputs and is not resistant to
 /// deliberate hash-flooding attacks.
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Murmur3_32Builder {
+pub struct Murmur3X86_32Builder {
     seed: u32,
 }
 
-impl Murmur3_32Builder {
+impl Murmur3X86_32Builder {
     /// Creates a builder using `seed`.
     #[must_use]
     pub const fn with_seed(seed: u32) -> Self {
@@ -217,12 +215,12 @@ impl Murmur3_32Builder {
     }
 }
 
-impl BuildHasher for Murmur3_32Builder {
-    type Hasher = Murmur3_32;
+impl BuildHasher for Murmur3X86_32Builder {
+    type Hasher = Murmur3X86_32;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Murmur3_32::with_seed(self.seed)
+        Murmur3X86_32::with_seed(self.seed)
     }
 }
 
@@ -666,7 +664,7 @@ mod tests {
 
     #[test]
     fn empty_vectors_are_zero_with_zero_seed() {
-        assert_eq!(murmur3_32(b"", 0), 0);
+        assert_eq!(murmur3_x86_32(b"", 0), 0);
         assert_eq!(murmur3_x86_128(b"", 0), 0);
         assert_eq!(murmur3_x64_128(b"", 0), 0);
     }
