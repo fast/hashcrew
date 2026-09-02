@@ -554,7 +554,6 @@ fn finish_x64_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
 /// in the most significant half and its first word in the least significant
 /// half. The architecture is part of the name because MurmurHash3 also defines
 /// a different x86_128 algorithm, which this crate does not implement.
-#[doc(alias = "murmur3_128")]
 #[must_use]
 #[inline]
 pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
@@ -575,7 +574,6 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 /// `std` feature, the state can also receive bytes from [`std::io::copy`] or
 /// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
-#[doc(alias = "Murmur3_128")]
 #[derive(Clone, Debug)]
 pub struct Murmur3X64_128 {
     seed: u32,
@@ -619,7 +617,6 @@ impl Murmur3X64_128 {
     }
 
     /// Returns the digest without consuming the state.
-    #[doc(alias = "finish_128")]
     #[must_use]
     pub fn digest(&self) -> u128 {
         finish_x64_128(self.hash, &self.buffer[..self.buffered], self.total_len)

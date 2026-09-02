@@ -921,7 +921,6 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 /// buffers and performs no allocation itself.
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
-#[doc(alias = "Xxh3_64")]
 #[derive(Clone)]
 pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -1077,7 +1076,6 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
     }
 
     /// Returns the 128-bit digest without consuming the state.
-    #[doc(alias = "finish_128")]
     #[must_use]
     #[inline]
     pub fn digest(&self) -> u128 {
