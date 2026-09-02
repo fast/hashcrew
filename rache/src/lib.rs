@@ -56,6 +56,8 @@
 //! after the producer finishes.
 //!
 //! ```
+//! # #[cfg(feature = "std")]
+//! # {
 //! use std::io;
 //!
 //! use rache::xxhash::Xxh3;
@@ -66,6 +68,7 @@
 //! io::copy(&mut input.as_slice(), &mut state).unwrap();
 //!
 //! assert_eq!(state.digest(), xxh3_64(input));
+//! # }
 //! ```
 //!
 //! # Complete and incremental hashing
