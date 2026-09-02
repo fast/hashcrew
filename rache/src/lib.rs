@@ -17,9 +17,7 @@
 //! APIs are grouped by family under [`cityhash`], [`xxhash`], [`murmur`], and
 //! [`fnv`]. Use the free functions for complete byte slices and state types for
 //! incremental input. CityHash is intentionally one-shot. Outputs that fit in
-//! 64 bits also implement [`core::hash::Hasher`]. With the default `std`
-//! feature, every incremental state also implements
-//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+//! 64 bits also implement [`core::hash::Hasher`].
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
 //! [`core::hash`] adapters use Rust's native typed encodings and are not a
@@ -37,22 +35,46 @@
 //! # Feature flags
 //!
 //! The crate is dependency-free and allocation-free in every feature
-//! configuration. Disable default features for `no_std` targets. The default
-//! `std` feature adds
-//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
-//! implementations and runtime CPU-feature detection for XXH3. Without `std`,
-//! hardware kernels are selected only from features guaranteed by the target;
-//! other builds use the scalar kernel. Feature selection does not change
-//! digest values.
+//! configuration. The default `std` feature integrates streaming states with
+//! [`std::io`] and enables runtime CPU-feature detection for XXH3. Disable
+//! default features for `no_std` targets; hardware kernels are then selected
+//! only from features guaranteed by the target, with scalar code as the
+//! fallback. Feature selection does not change digest values.
 //!
 //! ```toml
 //! [dependencies]
 //! rache = { version = "0.2", default-features = false }
 //! ```
 //!
-//! # Examples
+//! # Streaming input
 //!
-//! Hash a complete byte slice or feed the same bytes incrementally:
+//! Call `update` when the application already receives byte slices. With the
+//! default `std` feature, every incremental state can also be the destination
+//! of [`std::io::copy`] or another producer that writes to [`std::io::Write`].
+//! Bytes written to the state become hash input: `write` accepts the complete
+//! buffer, and `flush` has no work to perform. Obtain the digest separately
+//! after the producer finishes.
+//!
+//! ```
+//! # #[cfg(feature = "std")]
+//! # {
+//! use std::io;
+//!
+//! use rache::xxhash::Xxh3;
+//! use rache::xxhash::xxh3_64;
+//!
+//! let input = b"rache";
+//! let mut state = Xxh3::new();
+//! io::copy(&mut input.as_slice(), &mut state).unwrap();
+//!
+//! assert_eq!(state.digest(), xxh3_64(input));
+//! # }
+//! ```
+//!
+//! # Complete and incremental hashing
+//!
+//! Hash a complete byte slice with a free function, or feed the same bytes to
+//! a reusable state:
 //!
 //! ```
 //! use rache::xxhash::Xxh64;

@@ -97,6 +97,31 @@ jobs:
       - name: Run tests
         run: cargo x test
 
+  miri:
+    name: Miri
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MIRIFLAGS: -Zmiri-strict-provenance
+      RUSTUP_TOOLCHAIN: nightly
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Miri
+        run: >-
+          rustup toolchain install nightly
+          --profile minimal
+          --component miri
+          --no-self-update
+
+      - name: Run release-profile library tests under Miri
+        # Release mode disables debug assertions that could otherwise mask an
+        # unsafe precondition violation before Miri observes it.
+        run: cargo miri test --package rache --lib --no-default-features --release
+
   target:
     name: Target (${{ matrix.name }})
     runs-on: ubuntu-24.04

@@ -319,7 +319,7 @@ fn streaming_states_can_be_cloned_finished_continued_and_reset() {
     assert_eq!(murmur.digest(), murmur3_128(&joined, seed));
     assert_eq!(fork.digest(), murmur3_128(&prefix, seed));
     fork.reset();
-    fork.write(&suffix);
+    fork.update(&suffix);
     assert_eq!(fork.seed(), seed);
     assert_eq!(fork.total_len(), suffix.len() as u64);
     assert_eq!(fork.digest(), murmur3_128(&suffix, seed));

@@ -308,6 +308,12 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 }
 
 /// Incremental state for the 128-bit x64 variant of MurmurHash3.
+///
+/// Feed byte slices with [`update`](Self::update), then call
+/// [`digest`](Self::digest) without consuming the state. With the default
+/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
+/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// because that trait cannot return a 128-bit digest.
 #[derive(Clone, Debug)]
 pub struct Murmur3_128 {
     seed: u32,
@@ -370,12 +376,6 @@ impl Murmur3_128 {
 
         self.buffer[..input.len()].copy_from_slice(input);
         self.buffered = input.len();
-    }
-
-    /// Alias for [`update`](Self::update).
-    #[inline]
-    pub fn write(&mut self, input: &[u8]) {
-        self.update(input);
     }
 
     /// Returns the digest without consuming the state.

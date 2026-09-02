@@ -102,13 +102,26 @@ impl core::error::Error for Xxh3SecretTooShort {}
 
 #[inline]
 fn validate_secret(secret: &[u8]) -> Result<(), Xxh3SecretTooShort> {
-    if secret.len() < SECRET_SIZE_MIN {
-        Err(Xxh3SecretTooShort {
-            actual_len: secret.len(),
-        })
+    validate_secret_len(secret.len())
+}
+
+#[inline]
+fn validate_secret_len(actual_len: usize) -> Result<(), Xxh3SecretTooShort> {
+    if actual_len < SECRET_SIZE_MIN {
+        Err(Xxh3SecretTooShort { actual_len })
     } else {
         Ok(())
     }
+}
+
+#[inline(always)]
+fn checked_secret<S: AsRef<[u8]>>(storage: &S, expected_len: usize) -> &[u8] {
+    let secret = storage.as_ref();
+    assert!(
+        secret.len() == expected_len,
+        "XXH3 secret length changed after validation"
+    );
+    secret
 }
 
 /// Hashes `input` with unseeded XXH3-64.
@@ -581,8 +594,7 @@ fn hash_long_128<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> u128 
 fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> [u64; 8] {
     debug_assert!(input.len() > MIDSIZE_MAX);
     debug_assert!(secret.len() >= SECRET_SIZE_MIN);
-    let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
-    let mut accumulator = Accumulator::new(stripes_per_block);
+    let mut accumulator = Accumulator::new(secret.len());
 
     // Excluding the final byte leaves the last full or overlapping stripe for
     // the dedicated secret suffix below. `Accumulator` handles block scrambles,
@@ -632,15 +644,15 @@ unsafe fn secret_array_64(secret: &[u8], offset: usize) -> &[u8; 64] {
 struct Accumulator {
     lanes: [u64; 8],
     stripe: usize,
-    stripes_per_block: usize,
+    secret_len: usize,
 }
 
 impl Accumulator {
-    const fn new(stripes_per_block: usize) -> Self {
+    const fn new(secret_len: usize) -> Self {
         Self {
             lanes: INITIAL_ACC,
             stripe: 0,
-            stripes_per_block,
+            secret_len,
         }
     }
 
@@ -652,7 +664,8 @@ impl Accumulator {
         let secret_stripe = unsafe { secret_array_64(secret, secret_offset) };
         kernel.accumulate(&mut self.lanes, stripe, secret_stripe);
         self.stripe += 1;
-        if self.stripe == self.stripes_per_block {
+        let stripes_per_block = (self.secret_len - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+        if self.stripe == stripes_per_block {
             // SAFETY: Every validated secret contains a complete 64-byte
             // suffix, and this offset selects that exact suffix.
             let scramble_secret = unsafe { secret_array_64(secret, secret.len() - STRIPE_SIZE) };
@@ -680,14 +693,13 @@ impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
     }
 
     fn with_derived_secret(seed: u64, secret: [u8; DEFAULT_SECRET_SIZE]) -> Self {
-        let stripes_per_block = (DEFAULT_SECRET_SIZE - STRIPE_SIZE) / SECRET_CONSUME_RATE;
         Self {
             seed,
             secret,
             use_custom_secret_for_short: false,
             buffer: [0; STREAM_BUFFER_SIZE],
             buffered: 0,
-            accumulator: Accumulator::new(stripes_per_block),
+            accumulator: Accumulator::new(DEFAULT_SECRET_SIZE),
             total_len: 0,
             length_overflowed: false,
         }
@@ -695,15 +707,34 @@ impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
 }
 
 impl<S: AsRef<[u8]>> StreamState<S> {
-    fn with_secret(seed: u64, secret: S, use_custom_secret_for_short: bool) -> Self {
-        let stripes_per_block = (secret.as_ref().len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+    fn try_with_secret(
+        seed: u64,
+        secret: S,
+        use_custom_secret_for_short: bool,
+    ) -> Result<Self, Xxh3SecretTooShort> {
+        let secret_len = secret.as_ref().len();
+        validate_secret_len(secret_len)?;
+        Ok(Self::with_validated_secret(
+            seed,
+            secret,
+            secret_len,
+            use_custom_secret_for_short,
+        ))
+    }
+
+    fn with_validated_secret(
+        seed: u64,
+        secret: S,
+        secret_len: usize,
+        use_custom_secret_for_short: bool,
+    ) -> Self {
         Self {
             seed,
             secret,
             use_custom_secret_for_short,
             buffer: [0; STREAM_BUFFER_SIZE],
             buffered: 0,
-            accumulator: Accumulator::new(stripes_per_block),
+            accumulator: Accumulator::new(secret_len),
             total_len: 0,
             length_overflowed: false,
         }
@@ -711,7 +742,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
 
     fn reset(&mut self) {
         self.buffered = 0;
-        self.accumulator = Accumulator::new(self.accumulator.stripes_per_block);
+        self.accumulator = Accumulator::new(self.accumulator.secret_len);
         self.total_len = 0;
         self.length_overflowed = false;
     }
@@ -739,7 +770,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
     fn digest_64(&self) -> u64 {
         if !self.length_overflowed && self.total_len <= MIDSIZE_MAX as u64 {
             let (seed, secret) = if self.use_custom_secret_for_short {
-                (0, self.secret.as_ref())
+                (0, checked_secret(&self.secret, self.accumulator.secret_len))
             } else {
                 (self.seed, DEFAULT_SECRET.as_slice())
             };
@@ -753,7 +784,7 @@ impl<S: AsRef<[u8]>> StreamState<S> {
     fn digest_128(&self) -> u128 {
         if !self.length_overflowed && self.total_len <= MIDSIZE_MAX as u64 {
             let (seed, secret) = if self.use_custom_secret_for_short {
-                (0, self.secret.as_ref())
+                (0, checked_secret(&self.secret, self.accumulator.secret_len))
             } else {
                 (self.seed, DEFAULT_SECRET.as_slice())
             };
@@ -778,7 +809,7 @@ fn update_stream<K: Xxh3Kernel, S: AsRef<[u8]>>(
     state: &mut StreamState<S>,
     mut input: &[u8],
 ) {
-    let secret = state.secret.as_ref();
+    let secret = checked_secret(&state.secret, state.accumulator.secret_len);
     let buffer = &mut state.buffer;
     let buffered = &mut state.buffered;
     let mut accumulator = state.accumulator;
@@ -814,9 +845,10 @@ fn update_stream<K: Xxh3Kernel, S: AsRef<[u8]>>(
 }
 
 #[inline]
-fn finalize_stream_acc<K: Xxh3Kernel, S: AsRef<[u8]>>(
+fn finalize_stream_acc<K: Xxh3Kernel, S>(
     kernel: K,
     state: &StreamState<S>,
+    secret: &[u8],
 ) -> [u64; 8] {
     let mut accumulator = state.accumulator;
     let input = &state.buffer[..state.buffered];
@@ -827,11 +859,7 @@ fn finalize_stream_acc<K: Xxh3Kernel, S: AsRef<[u8]>>(
         full_stripes
     };
     for stripe in 0..regular_stripes {
-        accumulator.process(
-            kernel,
-            array_64(input, stripe * STRIPE_SIZE),
-            state.secret.as_ref(),
-        );
+        accumulator.process(kernel, array_64(input, stripe * STRIPE_SIZE), secret);
     }
 
     let mut temporary = [0_u8; STRIPE_SIZE];
@@ -845,7 +873,6 @@ fn finalize_stream_acc<K: Xxh3Kernel, S: AsRef<[u8]>>(
         &temporary
     };
 
-    let secret = state.secret.as_ref();
     let last_secret_offset = secret.len() - STRIPE_SIZE - SECRET_LAST_ACC_START;
     kernel.accumulate(
         &mut accumulator.lanes,
@@ -857,29 +884,31 @@ fn finalize_stream_acc<K: Xxh3Kernel, S: AsRef<[u8]>>(
 
 #[inline]
 fn finalize_stream_64<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamState<S>) -> u64 {
-    let acc = finalize_stream_acc(kernel, state);
+    let secret = checked_secret(&state.secret, state.accumulator.secret_len);
+    let acc = finalize_stream_acc(kernel, state, secret);
     merge_accumulators(
         &acc,
         state.total_len.wrapping_mul(PRIME64_1),
-        state.secret.as_ref(),
+        secret,
         SECRET_MERGE_ACC_START,
     )
 }
 
 #[inline]
 fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamState<S>) -> u128 {
-    let acc = finalize_stream_acc(kernel, state);
+    let secret = checked_secret(&state.secret, state.accumulator.secret_len);
+    let acc = finalize_stream_acc(kernel, state, secret);
     let low = merge_accumulators(
         &acc,
         state.total_len.wrapping_mul(PRIME64_1),
-        state.secret.as_ref(),
+        secret,
         SECRET_MERGE_ACC_START,
     );
     let high = merge_accumulators(
         &acc,
         !state.total_len.wrapping_mul(PRIME64_2),
-        state.secret.as_ref(),
-        state.secret.as_ref().len() - STRIPE_SIZE - SECRET_MERGE_ACC_START,
+        secret,
+        secret.len() - STRIPE_SIZE - SECRET_MERGE_ACC_START,
     );
     make_u128(low, high)
 }
@@ -890,6 +919,8 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 /// owns or borrows its secret according to the storage passed to
 /// [`with_secret`](Self::with_secret). Every form owns fixed-size working
 /// buffers and performs no allocation itself.
+/// If custom storage exposes slices of different lengths across calls, hashing
+/// panics before reading the secret.
 #[derive(Clone)]
 pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -943,16 +974,14 @@ impl<S: AsRef<[u8]>> Xxh3<S> {
     /// Pass an owned array or another `AsRef<[u8]>` value when the state should
     /// own the secret, or pass a reference to borrow it.
     pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
-        Ok(Self(StreamState::with_secret(0, secret, true)))
+        StreamState::try_with_secret(0, secret, true).map(Self)
     }
 
     /// Creates an XXH3-64 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
     pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
-        Ok(Self(StreamState::with_secret(seed, secret, false)))
+        StreamState::try_with_secret(seed, secret, false).map(Self)
     }
 
     /// Adds raw bytes to the hash state.
@@ -1033,10 +1062,13 @@ pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 
 /// Incremental XXH3-128 state.
 ///
-/// This type has an inherent [`write`](Self::write) method rather than a
-/// [`Hasher`] implementation because that trait only returns 64-bit digests.
-/// With the `std` feature, it also implements
-/// [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+/// Feed byte slices with [`update`](Self::update), then call
+/// [`digest`](Self::digest) without consuming the state. With the default
+/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
+/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// because that trait cannot return a 128-bit digest.
+/// If custom storage exposes slices of different lengths across calls, hashing
+/// panics before reading the secret.
 #[derive(Clone)]
 pub struct Xxh3_128<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -1090,28 +1122,20 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
     /// Pass an owned array or another `AsRef<[u8]>` value when the state should
     /// own the secret, or pass a reference to borrow it.
     pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
-        Ok(Self(StreamState::with_secret(0, secret, true)))
+        StreamState::try_with_secret(0, secret, true).map(Self)
     }
 
     /// Creates an XXH3-128 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
     pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
-        Ok(Self(StreamState::with_secret(seed, secret, false)))
+        StreamState::try_with_secret(seed, secret, false).map(Self)
     }
 
     /// Adds raw bytes to the hash state.
     #[inline]
-    pub fn write(&mut self, input: &[u8]) {
-        self.0.update(input);
-    }
-
-    /// Alias for [`write`](Self::write), matching the other streaming types.
-    #[inline]
     pub fn update(&mut self, input: &[u8]) {
-        self.write(input);
+        self.0.update(input);
     }
 
     /// Returns the 128-bit digest without consuming the state.
@@ -1232,30 +1256,37 @@ impl BuildHasher for Xxh3Builder {
 /// must implement [`Copy`]. Arrays and references to slices both satisfy this
 /// requirement. The builder is intended for trusted inputs and does not make
 /// XXH3 resistant to deliberate hash flooding.
+/// Building a hasher panics if custom storage exposes a different slice length
+/// from the one validated by the constructor.
 #[derive(Clone, Copy)]
 pub struct Xxh3SecretBuilder<S> {
     seed: u64,
     secret: S,
+    secret_len: usize,
     use_custom_secret_for_short: bool,
 }
 
 impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
     /// Creates a builder using `secret` for inputs of every length.
     pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
+        let secret_len = secret.as_ref().len();
+        validate_secret_len(secret_len)?;
         Ok(Self {
             seed: 0,
             secret,
+            secret_len,
             use_custom_secret_for_short: true,
         })
     }
 
     /// Creates a builder using `seed` for short inputs and `secret` for long inputs.
     pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret.as_ref())?;
+        let secret_len = secret.as_ref().len();
+        validate_secret_len(secret_len)?;
         Ok(Self {
             seed,
             secret,
+            secret_len,
             use_custom_secret_for_short: false,
         })
     }
@@ -1266,7 +1297,7 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
         formatter
             .debug_struct("Xxh3SecretBuilder")
             .field("seed", &self.seed)
-            .field("secret_len", &self.secret.as_ref().len())
+            .field("secret_len", &self.secret_len)
             .finish_non_exhaustive()
     }
 }
@@ -1276,9 +1307,11 @@ impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Xxh3(StreamState::with_secret(
+        let _ = checked_secret(&self.secret, self.secret_len);
+        Xxh3(StreamState::with_validated_secret(
             self.seed,
             self.secret,
+            self.secret_len,
             self.use_custom_secret_for_short,
         ))
     }
@@ -1286,9 +1319,32 @@ impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+    use std::panic::AssertUnwindSafe;
+    use std::panic::catch_unwind;
     use std::vec::Vec;
 
     use super::*;
+
+    static VALID_CUSTOM_SECRET: [u8; SECRET_SIZE_MIN] = [0xa5; SECRET_SIZE_MIN];
+    static EMPTY_CUSTOM_SECRET: [u8; 0] = [];
+
+    #[derive(Clone, Copy)]
+    struct ChangingSecret<'a>(&'a Cell<bool>);
+
+    impl AsRef<[u8]> for ChangingSecret<'_> {
+        fn as_ref(&self) -> &[u8] {
+            if self.0.get() {
+                &EMPTY_CUSTOM_SECRET
+            } else {
+                &VALID_CUSTOM_SECRET
+            }
+        }
+    }
+
+    fn assert_panics(operation: impl FnOnce()) {
+        assert!(catch_unwind(AssertUnwindSafe(operation)).is_err());
+    }
 
     fn assert_kernel_matches_scalar<K: Xxh3Kernel>(kernel: K) {
         for len in [241_usize, 256, 1_023, 1_024, 1_025, 4_097] {
@@ -1340,6 +1396,29 @@ mod tests {
         hash.reset();
         hash.update(b"after");
         assert_eq!(hash.digest(), xxh3_64_with_seed(b"after", 42));
+    }
+
+    #[test]
+    fn custom_secret_length_changes_are_rejected_before_use() {
+        let use_empty = Cell::new(false);
+        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        use_empty.set(true);
+        assert_panics(|| hash.update(&[0; STREAM_BUFFER_SIZE + 1]));
+
+        let use_empty = Cell::new(false);
+        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        hash.update(&[0; STREAM_BUFFER_SIZE + 1]);
+        use_empty.set(true);
+        assert_panics(|| {
+            let _ = hash.digest();
+        });
+
+        let use_empty = Cell::new(false);
+        let builder = Xxh3SecretBuilder::with_secret(ChangingSecret(&use_empty)).unwrap();
+        use_empty.set(true);
+        assert_panics(|| {
+            let _ = builder.build_hasher();
+        });
     }
 
     #[test]
