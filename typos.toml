@@ -14,7 +14,7 @@
 
 [default.extend-words]
 Collet = "Collet"
-rache = "rache"
+hashcrew = "hashcrew"
 
 [files]
 extend-exclude = ["/target"]

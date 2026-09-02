@@ -23,8 +23,8 @@ rust-version.workspace = true
 cityhash-rs = { workspace = true }
 cityhasher = { workspace = true }
 fnv = { workspace = true }
+hashcrew = { workspace = true }
 murmur3 = { workspace = true }
-rache = { workspace = true }
 twox-hash = { workspace = true }
 xxhash-rust = { workspace = true }
 

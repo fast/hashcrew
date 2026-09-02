@@ -1,6 +1,6 @@
-# Releasing `rache`
+# Releasing `hashcrew`
 
-Only the `rache` workspace package is published. Benchmarks, examples, and integration-test packages must remain development-only.
+Only the `hashcrew` workspace package is published. Benchmarks, examples, and integration-test packages must remain development-only.
 
 ## Preflight
 
@@ -17,19 +17,19 @@ cargo x check
 cargo x test
 RUSTUP_TOOLCHAIN=1.85.0 cargo x test
 cargo x bench --no-run
-release_version=0.2.0
-cargo release "$release_version" --package rache
+release_version=0.1.0
+cargo release "$release_version" --package hashcrew
 ```
 
-The `cargo release` command is a dry run unless `--execute` is present. Inspect `cargo +stable package -p rache --locked --list` before publishing. The archive must contain the license, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
+The `cargo release` command is a dry run unless `--execute` is present. Inspect `cargo +stable package -p hashcrew --locked --list` before publishing. The archive must contain the license, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
 
 ## Publish
 
 Confirm the crate name, version, repository URL, and crates.io account before the irreversible step:
 
 ```shell
-release_version=0.2.0
-cargo release "$release_version" --package rache --execute
+release_version=0.1.0
+cargo release "$release_version" --package hashcrew --execute
 ```
 
 This publishes the crate, creates the configured signed `v<version>` tag, and pushes the branch and tag. Do not create a second tag manually. After crates.io confirms the release, create the matching GitHub Release and verify the crate page and docs.rs build.

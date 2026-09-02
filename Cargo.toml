@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [workspace]
-members = ["benchmarks", "examples", "rache", "tests-integration", "xtask"]
+members = ["benchmarks", "examples", "hashcrew", "tests-integration", "xtask"]
 resolver = "3"
 
 [workspace.package]
@@ -24,7 +24,7 @@ rust-version = "1.85"
 
 [workspace.dependencies]
 # Workspace dependencies
-rache = { path = "rache" }
+hashcrew = { path = "hashcrew" }
 
 # Crates.io dependencies
 cityhash-rs = { version = "1.0.1" }

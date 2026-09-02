@@ -16,25 +16,25 @@ use core::hash::BuildHasher;
 use core::hash::Hasher;
 use std::collections::HashMap;
 
-use rache::xxhash::SECRET_SIZE_MIN;
-use rache::xxhash::Xxh3_64;
-use rache::xxhash::Xxh3_64Builder;
-use rache::xxhash::Xxh3_64SecretBuilder;
-use rache::xxhash::Xxh3_128;
-use rache::xxhash::Xxh32;
-use rache::xxhash::Xxh32Builder;
-use rache::xxhash::Xxh64;
-use rache::xxhash::Xxh64Builder;
-use rache::xxhash::xxh3_64;
-use rache::xxhash::xxh3_64_with_secret;
-use rache::xxhash::xxh3_64_with_seed;
-use rache::xxhash::xxh3_64_with_seed_and_secret;
-use rache::xxhash::xxh3_128;
-use rache::xxhash::xxh3_128_with_secret;
-use rache::xxhash::xxh3_128_with_seed;
-use rache::xxhash::xxh3_128_with_seed_and_secret;
-use rache::xxhash::xxh32;
-use rache::xxhash::xxh64;
+use hashcrew::xxhash::SECRET_SIZE_MIN;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::Xxh3_64Builder;
+use hashcrew::xxhash::Xxh3_64SecretBuilder;
+use hashcrew::xxhash::Xxh3_128;
+use hashcrew::xxhash::Xxh32;
+use hashcrew::xxhash::Xxh32Builder;
+use hashcrew::xxhash::Xxh64;
+use hashcrew::xxhash::Xxh64Builder;
+use hashcrew::xxhash::xxh3_64;
+use hashcrew::xxhash::xxh3_64_with_secret;
+use hashcrew::xxhash::xxh3_64_with_seed;
+use hashcrew::xxhash::xxh3_64_with_seed_and_secret;
+use hashcrew::xxhash::xxh3_128;
+use hashcrew::xxhash::xxh3_128_with_secret;
+use hashcrew::xxhash::xxh3_128_with_seed;
+use hashcrew::xxhash::xxh3_128_with_seed_and_secret;
+use hashcrew::xxhash::xxh32;
+use hashcrew::xxhash::xxh64;
 use xxhash_rust::xxh3;
 use xxhash_rust::xxh32 as reference32;
 use xxhash_rust::xxh64 as reference64;
@@ -177,10 +177,10 @@ fn seed_and_secret_oneshot_matches_reference_contract() {
 #[test]
 fn custom_secret_length_is_validated() {
     let short = secret(SECRET_SIZE_MIN - 1);
-    let error = xxh3_64_with_secret(b"rache", &short).unwrap_err();
+    let error = xxh3_64_with_secret(b"hashcrew", &short).unwrap_err();
     assert_eq!(error.actual_len(), SECRET_SIZE_MIN - 1);
     assert_eq!(
-        rache::xxhash::Xxh3SecretTooShort::minimum_len(),
+        hashcrew::xxhash::Xxh3SecretTooShort::minimum_len(),
         SECRET_SIZE_MIN
     );
     assert_eq!(
@@ -188,9 +188,9 @@ fn custom_secret_length_is_validated() {
         "XXH3 secret is 135 bytes; at least 136 bytes are required"
     );
 
-    assert!(xxh3_128_with_secret(b"rache", &short).is_err());
-    assert!(xxh3_64_with_seed_and_secret(b"rache", 7, &short).is_err());
-    assert!(xxh3_128_with_seed_and_secret(b"rache", 7, &short).is_err());
+    assert!(xxh3_128_with_secret(b"hashcrew", &short).is_err());
+    assert!(xxh3_64_with_seed_and_secret(b"hashcrew", 7, &short).is_err());
+    assert!(xxh3_128_with_seed_and_secret(b"hashcrew", 7, &short).is_err());
     assert!(Xxh3_64::with_secret(&short).is_err());
     assert!(Xxh3_64::with_seed_and_secret(7, &short).is_err());
     assert!(Xxh3_128::with_secret(&short).is_err());
@@ -218,8 +218,8 @@ fn custom_secret_states_and_builders_can_own_their_storage() {
 
     let builder = Xxh3_64SecretBuilder::with_secret(secret).unwrap();
     let mut map = HashMap::with_hasher(builder);
-    map.insert("rache", 2);
-    assert_eq!(map["rache"], 2);
+    map.insert("hashcrew", 2);
+    assert_eq!(map["hashcrew"], 2);
 }
 
 #[test]
@@ -543,5 +543,5 @@ fn standard_hash_traits_use_the_raw_stream() {
         xxh3_64_with_seed_and_secret(&bytes, 17, &secret).unwrap()
     );
 
-    assert!(rache::xxhash::kernel::selected_backend().is_available());
+    assert!(hashcrew::xxhash::kernel::selected_backend().is_available());
 }

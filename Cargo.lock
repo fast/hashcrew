@@ -60,8 +60,8 @@ dependencies = [
  "cityhasher",
  "divan",
  "fnv",
+ "hashcrew",
  "murmur3",
- "rache",
  "twox-hash",
  "xxhash-rust",
 ]
@@ -182,7 +182,7 @@ dependencies = [
 name = "examples"
 version = "0.0.0"
 dependencies = [
- "rache",
+ "hashcrew",
 ]
 
 [[package]]
@@ -190,6 +190,10 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "hashcrew"
+version = "0.1.0"
 
 [[package]]
 name = "heck"
@@ -244,10 +248,6 @@ checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "rache"
-version = "0.2.0"
 
 [[package]]
 name = "regex-lite"
@@ -313,8 +313,8 @@ dependencies = [
  "cityhash-rs",
  "cityhasher",
  "fnv",
+ "hashcrew",
  "murmur3",
- "rache",
  "twox-hash",
  "xxhash-rust",
 ]

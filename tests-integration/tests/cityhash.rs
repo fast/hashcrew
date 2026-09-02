@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rache::cityhash::cityhash32;
-use rache::cityhash::cityhash64;
-use rache::cityhash::cityhash64_with_seed;
-use rache::cityhash::cityhash64_with_seeds;
-use rache::cityhash::cityhash128;
-use rache::cityhash::cityhash128_to_64;
-use rache::cityhash::cityhash128_with_seed;
+use hashcrew::cityhash::cityhash32;
+use hashcrew::cityhash::cityhash64;
+use hashcrew::cityhash::cityhash64_with_seed;
+use hashcrew::cityhash::cityhash64_with_seeds;
+use hashcrew::cityhash::cityhash128;
+use hashcrew::cityhash::cityhash128_to_64;
+use hashcrew::cityhash::cityhash128_with_seed;
 
 mod support;
 

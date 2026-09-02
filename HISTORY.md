@@ -1,11 +1,11 @@
 # Implementation history
 
-The first `rache` release establishes the xxHash family as the library's initial compatibility surface. XXH32 and XXH64 use direct portable cores. XXH3 keeps short-input routing separate from a long-input kernel so hardware backends can change without changing public APIs or digest output.
+Hashcrew starts with four algorithm families behind a consistent family-qualified API. One-shot functions handle complete byte slices, bounded-memory state types handle incremental input where the algorithm permits it, and explicit adapters integrate 32-bit and 64-bit states with Rust's standard hashing traits.
 
-The naming and API split draw on lessons from `twox-hash`: one-shot functions for complete byte slices, stateful types for streaming input, and explicit adapters for Rust's standard hashing traits. Unlike implementations whose streaming XXH3 state allocates its secret, the initial `rache` state owns fixed buffers so the same API works under `no_std`.
+XXH32 and XXH64 use direct portable cores. XXH3 keeps short-input routing separate from a long-input kernel so scalar and hardware-accelerated backends can change without changing public APIs or digest output. Its streaming state owns fixed buffers and accepts borrowed or caller-owned secret storage, preserving allocation-free `no_std` operation.
 
-The repository separates the publishable crate from examples, benchmarks, and cross-implementation tests, following the workspace organization used by Apache Asyncband. Within the library, source files are grouped by algorithm family; the XXH3 hardware kernels live beside the xxHash implementations while crate-root re-exports keep the public API compact.
+MurmurHash3 implements the reference `x86_32`, `x86_128`, and `x64_128` variants. Their architecture labels identify distinct algorithms rather than target restrictions. FNV-1a 32 and 64 use a portable byte-at-a-time core shared by one-shot functions, streaming states, and standard hash adapters.
 
-MurmurHash3 x86_32 and x64_128 extend the same raw/streaming split with small fixed-size tail buffers. FNV-1a 32 and 64 use a single portable byte-at-a-time core shared by their one-shot functions, streaming states, and standard hash adapters. Reference crates remain isolated in the integration-test and benchmark workspace members.
+CityHash32, CityHash64, and CityHash128 remain one-shot-oriented. Their construction depends on the complete input length and tail, so a streaming facade would need to retain the entire message instead of providing bounded-memory incremental hashing.
 
-CityHash32, CityHash64, and CityHash128 add a second one-shot-oriented family, including the reference seeded forms and 128-to-64 reducer. CityHash does not expose incremental state: its length- and tail-dependent construction cannot be resumed with bounded memory, so such an API would have to buffer the entire message. The implementation stays portable, safe, allocation-free, and compatible with `no_std`.
+The repository keeps the dependency-free publishable crate separate from examples, benchmarks, and cross-implementation tests. Reference implementations are development-only dependencies and never enter the published package.

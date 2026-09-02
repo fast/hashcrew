@@ -36,10 +36,10 @@ mod xxh32 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh32::new();
+            let mut hasher = hashcrew::xxhash::Xxh32::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -76,10 +76,10 @@ mod xxh64 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh64::new();
+            let mut hasher = hashcrew::xxhash::Xxh64::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -116,10 +116,10 @@ mod xxh3_64 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_64::new();
+            let mut hasher = hashcrew::xxhash::Xxh3_64::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -128,11 +128,11 @@ mod xxh3_64 {
     }
 
     #[divan::bench(args = CASES)]
-    fn rache_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_64::with_secret(black_box(&secret)).unwrap();
+            let mut hasher = hashcrew::xxhash::Xxh3_64::with_secret(black_box(&secret)).unwrap();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -141,11 +141,11 @@ mod xxh3_64 {
     }
 
     #[divan::bench(args = CASES)]
-    fn rache_seed_and_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew_seed_and_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_64::with_seed_and_secret(
+            let mut hasher = hashcrew::xxhash::Xxh3_64::with_seed_and_secret(
                 0x0123_4567_89ab_cdef,
                 black_box(&secret),
             )
@@ -186,10 +186,10 @@ mod xxh3_128 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_128::new();
+            let mut hasher = hashcrew::xxhash::Xxh3_128::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -198,11 +198,11 @@ mod xxh3_128 {
     }
 
     #[divan::bench(args = CASES)]
-    fn rache_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_128::with_secret(black_box(&secret)).unwrap();
+            let mut hasher = hashcrew::xxhash::Xxh3_128::with_secret(black_box(&secret)).unwrap();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -211,11 +211,11 @@ mod xxh3_128 {
     }
 
     #[divan::bench(args = CASES)]
-    fn rache_seed_and_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew_seed_and_secret(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3_128::with_seed_and_secret(
+            let mut hasher = hashcrew::xxhash::Xxh3_128::with_seed_and_secret(
                 0x0123_4567_89ab_cdef,
                 black_box(&secret),
             )
@@ -256,10 +256,10 @@ mod murmur3_x86_32 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::murmur::Murmur3X86_32::new();
+            let mut hasher = hashcrew::murmur::Murmur3X86_32::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -272,10 +272,10 @@ mod murmur3_x86_128 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::murmur::Murmur3X86_128::new();
+            let mut hasher = hashcrew::murmur::Murmur3X86_128::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -288,10 +288,10 @@ mod murmur3_x64_128 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::murmur::Murmur3X64_128::new();
+            let mut hasher = hashcrew::murmur::Murmur3X64_128::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -304,10 +304,10 @@ mod fnv1a_32 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::fnv::Fnv1a32::new();
+            let mut hasher = hashcrew::fnv::Fnv1a32::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -320,10 +320,10 @@ mod fnv1a_64 {
     use super::*;
 
     #[divan::bench(args = CASES)]
-    fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::fnv::Fnv1a64::new();
+            let mut hasher = hashcrew::fnv::Fnv1a64::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }

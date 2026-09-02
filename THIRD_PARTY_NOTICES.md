@@ -25,16 +25,16 @@ The workspace organization was informed by Apache Asyncband, distributed under t
 
 - <https://github.com/apache/asyncband>
 
-`xxhash-rust` is a development-only conformance and benchmark dependency. It is not linked into the published `rache` crate:
+`xxhash-rust` is a development-only conformance and benchmark dependency. It is not linked into the published `hashcrew` crate:
 
 - <https://github.com/DoumanAsh/xxhash-rust>
 
-`murmur3` and `fnv` are development-only conformance and benchmark dependencies. They are not linked into the published `rache` crate:
+`murmur3` and `fnv` are development-only conformance and benchmark dependencies. They are not linked into the published `hashcrew` crate:
 
 - <https://github.com/stusmall/murmur3>
 - <https://github.com/servo/rust-fnv>
 
-`cityhasher` and `cityhash-rs` are development-only conformance and benchmark dependencies. They are not linked into the published `rache` crate:
+`cityhasher` and `cityhash-rs` are development-only conformance and benchmark dependencies. They are not linked into the published `hashcrew` crate:
 
 - <https://github.com/khonsulabs/cityhasher>
 - <https://github.com/Protryon/cityhash-rs>

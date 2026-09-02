@@ -1,4 +1,4 @@
-# rache
+# hashcrew
 
 [![Crates.io][crates-badge]][crates-url]
 [![Documentation][docs-badge]][docs-url]
@@ -6,19 +6,19 @@
 [![Apache 2.0 licensed][license-badge]][license-url]
 [![Build Status][actions-badge]][actions-url]
 
-[crates-badge]: https://img.shields.io/crates/v/rache.svg
-[crates-url]: https://crates.io/crates/rache
-[docs-badge]: https://docs.rs/rache/badge.svg
-[docs-url]: https://docs.rs/rache
+[crates-badge]: https://img.shields.io/crates/v/hashcrew.svg
+[crates-url]: https://crates.io/crates/hashcrew
+[docs-badge]: https://docs.rs/hashcrew/badge.svg
+[docs-url]: https://docs.rs/hashcrew
 [msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
-[license-badge]: https://img.shields.io/crates/l/rache
+[license-badge]: https://img.shields.io/crates/l/hashcrew
 [license-url]: LICENSE
 [actions-badge]: https://github.com/fast/rache/actions/workflows/ci.yml/badge.svg
 [actions-url]: https://github.com/fast/rache/actions/workflows/ci.yml
 
 ## Overview
 
-Rache is a zero-dependency Rust library for fast, deterministic, non-cryptographic hashing. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
+Hashcrew is a zero-dependency Rust library for fast, deterministic, non-cryptographic hashing. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
 Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends; the other algorithms use compact portable Rust cores.
 
@@ -29,22 +29,22 @@ Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a 
 ## Getting started
 
 ```shell
-cargo add rache
+cargo add hashcrew
 ```
 
 Disable the default `std` feature for bare-metal and other `no_std` targets:
 
 ```toml
 [dependencies]
-rache = { version = "0.2", default-features = false }
+hashcrew = { version = "0.1", default-features = false }
 ```
 
 Import the algorithm family when the complete input is already in memory:
 
 ```rust
-use rache::{cityhash, fnv, murmur, xxhash};
+use hashcrew::{cityhash, fnv, murmur, xxhash};
 
-let data = b"rache";
+let data = b"hashcrew";
 let city = cityhash::cityhash64(data);
 let xxh3 = xxhash::xxh3_64(data);
 let murmur = murmur::murmur3_x64_128(data, 42);
@@ -59,35 +59,35 @@ assert_ne!(fnv, 0);
 Use a state type when data arrives incrementally:
 
 ```rust
-use rache::murmur::Murmur3X64_128;
-use rache::murmur::murmur3_x64_128;
+use hashcrew::murmur::Murmur3X64_128;
+use hashcrew::murmur::murmur3_x64_128;
 
 let mut hash = Murmur3X64_128::with_seed(42);
-hash.update(b"ra");
-hash.update(b"che");
+hash.update(b"hash");
+hash.update(b"crew");
 
-assert_eq!(hash.digest(), murmur3_x64_128(b"rache", 42));
+assert_eq!(hash.digest(), murmur3_x64_128(b"hashcrew", 42));
 ```
 
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
 
 ```rust
-use rache::xxhash::Xxh3_64;
-use rache::xxhash::xxh3_64_with_secret;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::xxh3_64_with_secret;
 
 let secret = [0xa5; 192];
-let expected = xxh3_64_with_secret(b"rache", &secret).unwrap();
+let expected = xxh3_64_with_secret(b"hashcrew", &secret).unwrap();
 let mut hash = Xxh3_64::with_secret(secret).unwrap();
-hash.update(b"rache");
+hash.update(b"hashcrew");
 
 assert_eq!(hash.digest(), expected);
 ```
 
-All public APIs are grouped under the [`cityhash`](https://docs.rs/rache/*/rache/cityhash/), [`xxhash`](https://docs.rs/rache/*/rache/xxhash/), [`murmur`](https://docs.rs/rache/*/rache/murmur/), and [`fnv`](https://docs.rs/rache/*/rache/fnv/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
+All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), and [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
 
 ## API model
 
-Rache exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
+Hashcrew exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
 
 | Input or caller                                      | Interface                                                                 | What it does                                                                                 |
 |------------------------------------------------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
@@ -117,7 +117,7 @@ The table names the canonical module-level function for complete input. A traili
 | FNV-1a 32           | `fnv1a_32*`       | `Fnv1a32`         | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                   |
 | FNV-1a 64           | `fnv1a_64*`       | `Fnv1a64`         | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                   |
 
-Rache implements all three variants from the original MurmurHash3 family under their reference-qualified `x86_32`, `x86_128`, and `x64_128` names. These architecture labels distinguish algorithms and do not restrict which target can run them. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
+Hashcrew implements all three variants from the original MurmurHash3 family under their reference-qualified `x86_32`, `x86_128`, and `x64_128` names. These architecture labels distinguish algorithms and do not restrict which target can run them. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
 ## Choosing an algorithm
 
@@ -131,14 +131,14 @@ The adapter treats every written byte as hash input; it accepts the complete buf
 
 ```rust
 use std::io::{self, Cursor};
-use rache::xxhash::Xxh3_64;
-use rache::xxhash::xxh3_64;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::xxh3_64;
 
-let mut source = Cursor::new(b"rache");
+let mut source = Cursor::new(b"hashcrew");
 let mut hash = Xxh3_64::new();
 io::copy(&mut source, &mut hash).unwrap();
 
-assert_eq!(hash.digest(), xxh3_64(b"rache"));
+assert_eq!(hash.digest(), xxh3_64(b"hashcrew"));
 ```
 
 This adapter is only needed for `std` interoperability. The direct `update` API is available in both `std` and `no_std` builds.
@@ -149,12 +149,12 @@ The 32-bit and 64-bit streaming states implement `core::hash::Hasher`, with matc
 
 ```rust
 use std::collections::HashMap;
-use rache::xxhash::Xxh3_64Builder;
+use hashcrew::xxhash::Xxh3_64Builder;
 
 let mut counts = HashMap::with_hasher(Xxh3_64Builder::with_seed(7));
-counts.insert("rache", 1);
+counts.insert("hashcrew", 1);
 
-assert_eq!(counts["rache"], 1);
+assert_eq!(counts["hashcrew"], 1);
 ```
 
 CityHash is intentionally one-shot. Its digest depends on the complete input length and tail, so a streaming facade would have to retain the entire message and would not provide bounded-memory incremental hashing.
@@ -165,7 +165,7 @@ XXH3 accepts custom secrets of at least 136 bytes and returns an error for short
 
 Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use native typed encodings, including platform endianness and `usize` width, and are not a portable serialization format.
 
-Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`rache::xxhash::kernel::selected_backend()`](https://docs.rs/rache/*/rache/xxhash/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
+Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`hashcrew::xxhash::kernel::selected_backend()`](https://docs.rs/hashcrew/*/hashcrew/xxhash/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
 
 ## Examples and benchmarks
 
@@ -184,8 +184,8 @@ Integration tests compare CityHash, xxHash, and MurmurHash3 with independent imp
 
 ## Minimum Supported Rust Version (MSRV)
 
-Rache's minimum supported rustc version is 1.85.0. The MSRV may be increased in a minor release.
+Hashcrew's minimum supported rustc version is 1.85.0. The MSRV may be increased in a minor release.
 
 ## License and acknowledgements
 
-This project is licensed under [Apache License, Version 2.0](LICENSE). See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Rache.
+This project is licensed under [Apache License, Version 2.0](LICENSE). See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Hashcrew.

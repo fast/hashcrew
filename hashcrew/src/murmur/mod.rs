@@ -26,13 +26,13 @@
 //! [`Hasher::finish`] can return only `u64`.
 //!
 //! ```
-//! use rache::murmur::Murmur3X64_128;
-//! use rache::murmur::murmur3_x64_128;
+//! use hashcrew::murmur::Murmur3X64_128;
+//! use hashcrew::murmur::murmur3_x64_128;
 //!
 //! let mut state = Murmur3X64_128::with_seed(42);
-//! state.update(b"ra");
-//! state.update(b"che");
-//! assert_eq!(state.digest(), murmur3_x64_128(b"rache", 42));
+//! state.update(b"hash");
+//! state.update(b"crew");
+//! assert_eq!(state.digest(), murmur3_x64_128(b"hashcrew", 42));
 //! ```
 
 use core::hash::BuildHasher;

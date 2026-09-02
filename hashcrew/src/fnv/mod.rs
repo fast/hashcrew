@@ -24,13 +24,13 @@
 //! is not a security key and does not make FNV resistant to hash flooding.
 //!
 //! ```
-//! use rache::fnv::Fnv1a64;
-//! use rache::fnv::fnv1a_64;
+//! use hashcrew::fnv::Fnv1a64;
+//! use hashcrew::fnv::fnv1a_64;
 //!
 //! let mut state = Fnv1a64::new();
-//! state.update(b"ra");
-//! state.update(b"che");
-//! assert_eq!(state.digest(), fnv1a_64(b"rache"));
+//! state.update(b"hash");
+//! state.update(b"crew");
+//! assert_eq!(state.digest(), fnv1a_64(b"hashcrew"));
 //! ```
 
 use core::hash::BuildHasher;
