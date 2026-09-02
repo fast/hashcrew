@@ -1062,9 +1062,9 @@ pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 
 /// Incremental XXH3-128 state.
 ///
-/// This type has an inherent [`write`](Self::write) method rather than a
-/// [`Hasher`] implementation because that trait only returns 64-bit digests.
-/// With the `std` feature, it also implements
+/// This type does not implement [`Hasher`] because that trait only returns
+/// 64-bit digests. Use [`update`](Self::update) for direct incremental input.
+/// With the `std` feature, it implements
 /// [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
@@ -1133,14 +1133,8 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
 
     /// Adds raw bytes to the hash state.
     #[inline]
-    pub fn write(&mut self, input: &[u8]) {
-        self.0.update(input);
-    }
-
-    /// Alias for [`write`](Self::write), matching the other streaming types.
-    #[inline]
     pub fn update(&mut self, input: &[u8]) {
-        self.write(input);
+        self.0.update(input);
     }
 
     /// Returns the 128-bit digest without consuming the state.

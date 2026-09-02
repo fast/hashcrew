@@ -308,6 +308,11 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 }
 
 /// Incremental state for the 128-bit x64 variant of MurmurHash3.
+///
+/// This type does not implement [`Hasher`] because that trait only returns
+/// 64-bit digests. Use [`update`](Self::update) for direct incremental input.
+/// With the `std` feature, it implements
+/// [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 #[derive(Clone, Debug)]
 pub struct Murmur3_128 {
     seed: u32,
@@ -370,12 +375,6 @@ impl Murmur3_128 {
 
         self.buffer[..input.len()].copy_from_slice(input);
         self.buffered = input.len();
-    }
-
-    /// Alias for [`update`](Self::update).
-    #[inline]
-    pub fn write(&mut self, input: &[u8]) {
-        self.update(input);
     }
 
     /// Returns the digest without consuming the state.

@@ -4,7 +4,7 @@
 
 - Remove duplicate crate-root, `raw`, and nested xxHash variant paths so each public API has one family-qualified home. Import functions, states, builders, constants, and kernels from `rache::{cityhash, fnv, murmur, xxhash}`; for example, replace `rache::Xxh3` or `rache::xxhash::xxh3::Xxh3` with `rache::xxhash::Xxh3`, `rache::raw::xxh3_64` with `rache::xxhash::xxh3_64`, and `rache::kernel` with `rache::xxhash::kernel`.
 - Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3SecretBuilder<'a>` must use the storage type `Xxh3SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
-- Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy` or `Write::write_all`.
+- Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy`, `Write::write`, or `Write::write_all`. The inherent `Murmur3_128::write` and `Xxh3_128::write` aliases have been removed so they do not shadow the trait method; use `update` for direct incremental input.
 - Cache the derived secret in seeded `Xxh3Builder` values so hash collections do not repeat 192-byte seed expansion for every key.
 - Improve one-shot XXH3-64 and XXH3-128 throughput for 17-to-128-byte inputs by ensuring the specialized medium-length paths are inlined.
 
