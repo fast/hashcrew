@@ -17,6 +17,7 @@
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
+use crate::fmix32;
 use crate::read_u32;
 use crate::read_u64;
 
@@ -39,15 +40,6 @@ fn consume_32(hash: u32, lane: u32) -> u32 {
         .rotate_left(13)
         .wrapping_mul(5)
         .wrapping_add(0xe654_6b64)
-}
-
-#[inline(always)]
-fn fmix32(mut value: u32) -> u32 {
-    value ^= value >> 16;
-    value = value.wrapping_mul(0x85eb_ca6b);
-    value ^= value >> 13;
-    value = value.wrapping_mul(0xc2b2_ae35);
-    value ^ (value >> 16)
 }
 
 #[inline(always)]
