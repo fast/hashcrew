@@ -16,7 +16,7 @@
 - Add reference-compatible XXH3 custom-secret and seed+secret raw, streaming, and `BuildHasher` APIs without allocation.
 - Add FNV-1a custom offset-basis raw, streaming, and `BuildHasher` APIs.
 - Add allocation-free raw and streaming APIs plus standard hashing adapters.
-- Add scalar, Arm NEON, x86 SSE2, and x86 AVX2 XXH3 kernels.
+- Add scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 XXH3 kernels.
 - Optimize NEON stripe accumulation and instruction scheduling, plus buffered streaming writes that do not yet require kernel work.
 - Add `no_std` support, randomized cross-implementation and per-backend tests, specification vectors, and one-shot/streaming comparison benchmarks.
 - Add exhaustive short-input and two-way streaming partition tests, optimized CI coverage for MSRV and representative targets, and a reproducible package release gate.
