@@ -43,8 +43,8 @@ use crate::read_u64;
 
 const C1_32: u32 = 0xcc9e_2d51;
 const C2_32: u32 = 0x1b87_3593;
-const C1_128: u64 = 0x87c3_7b91_1142_53d5;
-const C2_128: u64 = 0x4cf5_ad43_2745_937f;
+const C1_X64_128: u64 = 0x87c3_7b91_1142_53d5;
+const C2_X64_128: u64 = 0x4cf5_ad43_2745_937f;
 
 #[inline(always)]
 fn mix_k32(value: u32) -> u32 {
@@ -224,31 +224,31 @@ impl BuildHasher for Murmur3_32Builder {
 }
 
 #[inline(always)]
-fn mix_k1_128(value: u64) -> u64 {
+fn mix_k1_x64_128(value: u64) -> u64 {
     value
-        .wrapping_mul(C1_128)
+        .wrapping_mul(C1_X64_128)
         .rotate_left(31)
-        .wrapping_mul(C2_128)
+        .wrapping_mul(C2_X64_128)
 }
 
 #[inline(always)]
-fn mix_k2_128(value: u64) -> u64 {
+fn mix_k2_x64_128(value: u64) -> u64 {
     value
-        .wrapping_mul(C2_128)
+        .wrapping_mul(C2_X64_128)
         .rotate_left(33)
-        .wrapping_mul(C1_128)
+        .wrapping_mul(C1_X64_128)
 }
 
 #[inline(always)]
-fn consume_128(mut hash: [u64; 2], lane1: u64, lane2: u64) -> [u64; 2] {
-    hash[0] ^= mix_k1_128(lane1);
+fn consume_x64_128(mut hash: [u64; 2], lane1: u64, lane2: u64) -> [u64; 2] {
+    hash[0] ^= mix_k1_x64_128(lane1);
     hash[0] = hash[0]
         .rotate_left(27)
         .wrapping_add(hash[1])
         .wrapping_mul(5)
         .wrapping_add(0x52dc_e729);
 
-    hash[1] ^= mix_k2_128(lane2);
+    hash[1] ^= mix_k2_x64_128(lane2);
     hash[1] = hash[1]
         .rotate_left(31)
         .wrapping_add(hash[0])
@@ -276,12 +276,12 @@ fn partial_u64(input: &[u8]) -> u64 {
 }
 
 #[inline(always)]
-fn finish_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
+fn finish_x64_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
     if tail.len() > 8 {
-        hash[1] ^= mix_k2_128(partial_u64(&tail[8..]));
+        hash[1] ^= mix_k2_x64_128(partial_u64(&tail[8..]));
     }
     if !tail.is_empty() {
-        hash[0] ^= mix_k1_128(partial_u64(&tail[..tail.len().min(8)]));
+        hash[0] ^= mix_k1_x64_128(partial_u64(&tail[..tail.len().min(8)]));
     }
 
     hash[0] ^= total_len;
@@ -309,10 +309,10 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
     let mut hash = [seed, seed];
     let mut offset = 0;
     while offset + 16 <= input.len() {
-        hash = consume_128(hash, read_u64(input, offset), read_u64(input, offset + 8));
+        hash = consume_x64_128(hash, read_u64(input, offset), read_u64(input, offset + 8));
         offset += 16;
     }
-    finish_128(hash, &input[offset..], input.len() as u64)
+    finish_x64_128(hash, &input[offset..], input.len() as u64)
 }
 
 /// Incremental state for the 128-bit x64 variant of MurmurHash3.
@@ -363,7 +363,7 @@ impl Murmur3X64_128 {
             if self.buffered < 16 {
                 return;
             }
-            self.hash = consume_128(
+            self.hash = consume_x64_128(
                 self.hash,
                 read_u64(&self.buffer, 0),
                 read_u64(&self.buffer, 8),
@@ -372,7 +372,7 @@ impl Murmur3X64_128 {
         }
 
         while input.len() >= 16 {
-            self.hash = consume_128(self.hash, read_u64(input, 0), read_u64(input, 8));
+            self.hash = consume_x64_128(self.hash, read_u64(input, 0), read_u64(input, 8));
             input = &input[16..];
         }
 
@@ -384,7 +384,7 @@ impl Murmur3X64_128 {
     #[doc(alias = "finish_128")]
     #[must_use]
     pub fn digest(&self) -> u128 {
-        finish_128(self.hash, &self.buffer[..self.buffered], self.total_len)
+        finish_x64_128(self.hash, &self.buffer[..self.buffered], self.total_len)
     }
 
     /// Resets the state while retaining its seed.
