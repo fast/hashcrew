@@ -14,7 +14,8 @@
 
 //! FNV-1a one-shot and streaming APIs with standard or custom offset bases.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
 /// Standard 32-bit FNV offset basis.
 pub const FNV1A_32_OFFSET_BASIS: u32 = 0x811c_9dc5;
@@ -144,13 +145,27 @@ impl Default for Fnv1a32 {
 
 impl Hasher for Fnv1a32 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        u64::from(self.digest())
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        u64::from(self.digest())
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Fnv1a32 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -255,13 +270,27 @@ impl Default for Fnv1a64 {
 
 impl Hasher for Fnv1a64 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Fnv1a64 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 

@@ -12,27 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[package]
-categories = ["algorithms", "no-std"]
-description = "Fast, portable non-cryptographic hashes for Rust"
-documentation = "https://docs.rs/rache"
-homepage = "https://github.com/fast/rache"
-keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
-name = "rache"
-repository = "https://github.com/fast/rache"
-version = "0.2.0"
-
-edition.workspace = true
-license.workspace = true
-readme.workspace = true
-rust-version.workspace = true
-
-[package.metadata.docs.rs]
-all-features = true
-
-[features]
-default = ["std"]
-std = []
-
-[lints]
-workspace = true
+comment_width = 120
+format_code_in_doc_comments = true
+group_imports = "StdExternalCrate"
+imports_granularity = "Item"
+wrap_comments = true

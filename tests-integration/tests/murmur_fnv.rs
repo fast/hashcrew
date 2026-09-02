@@ -12,18 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 use std::io::Cursor;
 
-use rache::{
-    Fnv1a32, Fnv1a32Builder, Fnv1a64, Fnv1a64Builder, Murmur3_32, Murmur3_32Builder, Murmur3_128,
-    fnv1a_32, fnv1a_32_with_offset_basis, fnv1a_64, fnv1a_64_with_offset_basis, murmur3_32,
-    murmur3_128, murmur3_x64_128,
-};
+use rache::fnv::Fnv1a32;
+use rache::fnv::Fnv1a32Builder;
+use rache::fnv::Fnv1a64;
+use rache::fnv::Fnv1a64Builder;
+use rache::fnv::fnv1a_32;
+use rache::fnv::fnv1a_32_with_offset_basis;
+use rache::fnv::fnv1a_64;
+use rache::fnv::fnv1a_64_with_offset_basis;
+use rache::murmur::Murmur3_32;
+use rache::murmur::Murmur3_32Builder;
+use rache::murmur::Murmur3_128;
+use rache::murmur::murmur3_32;
+use rache::murmur::murmur3_128;
+use rache::murmur::murmur3_x64_128;
 
 mod support;
 
-use support::{next_random, random_input};
+use support::next_random;
+use support::random_input;
 
 const LENGTHS: &[usize] = &[
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128,

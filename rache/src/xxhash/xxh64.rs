@@ -14,9 +14,11 @@
 
 //! XXH64 one-shot and streaming APIs.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use crate::util::{read_u32, read_u64};
+use crate::read_u32;
+use crate::read_u64;
 
 const PRIME1: u64 = 0x9e37_79b1_85eb_ca87;
 const PRIME2: u64 = 0xc2b2_ae3d_27d4_eb4f;
@@ -239,13 +241,27 @@ impl Default for Xxh64 {
 
 impl Hasher for Xxh64 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Xxh64 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 

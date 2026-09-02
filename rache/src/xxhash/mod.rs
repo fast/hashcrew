@@ -14,19 +14,34 @@
 
 //! xxHash family implementations and XXH3 hardware kernels.
 //!
-//! The family module mirrors the crate-root API while keeping the individual
-//! variants and the XXH3 kernel layer together in the source tree.
+//! The family module keeps the individual variants and the XXH3 kernel layer
+//! together under one public namespace.
 
 pub mod kernel;
-pub mod xxh3;
-pub mod xxh32;
-pub mod xxh64;
+mod xxh3;
+mod xxh32;
+mod xxh64;
 
-pub use xxh3::{
-    DEFAULT_SECRET, DEFAULT_SECRET_SIZE, SECRET_SIZE_MIN, Xxh3, Xxh3_64, Xxh3_128, Xxh3Builder,
-    Xxh3SecretBuilder, Xxh3SecretTooShort, xxh3_64, xxh3_64_with_secret, xxh3_64_with_seed,
-    xxh3_64_with_seed_and_secret, xxh3_128, xxh3_128_with_secret, xxh3_128_with_seed,
-    xxh3_128_with_seed_and_secret,
-};
-pub use xxh32::{Xxh32, Xxh32Builder, xxh32};
-pub use xxh64::{Xxh64, Xxh64Builder, xxh64};
+pub use self::xxh3::DEFAULT_SECRET;
+pub use self::xxh3::DEFAULT_SECRET_SIZE;
+pub use self::xxh3::SECRET_SIZE_MIN;
+pub use self::xxh3::Xxh3;
+pub use self::xxh3::Xxh3_64;
+pub use self::xxh3::Xxh3_128;
+pub use self::xxh3::Xxh3Builder;
+pub use self::xxh3::Xxh3SecretBuilder;
+pub use self::xxh3::Xxh3SecretTooShort;
+pub use self::xxh3::xxh3_64;
+pub use self::xxh3::xxh3_64_with_secret;
+pub use self::xxh3::xxh3_64_with_seed;
+pub use self::xxh3::xxh3_64_with_seed_and_secret;
+pub use self::xxh3::xxh3_128;
+pub use self::xxh3::xxh3_128_with_secret;
+pub use self::xxh3::xxh3_128_with_seed;
+pub use self::xxh3::xxh3_128_with_seed_and_secret;
+pub use self::xxh32::Xxh32;
+pub use self::xxh32::Xxh32Builder;
+pub use self::xxh32::xxh32;
+pub use self::xxh64::Xxh64;
+pub use self::xxh64::Xxh64Builder;
+pub use self::xxh64::xxh64;

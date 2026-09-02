@@ -15,10 +15,14 @@
 //! XXH3-64 and XXH3-128 one-shot and streaming APIs.
 
 use core::fmt;
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use super::kernel::{self, Xxh3Kernel};
-use crate::util::{mul128_fold64, read_u32, read_u64};
+use super::kernel::Xxh3Kernel;
+use super::kernel::{self};
+use crate::mul128_fold64;
+use crate::read_u32;
+use crate::read_u64;
 
 const PRIME32_1: u64 = 0x9e37_79b1;
 const PRIME32_2: u64 = 0x85eb_ca77;
@@ -662,9 +666,9 @@ impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> StreamState<&'a [u8]> {
-    fn with_secret(seed: u64, secret: &'a [u8], use_custom_secret_for_short: bool) -> Self {
-        let stripes_per_block = (secret.len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
+impl<S: AsRef<[u8]>> StreamState<S> {
+    fn with_secret(seed: u64, secret: S, use_custom_secret_for_short: bool) -> Self {
+        let stripes_per_block = (secret.as_ref().len() - STRIPE_SIZE) / SECRET_CONSUME_RATE;
         Self {
             seed,
             secret,
@@ -676,9 +680,7 @@ impl<'a> StreamState<&'a [u8]> {
             length_overflowed: false,
         }
     }
-}
 
-impl<S: AsRef<[u8]>> StreamState<S> {
     fn reset(&mut self) {
         self.buffered = 0;
         self.accumulator = Accumulator::new(self.accumulator.stripes_per_block);
@@ -856,9 +858,10 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 
 /// Incremental XXH3-64 state.
 ///
-/// The default and seeded forms own a 192-byte secret. Custom-secret forms
-/// borrow the caller's secret. Every form owns fixed-size working buffers and
-/// performs no allocation.
+/// The default and seeded forms own a 192-byte secret. A custom-secret form
+/// owns or borrows its secret according to the storage passed to
+/// [`with_secret`](Self::with_secret). Every form owns fixed-size working
+/// buffers and performs no allocation itself.
 #[derive(Clone)]
 pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -906,23 +909,24 @@ impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> Xxh3<&'a [u8]> {
-    /// Creates an XXH3-64 state borrowing `secret`.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+impl<S: AsRef<[u8]>> Xxh3<S> {
+    /// Creates an XXH3-64 state with custom secret storage.
+    ///
+    /// Pass an owned array or another `AsRef<[u8]>` value when the state should
+    /// own the secret, or pass a reference to borrow it.
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(0, secret, true)))
     }
 
-    /// Creates an XXH3-64 state borrowing `secret` and using `seed` for short inputs.
+    /// Creates an XXH3-64 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(seed, secret, false)))
     }
-}
 
-impl<S: AsRef<[u8]>> Xxh3<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
@@ -972,13 +976,27 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3<S> {
 
 impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        self.digest()
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        self.digest()
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -989,6 +1007,8 @@ pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
 ///
 /// This type has an inherent [`write`](Self::write) method rather than a
 /// [`Hasher`] implementation because that trait only returns 64-bit digests.
+/// With the `std` feature, it also implements
+/// [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 #[derive(Clone)]
 pub struct Xxh3_128<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -1036,23 +1056,24 @@ impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<'a> Xxh3_128<&'a [u8]> {
-    /// Creates an XXH3-128 state borrowing `secret`.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+impl<S: AsRef<[u8]>> Xxh3_128<S> {
+    /// Creates an XXH3-128 state with custom secret storage.
+    ///
+    /// Pass an owned array or another `AsRef<[u8]>` value when the state should
+    /// own the secret, or pass a reference to borrow it.
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(0, secret, true)))
     }
 
-    /// Creates an XXH3-128 state borrowing `secret` and using `seed` for short inputs.
+    /// Creates an XXH3-128 state with a seed and custom secret storage.
     ///
     /// Inputs up to 240 bytes use `seed`, while longer inputs use `secret`.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self(StreamState::with_secret(seed, secret, false)))
     }
-}
 
-impl<S: AsRef<[u8]>> Xxh3_128<S> {
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn write(&mut self, input: &[u8]) {
@@ -1113,6 +1134,20 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_128<S> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Deterministic [`BuildHasher`] for [`Xxh3`].
 ///
 /// This builder is intended for trusted inputs. It does not randomize its seed
@@ -1141,19 +1176,22 @@ impl BuildHasher for Xxh3Builder {
 
 /// Deterministic [`BuildHasher`] for an XXH3 custom secret.
 ///
-/// The builder borrows the secret and never allocates. It is intended for
-/// trusted inputs and does not make XXH3 resistant to deliberate hash flooding.
+/// The builder owns or borrows its secret according to its storage type. It
+/// copies that storage into each new hasher without allocating, so the storage
+/// must implement [`Copy`]. Arrays and references to slices both satisfy this
+/// requirement. The builder is intended for trusted inputs and does not make
+/// XXH3 resistant to deliberate hash flooding.
 #[derive(Clone, Copy)]
-pub struct Xxh3SecretBuilder<'a> {
+pub struct Xxh3SecretBuilder<S> {
     seed: u64,
-    secret: &'a [u8],
+    secret: S,
     use_custom_secret_for_short: bool,
 }
 
-impl<'a> Xxh3SecretBuilder<'a> {
+impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
     /// Creates a builder using `secret` for inputs of every length.
-    pub fn with_secret(secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self {
             seed: 0,
             secret,
@@ -1162,8 +1200,8 @@ impl<'a> Xxh3SecretBuilder<'a> {
     }
 
     /// Creates a builder using `seed` for short inputs and `secret` for long inputs.
-    pub fn with_seed_and_secret(seed: u64, secret: &'a [u8]) -> Result<Self, Xxh3SecretTooShort> {
-        validate_secret(secret)?;
+    pub fn with_seed_and_secret(seed: u64, secret: S) -> Result<Self, Xxh3SecretTooShort> {
+        validate_secret(secret.as_ref())?;
         Ok(Self {
             seed,
             secret,
@@ -1172,18 +1210,18 @@ impl<'a> Xxh3SecretBuilder<'a> {
     }
 }
 
-impl fmt::Debug for Xxh3SecretBuilder<'_> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Xxh3SecretBuilder")
             .field("seed", &self.seed)
-            .field("secret_len", &self.secret.len())
+            .field("secret_len", &self.secret.as_ref().len())
             .finish_non_exhaustive()
     }
 }
 
-impl<'a> BuildHasher for Xxh3SecretBuilder<'a> {
-    type Hasher = Xxh3<&'a [u8]>;
+impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
+    type Hasher = Xxh3<S>;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
@@ -1197,39 +1235,41 @@ impl<'a> BuildHasher for Xxh3SecretBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::vec::Vec;
+
     use super::*;
 
     fn assert_kernel_matches_scalar<K: Xxh3Kernel>(kernel: K) {
         for len in [241_usize, 256, 1_023, 1_024, 1_025, 4_097] {
-            let input: std::vec::Vec<_> = (0..len)
+            let input: Vec<_> = (0..len)
                 .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
                 .collect();
             for seed in [0, 1, 0x0123_4567_89ab_cdef] {
                 let secret = derive_secret(seed);
                 assert_eq!(
                     hash_long_64(kernel, &input, &secret),
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     "XXH3-64 length={len} seed={seed:#x}"
                 );
                 assert_eq!(
                     hash_long_128(kernel, &input, &secret),
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} seed={seed:#x}"
                 );
             }
 
             for secret_len in [SECRET_SIZE_MIN, DEFAULT_SECRET_SIZE, 255, 1_024] {
-                let secret: std::vec::Vec<_> = (0..secret_len)
+                let secret: Vec<_> = (0..secret_len)
                     .map(|index| index.wrapping_mul(197).wrapping_add(0xa5) as u8)
                     .collect();
                 assert_eq!(
                     hash_long_64(kernel, &input, &secret),
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     "XXH3-64 length={len} secret_len={secret_len}"
                 );
                 assert_eq!(
                     hash_long_128(kernel, &input, &secret),
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     "XXH3-128 length={len} secret_len={secret_len}"
                 );
             }
@@ -1277,17 +1317,17 @@ mod tests {
     #[test]
     fn scalar_kernel_matches_selected_backend() {
         for len in [241_usize, 256, 1_023, 1_024, 1_025, 4_097] {
-            let input: std::vec::Vec<_> = (0..len)
+            let input: Vec<_> = (0..len)
                 .map(|index| index.wrapping_mul(131).wrapping_add(17) as u8)
                 .collect();
             for seed in [0, 1, 0x0123_4567_89ab_cdef] {
                 let secret = derive_secret(seed);
                 assert_eq!(
-                    hash_long_64(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_64(kernel::Scalar, &input, &secret),
                     xxh3_64_with_seed(&input, seed)
                 );
                 assert_eq!(
-                    hash_long_128(crate::xxhash::kernel::Scalar, &input, &secret),
+                    hash_long_128(kernel::Scalar, &input, &secret),
                     xxh3_128_with_seed(&input, seed)
                 );
             }
@@ -1297,24 +1337,20 @@ mod tests {
     #[test]
     fn every_available_hardware_kernel_matches_scalar() {
         #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
-        if crate::xxhash::kernel::Backend::Neon.is_available() {
+        if kernel::Backend::Neon.is_available() {
             // SAFETY: Availability was checked immediately above.
-            assert_kernel_matches_scalar(unsafe { crate::xxhash::kernel::Neon::new_unchecked() });
+            assert_kernel_matches_scalar(unsafe { kernel::Neon::new_unchecked() });
         }
 
         #[cfg(target_arch = "x86_64")]
         {
-            if crate::xxhash::kernel::Backend::Sse2.is_available() {
+            if kernel::Backend::Sse2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe {
-                    crate::xxhash::kernel::Sse2::new_unchecked()
-                });
+                assert_kernel_matches_scalar(unsafe { kernel::Sse2::new_unchecked() });
             }
-            if crate::xxhash::kernel::Backend::Avx2.is_available() {
+            if kernel::Backend::Avx2.is_available() {
                 // SAFETY: Availability was checked immediately above.
-                assert_kernel_matches_scalar(unsafe {
-                    crate::xxhash::kernel::Avx2::new_unchecked()
-                });
+                assert_kernel_matches_scalar(unsafe { kernel::Avx2::new_unchecked() });
             }
         }
     }

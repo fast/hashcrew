@@ -23,13 +23,16 @@ readme = "README.md"
 rust-version = "1.85"
 
 [workspace.dependencies]
-cityhash-rs = "1.0.1"
-cityhasher = "0.1.0"
-clap = "4.5.48"
-divan = "0.1.21"
-fnv = "1.0.7"
-murmur3 = "0.5.2"
+# Workspace dependencies
 rache = { path = "rache" }
+
+# Crates.io dependencies
+cityhash-rs = { version = "1.0.1" }
+cityhasher = { version = "0.1.0" }
+clap = { version = "4.6.6", features = ["derive"] }
+divan = { version = "0.1.21" }
+fnv = { version = "1.0.7" }
+murmur3 = { version = "0.5.2" }
 twox-hash = { version = "2.1.4", default-features = false, features = [
   "std",
   "xxhash3_128",
@@ -37,7 +40,7 @@ twox-hash = { version = "2.1.4", default-features = false, features = [
   "xxhash32",
   "xxhash64",
 ] }
-which = "8.0.0"
+which = { version = "8.0.6" }
 xxhash-rust = { version = "0.8.18", features = ["xxh3", "xxh32", "xxh64"] }
 
 [workspace.lints.rust]

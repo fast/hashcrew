@@ -14,9 +14,10 @@
 
 //! XXH32 one-shot and streaming APIs.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use crate::util::read_u32;
+use crate::read_u32;
 
 const PRIME1: u32 = 0x9e37_79b1;
 const PRIME2: u32 = 0x85eb_ca77;
@@ -213,20 +214,35 @@ impl Default for Xxh32 {
 
 impl Hasher for Xxh32 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        u64::from(self.digest())
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        u64::from(self.digest())
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Xxh32 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
 /// Deterministic [`BuildHasher`] for [`Xxh32`].
 ///
 /// XXH32 only provides 32 bits of output and is usually a poor choice for a
-/// general-purpose `HashMap`; prefer [`crate::Xxh3Builder`] on 64-bit systems.
+/// general-purpose `HashMap`; prefer [`crate::xxhash::Xxh3Builder`] on 64-bit
+/// systems.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Xxh32Builder {
     seed: u32,

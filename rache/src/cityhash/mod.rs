@@ -17,7 +17,8 @@
 //! CityHash depends on the complete input length and tail, so this module does
 //! not expose a streaming state that would need to retain the entire message.
 
-use crate::util::{read_u32, read_u64};
+use crate::read_u32;
+use crate::read_u64;
 
 const K0: u64 = 0xc3a5_c85c_97cb_3127;
 const K1: u64 = 0xb492_b66f_be98_f273;

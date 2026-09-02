@@ -30,7 +30,9 @@ mod x86;
 pub(crate) use neon::Neon;
 pub(crate) use scalar::Scalar;
 #[cfg(target_arch = "x86_64")]
-pub(crate) use x86::{Avx2, Sse2};
+pub(crate) use x86::Avx2;
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86::Sse2;
 
 /// A backend used by the XXH3 long-input kernel.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

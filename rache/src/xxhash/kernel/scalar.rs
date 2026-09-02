@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::Xxh3Kernel;
-use crate::util::read_u64;
+use crate::read_u64;
 
 const PRIME32_1: u64 = 0x9e37_79b1;
 

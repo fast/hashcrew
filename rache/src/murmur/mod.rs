@@ -14,9 +14,11 @@
 
 //! MurmurHash3 one-shot and streaming APIs.
 
-use core::hash::{BuildHasher, Hasher};
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
-use crate::util::{read_u32, read_u64};
+use crate::read_u32;
+use crate::read_u64;
 
 const C1_32: u32 = 0xcc9e_2d51;
 const C2_32: u32 = 0x1b87_3593;
@@ -166,13 +168,27 @@ impl Default for Murmur3_32 {
 
 impl Hasher for Murmur3_32 {
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.update(bytes);
+    fn finish(&self) -> u64 {
+        u64::from(self.digest())
     }
 
     #[inline]
-    fn finish(&self) -> u64 {
-        u64::from(self.digest())
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Murmur3_32 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -404,6 +420,20 @@ impl Murmur3_128 {
 impl Default for Murmur3_128 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::io::Write for Murmur3_128 {
+    #[inline]
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        self.update(input);
+        Ok(input.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 

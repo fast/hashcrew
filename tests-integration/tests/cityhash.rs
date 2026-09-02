@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rache::{
-    cityhash32, cityhash64, cityhash64_with_seed, cityhash64_with_seeds, cityhash128,
-    cityhash128_to_64, cityhash128_with_seed,
-};
+use rache::cityhash::cityhash32;
+use rache::cityhash::cityhash64;
+use rache::cityhash::cityhash64_with_seed;
+use rache::cityhash::cityhash64_with_seeds;
+use rache::cityhash::cityhash128;
+use rache::cityhash::cityhash128_to_64;
+use rache::cityhash::cityhash128_with_seed;
 
 mod support;
 
-use support::{next_random, random_input};
+use support::next_random;
+use support::random_input;
 
 const LENGTHS: &[usize] = &[
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 23, 24, 25, 31, 32, 33, 63, 64,
@@ -161,12 +165,4 @@ fn seeded_apis_preserve_official_word_order_and_relationships() {
         cityhash128(&bytes),
         cityhash128_with_seed(&bytes[16..], seed128)
     );
-}
-
-#[test]
-fn raw_root_and_family_paths_match() {
-    let bytes = input(257);
-    assert_eq!(rache::raw::cityhash32(&bytes), cityhash32(&bytes));
-    assert_eq!(rache::cityhash::cityhash64(&bytes), cityhash64(&bytes));
-    assert_eq!(rache::raw::cityhash128(&bytes), cityhash128(&bytes));
 }
