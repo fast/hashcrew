@@ -85,6 +85,41 @@ assert_eq!(hash.digest(), expected);
 
 All public APIs are grouped under the [`cityhash`](https://docs.rs/rache/*/rache/cityhash/), [`xxhash`](https://docs.rs/rache/*/rache/xxhash/), [`murmur`](https://docs.rs/rache/*/rache/murmur/), and [`fnv`](https://docs.rs/rache/*/rache/fnv/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
 
+## API model
+
+Rache exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
+
+| Input or caller                                      | Interface                                                                 | What it does                                                                                 |
+|------------------------------------------------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| One complete byte slice                             | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                    |
+| Byte slices arriving incrementally                  | A state such as `Xxh3`: construct, call `update`, then call `digest`       | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
+| A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.       |
+| A Rust hash collection or generic `Hash` caller     | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                |
+
+Every streaming type also provides associated `oneshot` functions that delegate to the corresponding module-level functions. They are namespaced conveniences, not a different hashing mode.
+
+`Hasher` only supports a `u64` result, so 128-bit states deliberately expose `digest() -> u128` instead of truncating their output. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
+
+## Algorithm and capability map
+
+The table names the canonical module-level function for complete input. A trailing `*` means the family also provides explicitly named seeded, custom-secret, or custom-offset-basis forms.
+
+| Variant             | Complete input          | Incremental state              | Digest | `Hasher` / `BuildHasher`                     |
+|---------------------|-------------------------|--------------------------------|--------|----------------------------------------------|
+| CityHash32          | `cityhash32`            | —                              | `u32`  | —                                            |
+| CityHash64          | `cityhash64*`           | —                              | `u64`  | —                                            |
+| CityHash128         | `cityhash128*`          | —                              | `u128` | —                                            |
+| XXH32               | `xxh32`                 | `Xxh32`                        | `u32`  | `Xxh32` / `Xxh32Builder`                     |
+| XXH64               | `xxh64`                 | `Xxh64`                        | `u64`  | `Xxh64` / `Xxh64Builder`                     |
+| XXH3-64             | `xxh3_64*`              | `Xxh3` (`Xxh3_64` alias)       | `u64`  | `Xxh3` / `Xxh3Builder` or secret builder     |
+| XXH3-128            | `xxh3_128*`             | `Xxh3_128`                     | `u128` | —                                            |
+| MurmurHash3 x86_32  | `murmur3_32`            | `Murmur3_32`                   | `u32`  | `Murmur3_32` / `Murmur3_32Builder`           |
+| MurmurHash3 x64_128 | `murmur3_128`           | `Murmur3_128`                  | `u128` | —                                            |
+| FNV-1a 32           | `fnv1a_32*`             | `Fnv1a32`                      | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                 |
+| FNV-1a 64           | `fnv1a_64*`             | `Fnv1a64`                      | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                 |
+
+`murmur3_x64_128` is an explicit-name alias of `murmur3_128`. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
+
 ## Choosing an algorithm
 
 Use XXH3 for a new general-purpose checksum, cache key, or trusted-input hash table unless interoperability requires another family. Choose a 128-bit result when the application hashes enough distinct values for 64-bit collision probability to matter. XXH32, XXH64, CityHash, MurmurHash3, and FNV-1a are primarily useful for matching an existing format, protocol, or data set; their different outputs are not interchangeable.
@@ -122,15 +157,6 @@ counts.insert("rache", 1);
 
 assert_eq!(counts["rache"], 1);
 ```
-
-## Algorithms
-
-| Family      | Variants                            | Native configuration                      | Streaming state | `Hasher` / `BuildHasher` |
-|-------------|-------------------------------------|-------------------------------------------|-----------------|--------------------------|
-| CityHash    | CityHash32, CityHash64, CityHash128 | one/two 64-bit seeds and a 128-bit seed   | one-shot only   | —                        |
-| xxHash      | XXH32, XXH64, XXH3-64, XXH3-128     | seeds; XXH3 custom secret and seed+secret | all variants    | XXH32, XXH64, XXH3-64    |
-| MurmurHash3 | x86_32, x64_128                     | 32-bit seed                               | both variants   | x86_32                   |
-| FNV-1a      | 32-bit, 64-bit                      | standard or custom offset basis           | both variants   | both variants            |
 
 CityHash is intentionally one-shot. Its digest depends on the complete input length and tail, so a streaming facade would have to retain the entire message and would not provide bounded-memory incremental hashing.
 
