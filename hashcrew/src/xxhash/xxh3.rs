@@ -234,7 +234,28 @@ pub fn xxh3_128_with_seed_and_secret(
 }
 
 #[inline]
-const fn derive_secret(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
+fn derive_secret(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
+    let mut secret = DEFAULT_SECRET;
+    if seed == 0 {
+        return secret;
+    }
+
+    let mut remaining = secret.as_mut_slice();
+    while let Some((pair, rest)) = remaining.split_first_chunk_mut::<16>() {
+        let low = u64::from_le_bytes(pair[..8].try_into().expect("eight-byte secret lane"))
+            .wrapping_add(seed);
+        let high = u64::from_le_bytes(pair[8..].try_into().expect("eight-byte secret lane"))
+            .wrapping_sub(seed);
+        pair[..8].copy_from_slice(&low.to_le_bytes());
+        pair[8..].copy_from_slice(&high.to_le_bytes());
+        remaining = rest;
+    }
+    secret
+}
+
+// Const constructors need an index-based implementation, while the word-oriented
+// runtime path above lets LLVM fold or vectorize the complete seed expansion.
+const fn derive_secret_const(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
     let mut secret = DEFAULT_SECRET;
     if seed == 0 {
         return secret;
@@ -683,7 +704,7 @@ struct StreamState<S> {
 
 impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
     const fn with_seed(seed: u64) -> Self {
-        Self::with_derived_secret(seed, derive_secret(seed))
+        Self::with_derived_secret(seed, derive_secret_const(seed))
     }
 
     const fn with_derived_secret(seed: u64, secret: [u8; DEFAULT_SECRET_SIZE]) -> Self {
@@ -1144,7 +1165,7 @@ impl Xxh3_64Builder {
     pub const fn with_seed(seed: u64) -> Self {
         Self {
             seed,
-            secret: derive_secret(seed),
+            secret: derive_secret_const(seed),
         }
     }
 }
@@ -1268,6 +1289,13 @@ mod tests {
 
     fn assert_panics(operation: impl FnOnce()) {
         assert!(catch_unwind(AssertUnwindSafe(operation)).is_err());
+    }
+
+    #[test]
+    fn runtime_and_const_secret_derivation_match() {
+        for seed in [0, 1, u64::MAX, 0x0123_4567_89ab_cdef] {
+            assert_eq!(derive_secret(seed), derive_secret_const(seed));
+        }
     }
 
     fn assert_kernel_matches_scalar<K: Xxh3Kernel>(kernel: K) {
