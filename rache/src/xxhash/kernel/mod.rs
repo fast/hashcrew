@@ -40,11 +40,11 @@ pub(crate) use x86::Sse2;
 pub enum Backend {
     /// Portable scalar arithmetic.
     Scalar,
-    /// 128-bit Arm NEON.
+    /// 128-bit AArch64 NEON.
     Neon,
-    /// 128-bit x86 SSE2.
+    /// 128-bit x86-64 SSE2.
     Sse2,
-    /// 256-bit x86 AVX2.
+    /// 256-bit x86-64 AVX2.
     Avx2,
 }
 

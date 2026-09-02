@@ -29,9 +29,9 @@ MurmurHash3 retains at most one incomplete 4- or 16-byte block. XXH32 and XXH64 
 
 Only XXH3 stripe accumulation and accumulator scrambling vary by hardware. Input-length routing, secret derivation, final merging, XXH32, XXH64, CityHash, MurmurHash3, and FNV-1a remain portable Rust. Keeping SIMD behind this narrow boundary makes every backend directly comparable with the scalar kernel and limits unsafe code to the intrinsic implementations.
 
-CPU features guaranteed by the compilation target are selected directly. Other `std` builds cache runtime feature detection once per process. A `no_std` build uses compile-time target features only and otherwise selects the scalar backend.
+CPU features guaranteed by the compilation target are selected directly. Other `std` builds cache runtime feature detection once per process. Hardware kernels are available on little-endian AArch64 for NEON and x86-64 for SSE2 and AVX2; other architectures use the scalar kernel. A `no_std` build uses compile-time target features only and otherwise selects the scalar backend.
 
-The Arm backend processes four 64-bit lanes per loop iteration. Its compiler-only scheduling barrier preserves independent NEON multiply-accumulate chains without reading memory or changing digest semantics.
+The AArch64 backend processes four 64-bit lanes per loop iteration. Its compiler-only scheduling barrier preserves independent NEON multiply-accumulate chains without reading memory or changing digest semantics.
 
 ## Verification boundary
 

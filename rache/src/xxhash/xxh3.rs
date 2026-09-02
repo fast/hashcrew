@@ -227,19 +227,43 @@ pub fn xxh3_128_with_seed_and_secret(
 }
 
 #[inline]
-fn derive_secret(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
+const fn derive_secret(seed: u64) -> [u8; DEFAULT_SECRET_SIZE] {
     let mut secret = DEFAULT_SECRET;
     if seed == 0 {
         return secret;
     }
 
-    for offset in (0..DEFAULT_SECRET_SIZE).step_by(16) {
-        let low = read_u64(&secret, offset).wrapping_add(seed);
-        let high = read_u64(&secret, offset + 8).wrapping_sub(seed);
-        secret[offset..offset + 8].copy_from_slice(&low.to_le_bytes());
-        secret[offset + 8..offset + 16].copy_from_slice(&high.to_le_bytes());
+    let mut offset = 0;
+    while offset < DEFAULT_SECRET_SIZE {
+        let low = secret_u64(&secret, offset).wrapping_add(seed);
+        let high = secret_u64(&secret, offset + 8).wrapping_sub(seed);
+        write_secret_u64(&mut secret, offset, low);
+        write_secret_u64(&mut secret, offset + 8, high);
+        offset += 16;
     }
     secret
+}
+
+const fn secret_u64(secret: &[u8; DEFAULT_SECRET_SIZE], offset: usize) -> u64 {
+    u64::from_le_bytes([
+        secret[offset],
+        secret[offset + 1],
+        secret[offset + 2],
+        secret[offset + 3],
+        secret[offset + 4],
+        secret[offset + 5],
+        secret[offset + 6],
+        secret[offset + 7],
+    ])
+}
+
+const fn write_secret_u64(secret: &mut [u8; DEFAULT_SECRET_SIZE], offset: usize, value: u64) {
+    let bytes = value.to_le_bytes();
+    let mut byte = 0;
+    while byte < bytes.len() {
+        secret[offset + byte] = bytes[byte];
+        byte += 1;
+    }
 }
 
 #[inline(always)]
@@ -652,10 +676,14 @@ struct StreamState<S> {
 
 impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
     fn with_seed(seed: u64) -> Self {
+        Self::with_derived_secret(seed, derive_secret(seed))
+    }
+
+    fn with_derived_secret(seed: u64, secret: [u8; DEFAULT_SECRET_SIZE]) -> Self {
         let stripes_per_block = (DEFAULT_SECRET_SIZE - STRIPE_SIZE) / SECRET_CONSUME_RATE;
         Self {
             seed,
-            secret: derive_secret(seed),
+            secret,
             use_custom_secret_for_short: false,
             buffer: [0; STREAM_BUFFER_SIZE],
             buffered: 0,
@@ -1150,18 +1178,41 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
 
 /// Deterministic [`BuildHasher`] for [`Xxh3`].
 ///
+/// The builder retains the derived 192-byte secret so constructing each hasher
+/// does not repeat seed expansion. Construct it once and reuse it through a
+/// hash collection or another [`BuildHasher`] consumer.
+///
 /// This builder is intended for trusted inputs. It does not randomize its seed
 /// and is not resistant to deliberate hash-flooding attacks.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy)]
 pub struct Xxh3Builder {
     seed: u64,
+    secret: [u8; DEFAULT_SECRET_SIZE],
 }
 
 impl Xxh3Builder {
     /// Creates a builder using `seed`.
     #[must_use]
     pub const fn with_seed(seed: u64) -> Self {
-        Self { seed }
+        Self {
+            seed,
+            secret: derive_secret(seed),
+        }
+    }
+}
+
+impl Default for Xxh3Builder {
+    fn default() -> Self {
+        Self::with_seed(0)
+    }
+}
+
+impl fmt::Debug for Xxh3Builder {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Xxh3Builder")
+            .field("seed", &self.seed)
+            .finish()
     }
 }
 
@@ -1170,7 +1221,7 @@ impl BuildHasher for Xxh3Builder {
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Xxh3::with_seed(self.seed)
+        Xxh3(StreamState::with_derived_secret(self.seed, self.secret))
     }
 }
 
