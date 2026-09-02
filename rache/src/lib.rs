@@ -26,6 +26,30 @@
 //! portable serialization format. These hashes are deterministic and are
 //! **not cryptographically secure**.
 //!
+//! # Choosing an algorithm
+//!
+//! Prefer XXH3 for new checksums, cache keys, and trusted-input hash tables.
+//! The CityHash, MurmurHash3, FNV-1a, XXH32, and XXH64 APIs are primarily for
+//! interoperability with an existing format or data set. Choose a 128-bit
+//! variant when the application needs a lower collision probability than a
+//! 64-bit digest provides.
+//!
+//! # Feature flags
+//!
+//! The crate is dependency-free and allocation-free in every feature
+//! configuration. Disable default features for `no_std` targets. The default
+//! `std` feature adds
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
+//! implementations and runtime CPU-feature detection for XXH3. Without `std`,
+//! hardware kernels are selected only from features guaranteed by the target;
+//! other builds use the scalar kernel. Feature selection does not change
+//! digest values.
+//!
+//! ```toml
+//! [dependencies]
+//! rache = { version = "0.2", default-features = false }
+//! ```
+//!
 //! # Examples
 //!
 //! Hash a complete byte slice or feed the same bytes incrementally:
