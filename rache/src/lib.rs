@@ -64,7 +64,7 @@
 //! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*          | [`Xxh3`](xxhash::Xxh3)                  | `u64`  | [`Xxh3`](xxhash::Xxh3) / [`Xxh3Builder`](xxhash::Xxh3Builder)           |
 //! | XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*        | [`Xxh3_128`](xxhash::Xxh3_128)          | `u128` | —                                                                      |
 //! | MurmurHash3 x86_32  | [`murmur3_32`](murmur::murmur3_32)     | [`Murmur3_32`](murmur::Murmur3_32)      | `u32`  | [`Murmur3_32`](murmur::Murmur3_32) / [`Murmur3_32Builder`](murmur::Murmur3_32Builder) |
-//! | MurmurHash3 x64_128 | [`murmur3_128`](murmur::murmur3_128)   | [`Murmur3_128`](murmur::Murmur3_128)    | `u128` | —                                                                      |
+//! | MurmurHash3 x64_128 | [`murmur3_x64_128`](murmur::murmur3_x64_128) | [`Murmur3_128`](murmur::Murmur3_128) | `u128` | —                                                                      |
 //! | FNV-1a 32           | [`fnv1a_32`](fnv::fnv1a_32)*           | [`Fnv1a32`](fnv::Fnv1a32)               | `u32`  | [`Fnv1a32`](fnv::Fnv1a32) / [`Fnv1a32Builder`](fnv::Fnv1a32Builder)     |
 //! | FNV-1a 64           | [`fnv1a_64`](fnv::fnv1a_64)*           | [`Fnv1a64`](fnv::Fnv1a64)               | `u64`  | [`Fnv1a64`](fnv::Fnv1a64) / [`Fnv1a64Builder`](fnv::Fnv1a64Builder)     |
 //!
@@ -73,7 +73,9 @@
 //! adapter. The 128-bit states do not implement [`core::hash::Hasher`] because
 //! its [`finish`](core::hash::Hasher::finish) method can only return `u64`.
 //! CityHash has no streaming state because bounded-memory incremental hashing
-//! cannot reproduce its one-shot algorithm.
+//! cannot reproduce its one-shot algorithm. [`murmur::murmur3_128`] is a
+//! shorter equivalent name for the implemented x64_128 variant; the separate
+//! MurmurHash3 x86_128 algorithm is not implemented.
 //!
 //! # Feature flags
 //!

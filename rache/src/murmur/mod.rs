@@ -14,10 +14,11 @@
 
 //! MurmurHash3 x86_32 and x64_128 one-shot and streaming APIs.
 //!
-//! [`murmur3_32`] and [`Murmur3_32`] produce the 32-bit x86 variant;
-//! [`murmur3_128`] and [`Murmur3_128`] produce the 128-bit x64 variant.
-//! [`murmur3_x64_128`] is an explicit-name alias of [`murmur3_128`]. All forms
-//! accept a 32-bit seed.
+//! [`murmur3_32`] and [`Murmur3_32`] produce the x86_32 variant;
+//! [`murmur3_x64_128`] and [`Murmur3_128`] produce the x64_128 variant. The
+//! original family also defines a different x86_128 algorithm, which this crate
+//! does not implement. [`murmur3_128`] is a shorter equivalent name for the
+//! implemented x64_128 function. All forms accept a 32-bit seed.
 //!
 //! Both states support `update`, non-consuming `digest`, and `reset`, and both
 //! implement [`std::io::Write`] with the default `std` feature. Only the 32-bit
@@ -26,12 +27,12 @@
 //!
 //! ```
 //! use rache::murmur::Murmur3_128;
-//! use rache::murmur::murmur3_128;
+//! use rache::murmur::murmur3_x64_128;
 //!
 //! let mut state = Murmur3_128::with_seed(42);
 //! state.update(b"ra");
 //! state.update(b"che");
-//! assert_eq!(state.digest(), murmur3_128(b"rache", 42));
+//! assert_eq!(state.digest(), murmur3_x64_128(b"rache", 42));
 //! ```
 
 use core::hash::BuildHasher;
@@ -302,11 +303,12 @@ fn finish_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
     (u128::from(hash[1]) << 64) | u128::from(hash[0])
 }
 
-/// Hashes `input` with the 128-bit x64 variant of MurmurHash3.
+/// Hashes `input` with the x64_128 variant of MurmurHash3.
 ///
 /// The returned integer stores the reference algorithm's second 64-bit word
 /// in the most significant half and its first word in the least significant
-/// half.
+/// half. This shorter name is equivalent to [`murmur3_x64_128`]; it does not
+/// select the separate MurmurHash3 x86_128 algorithm.
 #[must_use]
 #[inline]
 pub fn murmur3_128(input: &[u8], seed: u32) -> u128 {
@@ -320,7 +322,11 @@ pub fn murmur3_128(input: &[u8], seed: u32) -> u128 {
     finish_128(hash, &input[offset..], input.len() as u64)
 }
 
-/// Explicitly named alias for [`murmur3_128`].
+/// Hashes `input` with the x64_128 variant of MurmurHash3.
+///
+/// This is equivalent to [`murmur3_128`]. The architecture is part of this
+/// name because MurmurHash3 also defines a different x86_128 algorithm, which
+/// this crate does not implement.
 #[must_use]
 #[inline]
 pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
