@@ -80,12 +80,6 @@ impl Xxh3SecretTooShort {
     pub const fn actual_len(self) -> usize {
         self.actual_len
     }
-
-    /// Returns the minimum accepted secret length.
-    #[must_use]
-    pub const fn minimum_len() -> usize {
-        SECRET_SIZE_MIN
-    }
 }
 
 impl fmt::Display for Xxh3SecretTooShort {
@@ -688,11 +682,11 @@ struct StreamState<S> {
 }
 
 impl StreamState<[u8; DEFAULT_SECRET_SIZE]> {
-    fn with_seed(seed: u64) -> Self {
+    const fn with_seed(seed: u64) -> Self {
         Self::with_derived_secret(seed, derive_secret(seed))
     }
 
-    fn with_derived_secret(seed: u64, secret: [u8; DEFAULT_SECRET_SIZE]) -> Self {
+    const fn with_derived_secret(seed: u64, secret: [u8; DEFAULT_SECRET_SIZE]) -> Self {
         Self {
             seed,
             secret,
@@ -927,13 +921,13 @@ pub struct Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 impl Xxh3_64<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-64 state.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::with_seed(0)
     }
 
     /// Creates an XXH3-64 state with `seed`.
     #[must_use]
-    pub fn with_seed(seed: u64) -> Self {
+    pub const fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
     }
 }
@@ -1042,13 +1036,13 @@ pub struct Xxh3_128<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-128 state.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::with_seed(0)
     }
 
     /// Creates an XXH3-128 state with `seed`.
     #[must_use]
-    pub fn with_seed(seed: u64) -> Self {
+    pub const fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
     }
 }

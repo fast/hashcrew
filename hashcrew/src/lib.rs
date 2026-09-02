@@ -84,7 +84,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! rache = { version = "0.2", default-features = false }
+//! hashcrew = { version = "0.1", default-features = false }
 //! ```
 //!
 //! # Streaming input
@@ -101,10 +101,10 @@
 //! # {
 //! use std::io;
 //!
-//! use rache::xxhash::Xxh3_64;
-//! use rache::xxhash::xxh3_64;
+//! use hashcrew::xxhash::Xxh3_64;
+//! use hashcrew::xxhash::xxh3_64;
 //!
-//! let input = b"rache";
+//! let input = b"hashcrew";
 //! let mut state = Xxh3_64::new();
 //! io::copy(&mut input.as_slice(), &mut state).unwrap();
 //!
@@ -118,13 +118,13 @@
 //! a reusable state:
 //!
 //! ```
-//! use rache::xxhash::Xxh64;
-//! use rache::xxhash::xxh64;
+//! use hashcrew::xxhash::Xxh64;
+//! use hashcrew::xxhash::xxh64;
 //!
-//! let expected = xxh64(b"rache", 42);
+//! let expected = xxh64(b"hashcrew", 42);
 //! let mut state = Xxh64::with_seed(42);
-//! state.update(b"ra");
-//! state.update(b"che");
+//! state.update(b"hash");
+//! state.update(b"crew");
 //!
 //! assert_eq!(state.digest(), expected);
 //! ```

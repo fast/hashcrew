@@ -15,7 +15,7 @@
 //! XXH3 execution backends.
 //!
 //! Short XXH3 inputs use their dedicated scalar algorithms. For inputs larger
-//! than 240 bytes, `rache` directly selects features guaranteed by the target.
+//! than 240 bytes, `hashcrew` directly selects features guaranteed by the target.
 //! Otherwise, a `std` build caches runtime feature detection and a `no_std`
 //! build falls back to the portable scalar kernel.
 

@@ -1,6 +1,6 @@
 # Benchmarks
 
-The benchmark package uses Divan to measure public `rache` APIs alongside `cityhasher`, `cityhash-rs`, `twox-hash`, `xxhash-rust`, `murmur3`, and `fnv`. These comparison crates are development-only dependencies and are not linked into the published library.
+The benchmark package uses Divan to measure public `hashcrew` APIs alongside `cityhasher`, `cityhash-rs`, `twox-hash`, `xxhash-rust`, `murmur3`, and `fnv`. These comparison crates are development-only dependencies and are not linked into the published library.
 
 | Target       | Coverage                                                                                                                                             |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -34,5 +34,5 @@ cargo bench -p benchmarks --bench throughput -- cityhash
 cargo bench -p benchmarks --bench throughput -- murmur3
 cargo bench -p benchmarks --bench throughput -- fnv1a
 cargo bench -p benchmarks --bench streaming -- xxh64
-cargo bench -p benchmarks --bench streaming -- rache
+cargo bench -p benchmarks --bench streaming -- hashcrew
 ```

@@ -52,11 +52,11 @@ mod cityhash32 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash32(black_box(&bytes)));
+            .bench(|| hashcrew::cityhash::cityhash32(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]
@@ -72,11 +72,11 @@ mod cityhash64 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash64(black_box(&bytes)));
+            .bench(|| hashcrew::cityhash::cityhash64(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]
@@ -92,19 +92,19 @@ mod cityhash64_seeded {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache_one_seed(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew_one_seed(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash64_with_seed(black_box(&bytes), SEED));
+            .bench(|| hashcrew::cityhash::cityhash64_with_seed(black_box(&bytes), SEED));
     }
 
     #[divan::bench(args = SIZES)]
-    fn rache_two_seeds(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew_two_seeds(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash64_with_seeds(black_box(&bytes), SEED, !SEED));
+            .bench(|| hashcrew::cityhash::cityhash64_with_seeds(black_box(&bytes), SEED, !SEED));
     }
 
     #[divan::bench(args = SIZES)]
@@ -120,11 +120,11 @@ mod cityhash128 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash128(black_box(&bytes)));
+            .bench(|| hashcrew::cityhash::cityhash128(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]
@@ -140,12 +140,12 @@ mod cityhash128_seeded {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         let seed = (u128::from(!SEED) << 64) | u128::from(SEED);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::cityhash::cityhash128_with_seed(black_box(&bytes), seed));
+            .bench(|| hashcrew::cityhash::cityhash128_with_seed(black_box(&bytes), seed));
     }
 }
 
@@ -153,11 +153,11 @@ mod xxh32 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh32(black_box(&bytes), 0));
+            .bench(|| hashcrew::xxhash::xxh32(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]
@@ -181,11 +181,11 @@ mod xxh64 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh64(black_box(&bytes), 0));
+            .bench(|| hashcrew::xxhash::xxh64(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]
@@ -209,11 +209,11 @@ mod xxh3_64 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh3_64(black_box(&bytes)));
+            .bench(|| hashcrew::xxhash::xxh3_64(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]
@@ -237,11 +237,11 @@ mod xxh3_128 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh3_128(black_box(&bytes)));
+            .bench(|| hashcrew::xxhash::xxh3_128(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]
@@ -265,11 +265,11 @@ mod xxh3_64_seeded {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh3_64_with_seed(black_box(&bytes), SEED));
+            .bench(|| hashcrew::xxhash::xxh3_64_with_seed(black_box(&bytes), SEED));
     }
 
     #[divan::bench(args = SIZES)]
@@ -293,11 +293,11 @@ mod xxh3_128_seeded {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::xxhash::xxh3_128_with_seed(black_box(&bytes), SEED));
+            .bench(|| hashcrew::xxhash::xxh3_128_with_seed(black_box(&bytes), SEED));
     }
 
     #[divan::bench(args = SIZES)]
@@ -321,18 +321,18 @@ mod xxh3_64_secret {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            rache::xxhash::xxh3_64_with_secret(black_box(&bytes), black_box(&secret)).unwrap()
+            hashcrew::xxhash::xxh3_64_with_secret(black_box(&bytes), black_box(&secret)).unwrap()
         });
     }
 
     #[divan::bench(args = SIZES)]
     fn xxhash_rust(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             xxhash_rust::xxh3::xxh3_64_with_secret(black_box(&bytes), black_box(&secret))
         });
@@ -341,7 +341,7 @@ mod xxh3_64_secret {
     #[divan::bench(args = SIZES)]
     fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             twox_hash::xxhash3_64::Hasher::oneshot_with_secret(
                 black_box(&secret),
@@ -356,18 +356,18 @@ mod xxh3_128_secret {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            rache::xxhash::xxh3_128_with_secret(black_box(&bytes), black_box(&secret)).unwrap()
+            hashcrew::xxhash::xxh3_128_with_secret(black_box(&bytes), black_box(&secret)).unwrap()
         });
     }
 
     #[divan::bench(args = SIZES)]
     fn xxhash_rust(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             xxhash_rust::xxh3::xxh3_128_with_secret(black_box(&bytes), black_box(&secret))
         });
@@ -376,7 +376,7 @@ mod xxh3_128_secret {
     #[divan::bench(args = SIZES)]
     fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             twox_hash::xxhash3_128::Hasher::oneshot_with_secret(
                 black_box(&secret),
@@ -391,19 +391,23 @@ mod xxh3_64_seed_and_secret {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            rache::xxhash::xxh3_64_with_seed_and_secret(black_box(&bytes), SEED, black_box(&secret))
-                .unwrap()
+            hashcrew::xxhash::xxh3_64_with_seed_and_secret(
+                black_box(&bytes),
+                SEED,
+                black_box(&secret),
+            )
+            .unwrap()
         });
     }
 
     #[divan::bench(args = SIZES)]
     fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             twox_hash::xxhash3_64::Hasher::oneshot_with_seed_and_secret(
                 SEED,
@@ -419,11 +423,11 @@ mod xxh3_128_seed_and_secret {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            rache::xxhash::xxh3_128_with_seed_and_secret(
+            hashcrew::xxhash::xxh3_128_with_seed_and_secret(
                 black_box(&bytes),
                 SEED,
                 black_box(&secret),
@@ -435,7 +439,7 @@ mod xxh3_128_seed_and_secret {
     #[divan::bench(args = SIZES)]
     fn twox_hash(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
-        let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
+        let secret = input(hashcrew::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
             twox_hash::xxhash3_128::Hasher::oneshot_with_seed_and_secret(
                 SEED,
@@ -451,11 +455,11 @@ mod murmur3_x86_32 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::murmur::murmur3_x86_32(black_box(&bytes), 0));
+            .bench(|| hashcrew::murmur::murmur3_x86_32(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]
@@ -471,11 +475,11 @@ mod murmur3_x86_128 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::murmur::murmur3_x86_128(black_box(&bytes), 0));
+            .bench(|| hashcrew::murmur::murmur3_x86_128(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]
@@ -491,11 +495,11 @@ mod murmur3_x64_128 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::murmur::murmur3_x64_128(black_box(&bytes), 0));
+            .bench(|| hashcrew::murmur::murmur3_x64_128(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]
@@ -511,11 +515,11 @@ mod fnv1a_32 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::fnv::fnv1a_32(black_box(&bytes)));
+            .bench(|| hashcrew::fnv::fnv1a_32(black_box(&bytes)));
     }
 }
 
@@ -523,11 +527,11 @@ mod fnv1a_64 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
-    fn rache(bencher: Bencher<'_, '_>, len: usize) {
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::fnv::fnv1a_64(black_box(&bytes)));
+            .bench(|| hashcrew::fnv::fnv1a_64(black_box(&bytes)));
     }
 
     #[divan::bench(args = SIZES)]

@@ -15,19 +15,19 @@
 use std::io::Cursor;
 use std::io::Write;
 
-use rache::fnv::Fnv1a32;
-use rache::fnv::Fnv1a64;
-use rache::murmur::Murmur3X64_128;
-use rache::murmur::Murmur3X86_32;
-use rache::murmur::Murmur3X86_128;
-use rache::murmur::murmur3_x64_128;
-use rache::murmur::murmur3_x86_128;
-use rache::xxhash::Xxh3_64;
-use rache::xxhash::Xxh3_128;
-use rache::xxhash::Xxh32;
-use rache::xxhash::Xxh64;
-use rache::xxhash::xxh3_64;
-use rache::xxhash::xxh3_128;
+use hashcrew::fnv::Fnv1a32;
+use hashcrew::fnv::Fnv1a64;
+use hashcrew::murmur::Murmur3X64_128;
+use hashcrew::murmur::Murmur3X86_32;
+use hashcrew::murmur::Murmur3X86_128;
+use hashcrew::murmur::murmur3_x64_128;
+use hashcrew::murmur::murmur3_x86_128;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::Xxh3_128;
+use hashcrew::xxhash::Xxh32;
+use hashcrew::xxhash::Xxh64;
+use hashcrew::xxhash::xxh3_64;
+use hashcrew::xxhash::xxh3_128;
 
 #[test]
 fn streaming_states_are_standard_io_writers() {

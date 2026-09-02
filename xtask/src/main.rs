@@ -18,7 +18,7 @@ use std::process::Command as StdCommand;
 use clap::Parser;
 use clap::Subcommand;
 
-const PACKAGE_NAME: &str = "rache";
+const PACKAGE_NAME: &str = "hashcrew";
 
 #[derive(Parser)]
 struct Command {
@@ -44,7 +44,7 @@ enum SubCommand {
     Bench(CommandBench),
     #[command(about = "Compile workspace packages.")]
     Build(CommandBuild),
-    #[command(about = "Check rache under its feature configurations.")]
+    #[command(about = "Check hashcrew under its feature configurations.")]
     Check(CommandCheck),
     #[command(about = "Run workspace quality checks.")]
     Lint(CommandLint),

@@ -120,7 +120,7 @@ jobs:
       - name: Run release-profile library tests under Miri
         # Release mode disables debug assertions that could otherwise mask an
         # unsafe precondition violation before Miri observes it.
-        run: cargo miri test --package rache --lib --no-default-features --release
+        run: cargo miri test --package hashcrew --lib --no-default-features --release
 
   target:
     name: Target (${{ matrix.name }})
@@ -166,7 +166,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Check target
-        run: cargo check --package rache --target "${{ matrix.target }}" --locked ${{ matrix.features }}
+        run: cargo check --package hashcrew --target "${{ matrix.target }}" --locked ${{ matrix.features }}
 
   package:
     name: Package
@@ -189,7 +189,7 @@ jobs:
       - name: Validate package contents
         shell: bash
         run: |
-          package_files="$(cargo package --package rache --locked --list)"
+          package_files="$(cargo package --package hashcrew --locked --list)"
           for required in Cargo.lock Cargo.toml README.md LICENSE THIRD_PARTY_NOTICES.md src/lib.rs; do
             grep -Fxq "$required" <<< "$package_files" || {
               echo "missing required package file: $required" >&2
@@ -202,12 +202,12 @@ jobs:
           fi
 
       - name: Build package
-        run: cargo package --package rache --locked
+        run: cargo package --package hashcrew --locked
 
       - name: Test package
         shell: bash
         run: |
-          package_dir="$(find target/package -mindepth 1 -maxdepth 1 -type d -name 'rache-*' -print -quit)"
+          package_dir="$(find target/package -mindepth 1 -maxdepth 1 -type d -name 'hashcrew-*' -print -quit)"
           test -n "$package_dir"
           cargo test --manifest-path "$package_dir/Cargo.toml" --all-features --locked
           cargo test --manifest-path "$package_dir/Cargo.toml" --no-default-features --locked

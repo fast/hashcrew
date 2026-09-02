@@ -31,13 +31,13 @@
 //! scalar or hardware XXH3 backend; ordinary callers do not need to choose one.
 //!
 //! ```
-//! use rache::xxhash::Xxh3_64;
-//! use rache::xxhash::xxh3_64;
+//! use hashcrew::xxhash::Xxh3_64;
+//! use hashcrew::xxhash::xxh3_64;
 //!
 //! let mut state = Xxh3_64::new();
-//! state.update(b"ra");
-//! state.update(b"che");
-//! assert_eq!(state.digest(), xxh3_64(b"rache"));
+//! state.update(b"hash");
+//! state.update(b"crew");
+//! assert_eq!(state.digest(), xxh3_64(b"hashcrew"));
 //! ```
 
 mod xxh3;

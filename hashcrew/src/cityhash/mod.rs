@@ -25,9 +25,9 @@
 //! new byte slice.
 //!
 //! ```
-//! use rache::cityhash::cityhash64_with_seed;
+//! use hashcrew::cityhash::cityhash64_with_seed;
 //!
-//! let digest = cityhash64_with_seed(b"rache", 42);
+//! let digest = cityhash64_with_seed(b"hashcrew", 42);
 //! assert_ne!(digest, 0);
 //! ```
 

@@ -15,12 +15,12 @@
 [package]
 categories = ["algorithms", "no-std"]
 description = "Fast, portable non-cryptographic hashes for Rust"
-documentation = "https://docs.rs/rache"
-homepage = "https://github.com/fast/rache"
+documentation = "https://docs.rs/hashcrew"
+homepage = "https://github.com/fast/hashcrew"
 keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
-name = "rache"
-repository = "https://github.com/fast/rache"
-version = "0.2.0"
+name = "hashcrew"
+repository = "https://github.com/fast/hashcrew"
+version = "0.1.0"
 
 edition.workspace = true
 license.workspace = true

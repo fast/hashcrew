@@ -16,7 +16,7 @@ use std::env;
 use std::fs::File;
 use std::io;
 
-use rache::xxhash::Xxh3_64;
+use hashcrew::xxhash::Xxh3_64;
 
 fn main() -> io::Result<()> {
     let path = env::args_os()

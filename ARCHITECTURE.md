@@ -1,6 +1,6 @@
 # Architecture
 
-`rache` separates its public API, portable algorithm cores, and optional hardware kernels:
+`hashcrew` separates its public API, portable algorithm cores, and optional hardware kernels:
 
 ```text
 public API
@@ -19,7 +19,7 @@ Configuration follows the source algorithm rather than a synthetic common interf
 
 CityHash remains a one-shot family. The reference algorithm incorporates the complete input length and reads its tail relative to the end of the message; bounded-memory state cannot derive the final digest from independently hashed chunks. `CityHash128` values store the reference high word in the most significant half and the low word in the least significant half.
 
-The individual xxHash variants and hardware kernel are nested under `rache::xxhash`; no compatibility modules are re-exported at the crate root.
+The individual xxHash variants and hardware kernel are nested under `hashcrew::xxhash`; no compatibility modules are re-exported at the crate root.
 
 ## Streaming state
 

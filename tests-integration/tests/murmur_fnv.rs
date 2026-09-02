@@ -16,21 +16,21 @@ use core::hash::BuildHasher;
 use core::hash::Hasher;
 use std::io::Cursor;
 
-use rache::fnv::Fnv1a32;
-use rache::fnv::Fnv1a32Builder;
-use rache::fnv::Fnv1a64;
-use rache::fnv::Fnv1a64Builder;
-use rache::fnv::fnv1a_32;
-use rache::fnv::fnv1a_32_with_offset_basis;
-use rache::fnv::fnv1a_64;
-use rache::fnv::fnv1a_64_with_offset_basis;
-use rache::murmur::Murmur3X64_128;
-use rache::murmur::Murmur3X86_32;
-use rache::murmur::Murmur3X86_32Builder;
-use rache::murmur::Murmur3X86_128;
-use rache::murmur::murmur3_x64_128;
-use rache::murmur::murmur3_x86_32;
-use rache::murmur::murmur3_x86_128;
+use hashcrew::fnv::Fnv1a32;
+use hashcrew::fnv::Fnv1a32Builder;
+use hashcrew::fnv::Fnv1a64;
+use hashcrew::fnv::Fnv1a64Builder;
+use hashcrew::fnv::fnv1a_32;
+use hashcrew::fnv::fnv1a_32_with_offset_basis;
+use hashcrew::fnv::fnv1a_64;
+use hashcrew::fnv::fnv1a_64_with_offset_basis;
+use hashcrew::murmur::Murmur3X64_128;
+use hashcrew::murmur::Murmur3X86_32;
+use hashcrew::murmur::Murmur3X86_32Builder;
+use hashcrew::murmur::Murmur3X86_128;
+use hashcrew::murmur::murmur3_x64_128;
+use hashcrew::murmur::murmur3_x86_32;
+use hashcrew::murmur::murmur3_x86_128;
 
 mod support;
 
@@ -164,7 +164,7 @@ fn fnv_matches_specification_and_reference() {
 
 #[test]
 fn fnv_custom_offset_basis_matches_chaining_and_reference() {
-    let prefix = b"rache namespace";
+    let prefix = b"hashcrew namespace";
     let suffix = input(4_097);
     let mut joined = prefix.to_vec();
     joined.extend_from_slice(&suffix);

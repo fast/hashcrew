@@ -6,7 +6,7 @@ Use `cargo x` as the source of truth for repository workflows. Read `cargo x --h
 
 ## Rust Style
 
-Keep the publishable `rache` crate dependency-free, `no_std` compatible, and allocation-free. Isolate architecture-specific unsafe code in the XXH3 kernel layer and preserve a scalar implementation for every accelerated path.
+Keep the publishable `hashcrew` crate dependency-free, `no_std` compatible, and allocation-free. Isolate architecture-specific unsafe code in the XXH3 kernel layer and preserve a scalar implementation for every accelerated path.
 
 ## Documentation
 
