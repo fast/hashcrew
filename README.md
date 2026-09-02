@@ -12,7 +12,7 @@
 [docs-url]: https://docs.rs/hashcrew
 [msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
 [license-badge]: https://img.shields.io/crates/l/hashcrew
-[license-url]: LICENSE
+[license-url]: https://www.apache.org/licenses/LICENSE-2.0
 [actions-badge]: https://github.com/fast/hashcrew/actions/workflows/ci.yml/badge.svg
 [actions-url]: https://github.com/fast/hashcrew/actions/workflows/ci.yml
 
@@ -89,12 +89,12 @@ All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/ha
 
 Hashcrew exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
 
-| Input or caller                                      | Interface                                                                 | What it does                                                                                 |
-|------------------------------------------------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| One complete byte slice                             | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                    |
-| Byte slices arriving incrementally                  | A state such as `Xxh3_64`: construct, call `update`, then call `digest`       | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
-| A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.       |
-| A Rust hash collection or generic `Hash` caller     | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                |
+| Input or caller                                      | Interface                                                               | What it does                                                                                       |
+|------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| One complete byte slice                              | A module-level function such as `xxh3_64(input)`                        | Computes and returns the digest immediately without constructing a state.                          |
+| Byte slices arriving incrementally                   | A state such as `Xxh3_64`: construct, call `update`, then call `digest` | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
+| A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature  | Treats every written byte as input; finish the producer, then call `digest` separately.            |
+| A Rust hash collection or generic `Hash` caller      | A state through `Hasher`, usually constructed by its matching builder   | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                    |
 
 `Hasher` only supports a `u64` result, so 128-bit states deliberately expose `digest() -> u128` instead of truncating their output. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
 
@@ -184,8 +184,10 @@ Integration tests compare CityHash, xxHash, and MurmurHash3 with independent imp
 
 ## Minimum Supported Rust Version (MSRV)
 
-Hashcrew's minimum supported rustc version is 1.85.0. The MSRV may be increased in a minor release.
+This crate is built against the latest stable release, and its minimum supported rustc version is 1.85.0.
+
+The policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if Asyncband 1.0 requires Rust 1.20.0, then Asyncband 1.0.z for all values of z will also require Rust 1.20.0 or newer. However, Asyncband 1.y for y > 0 may require a newer minimum version of Rust.
 
 ## License and acknowledgements
 
-This project is licensed under [Apache License, Version 2.0](LICENSE). See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Hashcrew.
+This project is licensed under [Apache License, Version 2.0][license-url]. See [third-party notices](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Hashcrew.
