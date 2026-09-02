@@ -102,20 +102,20 @@ Rache exposes the same algorithm at different integration boundaries. Pick the n
 
 The table names the canonical module-level function for complete input. A trailing `*` means the family also provides explicitly named seeded, custom-secret, or custom-offset-basis forms.
 
-| Variant             | Complete input          | Incremental state              | Digest | `Hasher` / `BuildHasher`                     |
-|---------------------|-------------------------|--------------------------------|--------|----------------------------------------------|
-| CityHash32          | `cityhash32`            | —                              | `u32`  | —                                            |
-| CityHash64          | `cityhash64*`           | —                              | `u64`  | —                                            |
-| CityHash128         | `cityhash128*`          | —                              | `u128` | —                                            |
-| XXH32               | `xxh32`                 | `Xxh32`                        | `u32`  | `Xxh32` / `Xxh32Builder`                     |
-| XXH64               | `xxh64`                 | `Xxh64`                        | `u64`  | `Xxh64` / `Xxh64Builder`                     |
-| XXH3-64             | `xxh3_64*`              | `Xxh3_64`                      | `u64`  | `Xxh3_64` / `Xxh3Builder` or secret builder  |
-| XXH3-128            | `xxh3_128*`             | `Xxh3_128`                     | `u128` | —                                            |
-| MurmurHash3 x86_32  | `murmur3_32`            | `Murmur3_32`                   | `u32`  | `Murmur3_32` / `Murmur3_32Builder`           |
-| MurmurHash3 x86_128 | `murmur3_x86_128`       | `Murmur3X86_128`               | `u128` | —                                            |
-| MurmurHash3 x64_128 | `murmur3_x64_128`       | `Murmur3X64_128`               | `u128` | —                                            |
-| FNV-1a 32           | `fnv1a_32*`             | `Fnv1a32`                      | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                 |
-| FNV-1a 64           | `fnv1a_64*`             | `Fnv1a64`                      | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                 |
+| Variant             | Complete input    | Incremental state | Digest | `Hasher` / `BuildHasher`                       |
+|---------------------|-------------------|-------------------|--------|------------------------------------------------|
+| CityHash32          | `cityhash32`      | —                 | `u32`  | —                                              |
+| CityHash64          | `cityhash64*`     | —                 | `u64`  | —                                              |
+| CityHash128         | `cityhash128*`    | —                 | `u128` | —                                              |
+| XXH32               | `xxh32`           | `Xxh32`           | `u32`  | `Xxh32` / `Xxh32Builder`                       |
+| XXH64               | `xxh64`           | `Xxh64`           | `u64`  | `Xxh64` / `Xxh64Builder`                       |
+| XXH3-64             | `xxh3_64*`        | `Xxh3_64`         | `u64`  | `Xxh3_64` / `Xxh3_64Builder` or secret builder |
+| XXH3-128            | `xxh3_128*`       | `Xxh3_128`        | `u128` | —                                              |
+| MurmurHash3 x86_32  | `murmur3_32`      | `Murmur3_32`      | `u32`  | `Murmur3_32` / `Murmur3_32Builder`             |
+| MurmurHash3 x86_128 | `murmur3_x86_128` | `Murmur3X86_128`  | `u128` | —                                              |
+| MurmurHash3 x64_128 | `murmur3_x64_128` | `Murmur3X64_128`  | `u128` | —                                              |
+| FNV-1a 32           | `fnv1a_32*`       | `Fnv1a32`         | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                   |
+| FNV-1a 64           | `fnv1a_64*`       | `Fnv1a64`         | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                   |
 
 Rache implements all three variants from the original MurmurHash3 family. The only 32-bit variant keeps the concise `murmur3_32` name; the two incompatible 128-bit variants retain `x86` or `x64` in their names. These architecture labels distinguish algorithms and do not restrict which target can run them. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
@@ -149,9 +149,9 @@ The 32-bit and 64-bit streaming states implement `core::hash::Hasher`, with matc
 
 ```rust
 use std::collections::HashMap;
-use rache::xxhash::Xxh3Builder;
+use rache::xxhash::Xxh3_64Builder;
 
-let mut counts = HashMap::with_hasher(Xxh3Builder::with_seed(7));
+let mut counts = HashMap::with_hasher(Xxh3_64Builder::with_seed(7));
 counts.insert("rache", 1);
 
 assert_eq!(counts["rache"], 1);

@@ -234,7 +234,7 @@ impl std::io::Write for Xxh32 {
 /// Deterministic [`BuildHasher`] for [`Xxh32`].
 ///
 /// XXH32 only provides 32 bits of output and is usually a poor choice for a
-/// general-purpose `HashMap`; prefer [`crate::xxhash::Xxh3Builder`] on 64-bit
+/// general-purpose `HashMap`; prefer [`crate::xxhash::Xxh3_64Builder`] on 64-bit
 /// systems.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Xxh32Builder {

@@ -19,8 +19,8 @@ use std::collections::HashMap;
 use rache::xxhash::SECRET_SIZE_MIN;
 use rache::xxhash::Xxh3_64;
 use rache::xxhash::Xxh3_128;
-use rache::xxhash::Xxh3Builder;
-use rache::xxhash::Xxh3SecretBuilder;
+use rache::xxhash::Xxh3_64Builder;
+use rache::xxhash::Xxh3_64SecretBuilder;
 use rache::xxhash::Xxh32;
 use rache::xxhash::Xxh32Builder;
 use rache::xxhash::Xxh64;
@@ -195,8 +195,8 @@ fn custom_secret_length_is_validated() {
     assert!(Xxh3_64::with_seed_and_secret(7, &short).is_err());
     assert!(Xxh3_128::with_secret(&short).is_err());
     assert!(Xxh3_128::with_seed_and_secret(7, &short).is_err());
-    assert!(Xxh3SecretBuilder::with_secret(&short).is_err());
-    assert!(Xxh3SecretBuilder::with_seed_and_secret(7, &short).is_err());
+    assert!(Xxh3_64SecretBuilder::with_secret(&short).is_err());
+    assert!(Xxh3_64SecretBuilder::with_seed_and_secret(7, &short).is_err());
 }
 
 #[test]
@@ -216,7 +216,7 @@ fn custom_secret_states_and_builders_can_own_their_storage() {
         xxh3_128_with_seed_and_secret(&bytes, 7, &secret).unwrap()
     );
 
-    let builder = Xxh3SecretBuilder::with_secret(secret).unwrap();
+    let builder = Xxh3_64SecretBuilder::with_secret(secret).unwrap();
     let mut map = HashMap::with_hasher(builder);
     map.insert("rache", 2);
     assert_eq!(map["rache"], 2);
@@ -520,12 +520,12 @@ fn standard_hash_traits_use_the_raw_stream() {
     via_trait64.write(&bytes);
     assert_eq!(via_trait64.finish(), xxh64(&bytes, 11));
 
-    let mut via_trait3 = Xxh3Builder::with_seed(13).build_hasher();
+    let mut via_trait3 = Xxh3_64Builder::with_seed(13).build_hasher();
     via_trait3.write(&bytes);
     assert_eq!(via_trait3.finish(), xxh3_64_with_seed(&bytes, 13));
 
     let secret = secret(SECRET_SIZE_MIN);
-    let mut via_secret = Xxh3SecretBuilder::with_secret(&secret)
+    let mut via_secret = Xxh3_64SecretBuilder::with_secret(&secret)
         .unwrap()
         .build_hasher();
     via_secret.write(&bytes);
@@ -534,7 +534,7 @@ fn standard_hash_traits_use_the_raw_stream() {
         xxh3_64_with_secret(&bytes, &secret).unwrap()
     );
 
-    let mut via_seed_and_secret = Xxh3SecretBuilder::with_seed_and_secret(17, &secret)
+    let mut via_seed_and_secret = Xxh3_64SecretBuilder::with_seed_and_secret(17, &secret)
         .unwrap()
         .build_hasher();
     via_seed_and_secret.write(&bytes);

@@ -1139,12 +1139,12 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
 /// This builder is intended for trusted inputs. It does not randomize its seed
 /// and is not resistant to deliberate hash-flooding attacks.
 #[derive(Clone, Copy)]
-pub struct Xxh3Builder {
+pub struct Xxh3_64Builder {
     seed: u64,
     secret: [u8; DEFAULT_SECRET_SIZE],
 }
 
-impl Xxh3Builder {
+impl Xxh3_64Builder {
     /// Creates a builder using `seed`.
     #[must_use]
     pub const fn with_seed(seed: u64) -> Self {
@@ -1155,22 +1155,22 @@ impl Xxh3Builder {
     }
 }
 
-impl Default for Xxh3Builder {
+impl Default for Xxh3_64Builder {
     fn default() -> Self {
         Self::with_seed(0)
     }
 }
 
-impl fmt::Debug for Xxh3Builder {
+impl fmt::Debug for Xxh3_64Builder {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3Builder")
+            .debug_struct("Xxh3_64Builder")
             .field("seed", &self.seed)
             .finish()
     }
 }
 
-impl BuildHasher for Xxh3Builder {
+impl BuildHasher for Xxh3_64Builder {
     type Hasher = Xxh3_64;
 
     #[inline]
@@ -1189,14 +1189,14 @@ impl BuildHasher for Xxh3Builder {
 /// Building a hasher panics if custom storage exposes a different slice length
 /// from the one validated by the constructor.
 #[derive(Clone, Copy)]
-pub struct Xxh3SecretBuilder<S> {
+pub struct Xxh3_64SecretBuilder<S> {
     seed: u64,
     secret: S,
     secret_len: usize,
     use_custom_secret_for_short: bool,
 }
 
-impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
+impl<S: AsRef<[u8]> + Copy> Xxh3_64SecretBuilder<S> {
     /// Creates a builder using `secret` for inputs of every length.
     pub fn with_secret(secret: S) -> Result<Self, Xxh3SecretTooShort> {
         let secret_len = secret.as_ref().len();
@@ -1222,17 +1222,17 @@ impl<S: AsRef<[u8]> + Copy> Xxh3SecretBuilder<S> {
     }
 }
 
-impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_64SecretBuilder<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3SecretBuilder")
+            .debug_struct("Xxh3_64SecretBuilder")
             .field("seed", &self.seed)
             .field("secret_len", &self.secret_len)
             .finish_non_exhaustive()
     }
 }
 
-impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
+impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3_64SecretBuilder<S> {
     type Hasher = Xxh3_64<S>;
 
     #[inline]
@@ -1344,7 +1344,7 @@ mod tests {
         });
 
         let use_empty = Cell::new(false);
-        let builder = Xxh3SecretBuilder::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let builder = Xxh3_64SecretBuilder::with_secret(ChangingSecret(&use_empty)).unwrap();
         use_empty.set(true);
         assert_panics(|| {
             let _ = builder.build_hasher();

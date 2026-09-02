@@ -5,9 +5,9 @@
 - Remove duplicate crate-root, `raw`, and nested xxHash variant paths so each public API has one family-qualified home. Import functions, states, builders, constants, and kernels from `rache::{cityhash, fnv, murmur, xxhash}`; for example, replace `rache::Xxh3` or `rache::xxhash::xxh3::Xxh3` with `rache::xxhash::Xxh3_64`, `rache::raw::xxh3_64` with `rache::xxhash::xxh3_64`, and `rache::kernel` with `rache::xxhash::kernel`.
 - Remove redundant alternate entry points so each operation has one public name. Use the module-level functions for complete input, replace `murmur3_128` and `Murmur3_128` with the architecture-qualified `murmur3_x64_128` and `Murmur3X64_128`, and replace the 128-bit states' `finish_128` methods with `digest`.
 - Add allocation-free one-shot and streaming MurmurHash3 x86_128 APIs as `murmur3_x86_128` and `Murmur3X86_128`, completing the original MurmurHash3 family alongside x86_32 and x64_128.
-- Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3SecretBuilder<'a>` must use the storage type `Xxh3SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
+- Allow custom-secret XXH3 streaming states and builders to own caller-provided storage while preserving borrowed-secret construction and allocation-free hashing. Code that explicitly named `Xxh3_64SecretBuilder<'a>` must use the storage type `Xxh3_64SecretBuilder<&'a [u8]>`; constructor calls with inferred types continue to work.
 - Implement `std::io::Write` for every streaming hash state when the default `std` feature is enabled, allowing file and network hashing through `std::io::copy`, `Write::write`, or `Write::write_all`. The inherent 128-bit state `write` aliases have been removed so they do not shadow the trait method; use `update` for direct incremental input.
-- Cache the derived secret in seeded `Xxh3Builder` values so hash collections do not repeat 192-byte seed expansion for every key.
+- Cache the derived secret in seeded `Xxh3_64Builder` values so hash collections do not repeat 192-byte seed expansion for every key.
 - Improve one-shot XXH3-64 and XXH3-128 throughput for 17-to-128-byte inputs by ensuring the specialized medium-length paths are inlined.
 
 ## 0.1.0
