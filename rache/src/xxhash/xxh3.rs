@@ -484,7 +484,7 @@ fn finalize_128_medium(acc: [u64; 2], len: u64, seed: u64) -> u128 {
     make_u128(low, avalanche(high).wrapping_neg())
 }
 
-#[inline]
+#[inline(always)]
 fn hash_128_17_to_128(input: &[u8], seed: u64, secret: &[u8]) -> u128 {
     let len = input.len();
     let mut acc = [(len as u64).wrapping_mul(PRIME64_1), 0];
