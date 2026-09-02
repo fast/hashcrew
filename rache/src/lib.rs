@@ -39,7 +39,7 @@
 //!
 //! * Call a module-level function such as [`xxhash::xxh3_64`] when the complete byte slice is
 //!   available.
-//! * Construct a state such as [`xxhash::Xxh3`], call its `update` method for each slice, and call
+//! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and call
 //!   `digest` when input is complete. `digest` does not consume the state, and `reset` preserves
 //!   its configuration.
 //! * With the default `std` feature, use the same state as [`std::io::Write`] when bytes come from
@@ -57,7 +57,7 @@
 //! | CityHash128         | [`cityhash128`](cityhash::cityhash128)* | —                                      | `u128` | —                                                                      |
 //! | XXH32               | [`xxh32`](xxhash::xxh32)               | [`Xxh32`](xxhash::Xxh32)                | `u32`  | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)       |
 //! | XXH64               | [`xxh64`](xxhash::xxh64)               | [`Xxh64`](xxhash::Xxh64)                | `u64`  | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)       |
-//! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*          | [`Xxh3`](xxhash::Xxh3)                  | `u64`  | [`Xxh3`](xxhash::Xxh3) / [`Xxh3Builder`](xxhash::Xxh3Builder)           |
+//! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*          | [`Xxh3_64`](xxhash::Xxh3_64)          | `u64`  | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3Builder`](xxhash::Xxh3Builder)       |
 //! | XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*        | [`Xxh3_128`](xxhash::Xxh3_128)          | `u128` | —                                                                      |
 //! | MurmurHash3 x86_32  | [`murmur3_32`](murmur::murmur3_32)     | [`Murmur3_32`](murmur::Murmur3_32)      | `u32`  | [`Murmur3_32`](murmur::Murmur3_32) / [`Murmur3_32Builder`](murmur::Murmur3_32Builder) |
 //! | MurmurHash3 x86_128 | [`murmur3_x86_128`](murmur::murmur3_x86_128) | [`Murmur3X86_128`](murmur::Murmur3X86_128) | `u128` | —                                                                   |
@@ -101,11 +101,11 @@
 //! # {
 //! use std::io;
 //!
-//! use rache::xxhash::Xxh3;
+//! use rache::xxhash::Xxh3_64;
 //! use rache::xxhash::xxh3_64;
 //!
 //! let input = b"rache";
-//! let mut state = Xxh3::new();
+//! let mut state = Xxh3_64::new();
 //! io::copy(&mut input.as_slice(), &mut state).unwrap();
 //!
 //! assert_eq!(state.digest(), xxh3_64(input));

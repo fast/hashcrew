@@ -17,7 +17,7 @@ use core::hash::Hasher;
 use std::collections::HashMap;
 
 use rache::xxhash::SECRET_SIZE_MIN;
-use rache::xxhash::Xxh3;
+use rache::xxhash::Xxh3_64;
 use rache::xxhash::Xxh3_128;
 use rache::xxhash::Xxh3Builder;
 use rache::xxhash::Xxh3SecretBuilder;
@@ -191,8 +191,8 @@ fn custom_secret_length_is_validated() {
     assert!(xxh3_128_with_secret(b"rache", &short).is_err());
     assert!(xxh3_64_with_seed_and_secret(b"rache", 7, &short).is_err());
     assert!(xxh3_128_with_seed_and_secret(b"rache", 7, &short).is_err());
-    assert!(Xxh3::with_secret(&short).is_err());
-    assert!(Xxh3::with_seed_and_secret(7, &short).is_err());
+    assert!(Xxh3_64::with_secret(&short).is_err());
+    assert!(Xxh3_64::with_seed_and_secret(7, &short).is_err());
     assert!(Xxh3_128::with_secret(&short).is_err());
     assert!(Xxh3_128::with_seed_and_secret(7, &short).is_err());
     assert!(Xxh3SecretBuilder::with_secret(&short).is_err());
@@ -204,7 +204,7 @@ fn custom_secret_states_and_builders_can_own_their_storage() {
     let bytes = input(4_097);
     let owned_secret = secret(255);
     let expected64 = xxh3_64_with_secret(&bytes, &owned_secret).unwrap();
-    let mut hash64 = Xxh3::with_secret(owned_secret).unwrap();
+    let mut hash64 = Xxh3_64::with_secret(owned_secret).unwrap();
     hash64.update(&bytes);
     assert_eq!(hash64.digest(), expected64);
 
@@ -230,9 +230,9 @@ fn custom_secret_streaming_matches_oneshot() {
         for &len in LENGTHS {
             let bytes = input(len);
             for chunk_size in [1, 17, 64, 257] {
-                let mut hash64 = Xxh3::with_secret(&secret).unwrap();
+                let mut hash64 = Xxh3_64::with_secret(&secret).unwrap();
                 let mut hash128 = Xxh3_128::with_secret(&secret).unwrap();
-                let mut combined64 = Xxh3::with_seed_and_secret(seed, &secret).unwrap();
+                let mut combined64 = Xxh3_64::with_seed_and_secret(seed, &secret).unwrap();
                 let mut combined128 = Xxh3_128::with_seed_and_secret(seed, &secret).unwrap();
 
                 for chunk in bytes.chunks(chunk_size) {
@@ -321,7 +321,7 @@ fn streaming_matches_oneshot_for_many_chunk_sizes() {
         for chunk_size in [1, 3, 15, 16, 31, 64, 65, 127, 256, 1_025] {
             let mut hash32 = Xxh32::with_seed(seed as u32);
             let mut hash64 = Xxh64::with_seed(seed);
-            let mut hash3 = Xxh3::with_seed(seed);
+            let mut hash3 = Xxh3_64::with_seed(seed);
             let mut hash128 = Xxh3_128::with_seed(seed);
 
             for chunk in bytes.chunks(chunk_size) {
@@ -343,7 +343,7 @@ fn streaming_matches_oneshot_for_many_chunk_sizes() {
 fn streaming_boundaries_match_oneshot() {
     for &len in LENGTHS {
         let bytes = input(len);
-        let mut hash3 = Xxh3::with_seed(7);
+        let mut hash3 = Xxh3_64::with_seed(7);
         let mut hash128 = Xxh3_128::with_seed(7);
         for chunk in bytes.chunks(17) {
             hash3.update(chunk);
@@ -367,7 +367,7 @@ fn randomized_streaming_partitions_match_oneshot() {
         let bytes = random_input(&mut random, len);
         let mut hash32 = Xxh32::with_seed(seed as u32);
         let mut hash64 = Xxh64::with_seed(seed);
-        let mut hash3 = Xxh3::with_seed(seed);
+        let mut hash3 = Xxh3_64::with_seed(seed);
         let mut hash128 = Xxh3_128::with_seed(seed);
         let mut offset = 0;
 
@@ -419,7 +419,7 @@ fn every_two_way_partition_matches_oneshot() {
         for split in 0..=len {
             let mut hash32 = Xxh32::with_seed(seed as u32);
             let mut hash64 = Xxh64::with_seed(seed);
-            let mut hash3 = Xxh3::with_seed(seed);
+            let mut hash3 = Xxh3_64::with_seed(seed);
             let mut hash128 = Xxh3_128::with_seed(seed);
 
             for chunk in [&[][..], &input[..split], &[][..], &input[split..], &[][..]] {
@@ -459,7 +459,7 @@ fn streaming_state_can_be_finished_cloned_continued_and_reset() {
     let prefix = input(1_337);
     let suffix = input(777);
 
-    let mut hash3 = Xxh3::with_seed(seed);
+    let mut hash3 = Xxh3_64::with_seed(seed);
     hash3.update(&prefix);
     assert_eq!(hash3.digest(), xxh3_64_with_seed(&prefix, seed));
 
@@ -486,7 +486,7 @@ fn streaming_state_can_be_finished_cloned_continued_and_reset() {
     assert_eq!(fork128.digest(), xxh3_128_with_seed(&suffix, seed));
 
     let secret = secret(SECRET_SIZE_MIN);
-    let mut custom = Xxh3::with_secret(&secret).unwrap();
+    let mut custom = Xxh3_64::with_secret(&secret).unwrap();
     custom.update(&prefix);
     let custom_fork = custom.clone();
     custom.update(&suffix);

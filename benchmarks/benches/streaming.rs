@@ -119,7 +119,7 @@ mod xxh3_64 {
     fn rache(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3::new();
+            let mut hasher = rache::xxhash::Xxh3_64::new();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -132,7 +132,7 @@ mod xxh3_64 {
         let bytes = input(len);
         let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3::with_secret(black_box(&secret)).unwrap();
+            let mut hasher = rache::xxhash::Xxh3_64::with_secret(black_box(&secret)).unwrap();
             for chunk in black_box(&bytes).chunks(chunk_size) {
                 hasher.update(chunk);
             }
@@ -145,7 +145,7 @@ mod xxh3_64 {
         let bytes = input(len);
         let secret = input(rache::xxhash::DEFAULT_SECRET_SIZE);
         bencher.counter(BytesCount::new(len)).bench(|| {
-            let mut hasher = rache::xxhash::Xxh3::with_seed_and_secret(
+            let mut hasher = rache::xxhash::Xxh3_64::with_seed_and_secret(
                 0x0123_4567_89ab_cdef,
                 black_box(&secret),
             )

@@ -922,9 +922,9 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
 #[derive(Clone)]
-pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
+pub struct Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
-impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
+impl Xxh3_64<[u8; DEFAULT_SECRET_SIZE]> {
     /// Creates an unseeded XXH3-64 state.
     #[must_use]
     pub fn new() -> Self {
@@ -938,7 +938,7 @@ impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     }
 }
 
-impl<S: AsRef<[u8]>> Xxh3<S> {
+impl<S: AsRef<[u8]>> Xxh3_64<S> {
     /// Creates an XXH3-64 state with custom secret storage.
     ///
     /// Pass an owned array or another `AsRef<[u8]>` value when the state should
@@ -985,23 +985,23 @@ impl<S: AsRef<[u8]>> Xxh3<S> {
     }
 }
 
-impl Default for Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
+impl Default for Xxh3_64<[u8; DEFAULT_SECRET_SIZE]> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: AsRef<[u8]>> fmt::Debug for Xxh3<S> {
+impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_64<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("Xxh3")
+            .debug_struct("Xxh3_64")
             .field("seed", &self.seed())
             .field("total_len", &self.total_len())
             .finish_non_exhaustive()
     }
 }
 
-impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
+impl<S: AsRef<[u8]>> Hasher for Xxh3_64<S> {
     #[inline]
     fn finish(&self) -> u64 {
         self.digest()
@@ -1014,7 +1014,7 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3<S> {
 }
 
 #[cfg(feature = "std")]
-impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
+impl<S: AsRef<[u8]>> std::io::Write for Xxh3_64<S> {
     #[inline]
     fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
         self.update(input);
@@ -1130,7 +1130,7 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
     }
 }
 
-/// Deterministic [`BuildHasher`] for [`Xxh3`].
+/// Deterministic [`BuildHasher`] for [`Xxh3_64`].
 ///
 /// The builder retains the derived 192-byte secret so constructing each hasher
 /// does not repeat seed expansion. Construct it once and reuse it through a
@@ -1171,11 +1171,11 @@ impl fmt::Debug for Xxh3Builder {
 }
 
 impl BuildHasher for Xxh3Builder {
-    type Hasher = Xxh3;
+    type Hasher = Xxh3_64;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        Xxh3(StreamState::with_derived_secret(self.seed, self.secret))
+        Xxh3_64(StreamState::with_derived_secret(self.seed, self.secret))
     }
 }
 
@@ -1233,12 +1233,12 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3SecretBuilder<S> {
 }
 
 impl<S: AsRef<[u8]> + Copy> BuildHasher for Xxh3SecretBuilder<S> {
-    type Hasher = Xxh3<S>;
+    type Hasher = Xxh3_64<S>;
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
         let _ = checked_secret(&self.secret, self.secret_len);
-        Xxh3(StreamState::with_validated_secret(
+        Xxh3_64(StreamState::with_validated_secret(
             self.seed,
             self.secret,
             self.secret_len,
@@ -1321,7 +1321,7 @@ mod tests {
 
     #[test]
     fn reset_reuses_state() {
-        let mut hash = Xxh3::with_seed(42);
+        let mut hash = Xxh3_64::with_seed(42);
         hash.update(b"before");
         hash.reset();
         hash.update(b"after");
@@ -1331,12 +1331,12 @@ mod tests {
     #[test]
     fn custom_secret_length_changes_are_rejected_before_use() {
         let use_empty = Cell::new(false);
-        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let mut hash = Xxh3_64::with_secret(ChangingSecret(&use_empty)).unwrap();
         use_empty.set(true);
         assert_panics(|| hash.update(&[0; STREAM_BUFFER_SIZE + 1]));
 
         let use_empty = Cell::new(false);
-        let mut hash = Xxh3::with_secret(ChangingSecret(&use_empty)).unwrap();
+        let mut hash = Xxh3_64::with_secret(ChangingSecret(&use_empty)).unwrap();
         hash.update(&[0; STREAM_BUFFER_SIZE + 1]);
         use_empty.set(true);
         assert_panics(|| {
@@ -1353,7 +1353,7 @@ mod tests {
 
     #[test]
     fn length_overflow_keeps_long_digest_mode() {
-        let mut hash = Xxh3::new();
+        let mut hash = Xxh3_64::new();
         hash.0.total_len = u64::MAX;
         hash.update(&[0]);
         assert!(hash.0.length_overflowed);
