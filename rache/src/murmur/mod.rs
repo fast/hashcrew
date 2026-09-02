@@ -12,7 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! MurmurHash3 one-shot and streaming APIs.
+//! MurmurHash3 x86_32 and x64_128 one-shot and streaming APIs.
+//!
+//! [`murmur3_32`] and [`Murmur3_32`] produce the 32-bit x86 variant;
+//! [`murmur3_128`] and [`Murmur3_128`] produce the 128-bit x64 variant.
+//! [`murmur3_x64_128`] is an explicit-name alias of [`murmur3_128`]. All forms
+//! accept a 32-bit seed.
+//!
+//! Both states support `update`, non-consuming `digest`, and `reset`, and both
+//! implement [`std::io::Write`] with the default `std` feature. Only the 32-bit
+//! state implements [`Hasher`] and has a [`Murmur3_32Builder`], because
+//! [`Hasher::finish`] can return only `u64`.
+//!
+//! ```
+//! use rache::murmur::Murmur3_128;
+//! use rache::murmur::murmur3_128;
+//!
+//! let mut state = Murmur3_128::with_seed(42);
+//! state.update(b"ra");
+//! state.update(b"che");
+//! assert_eq!(state.digest(), murmur3_128(b"rache", 42));
+//! ```
 
 use core::hash::BuildHasher;
 use core::hash::Hasher;
