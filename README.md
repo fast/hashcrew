@@ -47,7 +47,7 @@ use rache::{cityhash, fnv, murmur, xxhash};
 let data = b"rache";
 let city = cityhash::cityhash64(data);
 let xxh3 = xxhash::xxh3_64(data);
-let murmur = murmur::murmur3_128(data, 42);
+let murmur = murmur::murmur3_x64_128(data, 42);
 let fnv = fnv::fnv1a_64(data);
 
 assert_ne!(city, 0);
@@ -59,14 +59,14 @@ assert_ne!(fnv, 0);
 Use a state type when data arrives incrementally:
 
 ```rust
-use rache::murmur::Murmur3_128;
-use rache::murmur::murmur3_128;
+use rache::murmur::Murmur3X64_128;
+use rache::murmur::murmur3_x64_128;
 
-let mut hash = Murmur3_128::with_seed(42);
+let mut hash = Murmur3X64_128::with_seed(42);
 hash.update(b"ra");
 hash.update(b"che");
 
-assert_eq!(hash.digest(), murmur3_128(b"rache", 42));
+assert_eq!(hash.digest(), murmur3_x64_128(b"rache", 42));
 ```
 
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
@@ -96,8 +96,6 @@ Rache exposes the same algorithm at different integration boundaries. Pick the n
 | A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.       |
 | A Rust hash collection or generic `Hash` caller     | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                |
 
-Every streaming type also provides associated `oneshot` functions that delegate to the corresponding module-level functions. They are namespaced conveniences, not a different hashing mode.
-
 `Hasher` only supports a `u64` result, so 128-bit states deliberately expose `digest() -> u128` instead of truncating their output. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
 
 ## Algorithm and capability map
@@ -111,14 +109,14 @@ The table names the canonical module-level function for complete input. A traili
 | CityHash128         | `cityhash128*`          | —                              | `u128` | —                                            |
 | XXH32               | `xxh32`                 | `Xxh32`                        | `u32`  | `Xxh32` / `Xxh32Builder`                     |
 | XXH64               | `xxh64`                 | `Xxh64`                        | `u64`  | `Xxh64` / `Xxh64Builder`                     |
-| XXH3-64             | `xxh3_64*`              | `Xxh3` (`Xxh3_64` alias)       | `u64`  | `Xxh3` / `Xxh3Builder` or secret builder     |
+| XXH3-64             | `xxh3_64*`              | `Xxh3`                         | `u64`  | `Xxh3` / `Xxh3Builder` or secret builder     |
 | XXH3-128            | `xxh3_128*`             | `Xxh3_128`                     | `u128` | —                                            |
 | MurmurHash3 x86_32  | `murmur3_32`            | `Murmur3_32`                   | `u32`  | `Murmur3_32` / `Murmur3_32Builder`           |
-| MurmurHash3 x64_128 | `murmur3_x64_128`       | `Murmur3_128`                  | `u128` | —                                            |
+| MurmurHash3 x64_128 | `murmur3_x64_128`       | `Murmur3X64_128`               | `u128` | —                                            |
 | FNV-1a 32           | `fnv1a_32*`             | `Fnv1a32`                      | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                 |
 | FNV-1a 64           | `fnv1a_64*`             | `Fnv1a64`                      | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                 |
 
-The original MurmurHash3 family defines `x86_32`, `x86_128`, and `x64_128` variants. Rache implements `x86_32` as `murmur3_32` and `x64_128` as `murmur3_x64_128`; it does not implement `x86_128`. The shorter `murmur3_128` name is retained as an equivalent convenience API. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
+The original MurmurHash3 family defines `x86_32`, `x86_128`, and `x64_128` variants. Rache implements `x86_32` as `murmur3_32` and `x64_128` as `murmur3_x64_128`; it does not implement `x86_128`. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
 ## Choosing an algorithm
 

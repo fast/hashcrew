@@ -118,20 +118,6 @@ impl Fnv1a32 {
         }
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u32 {
-        fnv1a_32(input)
-    }
-
-    /// Hashes a complete byte slice starting from `offset_basis`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_offset_basis(input: &[u8], offset_basis: u32) -> u32 {
-        fnv1a_32_with_offset_basis(input, offset_basis)
-    }
-
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
@@ -241,20 +227,6 @@ impl Fnv1a64 {
             hash: offset_basis,
             offset_basis,
         }
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u64 {
-        fnv1a_64(input)
-    }
-
-    /// Hashes a complete byte slice starting from `offset_basis`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_offset_basis(input: &[u8], offset_basis: u64) -> u64 {
-        fnv1a_64_with_offset_basis(input, offset_basis)
     }
 
     /// Adds raw bytes to the hash state.

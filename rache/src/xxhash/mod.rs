@@ -50,7 +50,6 @@ pub use self::xxh3::DEFAULT_SECRET;
 pub use self::xxh3::DEFAULT_SECRET_SIZE;
 pub use self::xxh3::SECRET_SIZE_MIN;
 pub use self::xxh3::Xxh3;
-pub use self::xxh3::Xxh3_64;
 pub use self::xxh3::Xxh3_128;
 pub use self::xxh3::Xxh3Builder;
 pub use self::xxh3::Xxh3SecretBuilder;

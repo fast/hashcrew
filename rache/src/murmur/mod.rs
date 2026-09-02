@@ -15,10 +15,9 @@
 //! MurmurHash3 x86_32 and x64_128 one-shot and streaming APIs.
 //!
 //! [`murmur3_32`] and [`Murmur3_32`] produce the x86_32 variant;
-//! [`murmur3_x64_128`] and [`Murmur3_128`] produce the x64_128 variant. The
+//! [`murmur3_x64_128`] and [`Murmur3X64_128`] produce the x64_128 variant. The
 //! original family also defines a different x86_128 algorithm, which this crate
-//! does not implement. [`murmur3_128`] is a shorter equivalent name for the
-//! implemented x64_128 function. All forms accept a 32-bit seed.
+//! does not implement. All forms accept a 32-bit seed.
 //!
 //! Both states support `update`, non-consuming `digest`, and `reset`, and both
 //! implement [`std::io::Write`] with the default `std` feature. Only the 32-bit
@@ -26,10 +25,10 @@
 //! [`Hasher::finish`] can return only `u64`.
 //!
 //! ```
-//! use rache::murmur::Murmur3_128;
+//! use rache::murmur::Murmur3X64_128;
 //! use rache::murmur::murmur3_x64_128;
 //!
-//! let mut state = Murmur3_128::with_seed(42);
+//! let mut state = Murmur3X64_128::with_seed(42);
 //! state.update(b"ra");
 //! state.update(b"che");
 //! assert_eq!(state.digest(), murmur3_x64_128(b"rache", 42));
@@ -115,13 +114,6 @@ impl Murmur3_32 {
             buffered: 0,
             total_len: 0,
         }
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u32) -> u32 {
-        murmur3_32(input, seed)
     }
 
     /// Adds raw bytes to the hash state.
@@ -307,11 +299,12 @@ fn finish_128(mut hash: [u64; 2], tail: &[u8], total_len: u64) -> u128 {
 ///
 /// The returned integer stores the reference algorithm's second 64-bit word
 /// in the most significant half and its first word in the least significant
-/// half. This shorter name is equivalent to [`murmur3_x64_128`]; it does not
-/// select the separate MurmurHash3 x86_128 algorithm.
+/// half. The architecture is part of the name because MurmurHash3 also defines
+/// a different x86_128 algorithm, which this crate does not implement.
+#[doc(alias = "murmur3_128")]
 #[must_use]
 #[inline]
-pub fn murmur3_128(input: &[u8], seed: u32) -> u128 {
+pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
     let seed = u64::from(seed);
     let mut hash = [seed, seed];
     let mut offset = 0;
@@ -322,17 +315,6 @@ pub fn murmur3_128(input: &[u8], seed: u32) -> u128 {
     finish_128(hash, &input[offset..], input.len() as u64)
 }
 
-/// Hashes `input` with the x64_128 variant of MurmurHash3.
-///
-/// This is equivalent to [`murmur3_128`]. The architecture is part of this
-/// name because MurmurHash3 also defines a different x86_128 algorithm, which
-/// this crate does not implement.
-#[must_use]
-#[inline]
-pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
-    murmur3_128(input, seed)
-}
-
 /// Incremental state for the 128-bit x64 variant of MurmurHash3.
 ///
 /// Feed byte slices with [`update`](Self::update), then call
@@ -340,8 +322,9 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 /// `std` feature, the state can also receive bytes from [`std::io::copy`] or
 /// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
+#[doc(alias = "Murmur3_128")]
 #[derive(Clone, Debug)]
-pub struct Murmur3_128 {
+pub struct Murmur3X64_128 {
     seed: u32,
     hash: [u64; 2],
     buffer: [u8; 16],
@@ -349,7 +332,7 @@ pub struct Murmur3_128 {
     total_len: u64,
 }
 
-impl Murmur3_128 {
+impl Murmur3X64_128 {
     /// Creates a state with seed zero.
     #[must_use]
     pub const fn new() -> Self {
@@ -366,13 +349,6 @@ impl Murmur3_128 {
             buffered: 0,
             total_len: 0,
         }
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u32) -> u128 {
-        murmur3_128(input, seed)
     }
 
     /// Adds raw bytes to the hash state.
@@ -405,16 +381,10 @@ impl Murmur3_128 {
     }
 
     /// Returns the digest without consuming the state.
+    #[doc(alias = "finish_128")]
     #[must_use]
     pub fn digest(&self) -> u128 {
         finish_128(self.hash, &self.buffer[..self.buffered], self.total_len)
-    }
-
-    /// Alias for [`digest`](Self::digest).
-    #[must_use]
-    #[inline]
-    pub fn finish_128(&self) -> u128 {
-        self.digest()
     }
 
     /// Resets the state while retaining its seed.
@@ -435,14 +405,14 @@ impl Murmur3_128 {
     }
 }
 
-impl Default for Murmur3_128 {
+impl Default for Murmur3X64_128 {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[cfg(feature = "std")]
-impl std::io::Write for Murmur3_128 {
+impl std::io::Write for Murmur3X64_128 {
     #[inline]
     fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
         self.update(input);
@@ -462,15 +432,15 @@ mod tests {
     #[test]
     fn empty_vectors_are_zero_with_zero_seed() {
         assert_eq!(murmur3_32(b"", 0), 0);
-        assert_eq!(murmur3_128(b"", 0), 0);
+        assert_eq!(murmur3_x64_128(b"", 0), 0);
     }
 
     #[test]
     fn reset_reuses_seed() {
-        let mut hash = Murmur3_128::with_seed(42);
+        let mut hash = Murmur3X64_128::with_seed(42);
         hash.update(b"before");
         hash.reset();
         hash.update(b"after");
-        assert_eq!(hash.digest(), murmur3_128(b"after", 42));
+        assert_eq!(hash.digest(), murmur3_x64_128(b"after", 42));
     }
 }

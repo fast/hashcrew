@@ -467,7 +467,7 @@ mod murmur3_32 {
     }
 }
 
-mod murmur3_128 {
+mod murmur3_x64_128 {
     use super::*;
 
     #[divan::bench(args = SIZES)]
@@ -475,7 +475,7 @@ mod murmur3_128 {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
-            .bench(|| rache::murmur::murmur3_128(black_box(&bytes), 0));
+            .bench(|| rache::murmur::murmur3_x64_128(black_box(&bytes), 0));
     }
 
     #[divan::bench(args = SIZES)]

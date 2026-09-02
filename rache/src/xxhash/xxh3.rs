@@ -921,6 +921,7 @@ fn finalize_stream_128<K: Xxh3Kernel, S: AsRef<[u8]>>(kernel: K, state: &StreamS
 /// buffers and performs no allocation itself.
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
+#[doc(alias = "Xxh3_64")]
 #[derive(Clone)]
 pub struct Xxh3<S = [u8; DEFAULT_SECRET_SIZE]>(StreamState<S>);
 
@@ -935,36 +936,6 @@ impl Xxh3<[u8; DEFAULT_SECRET_SIZE]> {
     #[must_use]
     pub fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u64 {
-        xxh3_64(input)
-    }
-
-    /// Hashes a complete byte slice with `seed`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_seed(input: &[u8], seed: u64) -> u64 {
-        xxh3_64_with_seed(input, seed)
-    }
-
-    /// Hashes a complete byte slice with a custom secret.
-    #[inline]
-    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u64, Xxh3SecretTooShort> {
-        xxh3_64_with_secret(input, secret)
-    }
-
-    /// Hashes a complete byte slice with a seed and custom secret.
-    #[inline]
-    pub fn oneshot_with_seed_and_secret(
-        input: &[u8],
-        seed: u64,
-        secret: &[u8],
-    ) -> Result<u64, Xxh3SecretTooShort> {
-        xxh3_64_with_seed_and_secret(input, seed, secret)
     }
 }
 
@@ -1057,9 +1028,6 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3<S> {
     }
 }
 
-/// Explicitly named alias for the XXH3-64 streaming state.
-pub type Xxh3_64<S = [u8; DEFAULT_SECRET_SIZE]> = Xxh3<S>;
-
 /// Incremental XXH3-128 state.
 ///
 /// Feed byte slices with [`update`](Self::update), then call
@@ -1083,36 +1051,6 @@ impl Xxh3_128<[u8; DEFAULT_SECRET_SIZE]> {
     #[must_use]
     pub fn with_seed(seed: u64) -> Self {
         Self(StreamState::with_seed(seed))
-    }
-
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8]) -> u128 {
-        xxh3_128(input)
-    }
-
-    /// Hashes a complete byte slice with `seed`.
-    #[must_use]
-    #[inline]
-    pub fn oneshot_with_seed(input: &[u8], seed: u64) -> u128 {
-        xxh3_128_with_seed(input, seed)
-    }
-
-    /// Hashes a complete byte slice with a custom secret.
-    #[inline]
-    pub fn oneshot_with_secret(input: &[u8], secret: &[u8]) -> Result<u128, Xxh3SecretTooShort> {
-        xxh3_128_with_secret(input, secret)
-    }
-
-    /// Hashes a complete byte slice with a seed and custom secret.
-    #[inline]
-    pub fn oneshot_with_seed_and_secret(
-        input: &[u8],
-        seed: u64,
-        secret: &[u8],
-    ) -> Result<u128, Xxh3SecretTooShort> {
-        xxh3_128_with_seed_and_secret(input, seed, secret)
     }
 }
 
@@ -1139,17 +1077,11 @@ impl<S: AsRef<[u8]>> Xxh3_128<S> {
     }
 
     /// Returns the 128-bit digest without consuming the state.
+    #[doc(alias = "finish_128")]
     #[must_use]
     #[inline]
     pub fn digest(&self) -> u128 {
         self.0.digest_128()
-    }
-
-    /// Alias for [`digest`](Self::digest), matching common XXH3 APIs.
-    #[must_use]
-    #[inline]
-    pub fn finish_128(&self) -> u128 {
-        self.digest()
     }
 
     /// Resets the state while retaining its seed and secret.

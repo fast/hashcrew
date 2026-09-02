@@ -416,11 +416,6 @@ fn every_two_way_partition_matches_oneshot() {
         let expected3 = xxh3_64_with_seed(input, seed);
         let expected128 = xxh3_128_with_seed(input, seed);
 
-        assert_eq!(Xxh32::oneshot(input, seed as u32), expected32);
-        assert_eq!(Xxh64::oneshot(input, seed), expected64);
-        assert_eq!(Xxh3::oneshot_with_seed(input, seed), expected3);
-        assert_eq!(Xxh3_128::oneshot_with_seed(input, seed), expected128);
-
         for split in 0..=len {
             let mut hash32 = Xxh32::with_seed(seed as u32);
             let mut hash64 = Xxh64::with_seed(seed);

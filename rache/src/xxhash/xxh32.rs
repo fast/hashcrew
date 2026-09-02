@@ -125,13 +125,6 @@ impl Xxh32 {
         }
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u32) -> u32 {
-        xxh32(input, seed)
-    }
-
     /// Returns the seed used by this state.
     #[must_use]
     pub const fn seed(&self) -> u32 {

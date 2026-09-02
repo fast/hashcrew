@@ -148,13 +148,6 @@ impl Xxh64 {
         }
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u64) -> u64 {
-        xxh64(input, seed)
-    }
-
     /// Returns the seed used by this state.
     #[must_use]
     pub const fn seed(&self) -> u64 {
