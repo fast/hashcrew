@@ -18,9 +18,9 @@ use std::collections::HashMap;
 
 use rache::xxhash::SECRET_SIZE_MIN;
 use rache::xxhash::Xxh3_64;
-use rache::xxhash::Xxh3_128;
 use rache::xxhash::Xxh3_64Builder;
 use rache::xxhash::Xxh3_64SecretBuilder;
+use rache::xxhash::Xxh3_128;
 use rache::xxhash::Xxh32;
 use rache::xxhash::Xxh32Builder;
 use rache::xxhash::Xxh64;

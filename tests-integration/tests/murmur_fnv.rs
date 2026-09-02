@@ -24,12 +24,12 @@ use rache::fnv::fnv1a_32;
 use rache::fnv::fnv1a_32_with_offset_basis;
 use rache::fnv::fnv1a_64;
 use rache::fnv::fnv1a_64_with_offset_basis;
+use rache::murmur::Murmur3X64_128;
 use rache::murmur::Murmur3X86_32;
 use rache::murmur::Murmur3X86_32Builder;
-use rache::murmur::Murmur3X64_128;
 use rache::murmur::Murmur3X86_128;
-use rache::murmur::murmur3_x86_32;
 use rache::murmur::murmur3_x64_128;
+use rache::murmur::murmur3_x86_32;
 use rache::murmur::murmur3_x86_128;
 
 mod support;

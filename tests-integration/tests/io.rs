@@ -17,8 +17,8 @@ use std::io::Write;
 
 use rache::fnv::Fnv1a32;
 use rache::fnv::Fnv1a64;
-use rache::murmur::Murmur3X86_32;
 use rache::murmur::Murmur3X64_128;
+use rache::murmur::Murmur3X86_32;
 use rache::murmur::Murmur3X86_128;
 use rache::murmur::murmur3_x64_128;
 use rache::murmur::murmur3_x86_128;

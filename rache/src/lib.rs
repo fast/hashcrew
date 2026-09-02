@@ -39,9 +39,9 @@
 //!
 //! * Call a module-level function such as [`xxhash::xxh3_64`] when the complete byte slice is
 //!   available.
-//! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and call
-//!   `digest` when input is complete. `digest` does not consume the state, and `reset` preserves
-//!   its configuration.
+//! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and
+//!   call `digest` when input is complete. `digest` does not consume the state, and `reset`
+//!   preserves its configuration.
 //! * With the default `std` feature, use the same state as [`std::io::Write`] when bytes come from
 //!   an I/O producer.
 //! * For a Rust hash collection, pass the matching builder as its [`core::hash::BuildHasher`].
