@@ -12,15 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! xxHash family implementations and XXH3 hardware kernels.
+//! xxHash one-shot, streaming, hash-table, and XXH3 kernel APIs.
 //!
-//! The family module keeps the individual variants and the XXH3 kernel layer
-//! together under one public namespace.
+//! Use [`xxh32`] and [`Xxh32`] for XXH32, [`xxh64`] and [`Xxh64`] for XXH64,
+//! and [`xxh3_64`]/[`Xxh3`] or [`xxh3_128`]/[`Xxh3_128`] for XXH3. Every
+//! variant supports complete byte slices and bounded-memory incremental input.
+//! The 32- and 64-bit states implement [`core::hash::Hasher`] and have matching
+//! builders; the 128-bit state keeps its full `u128` result instead.
+//!
+//! XXH3 is the preferred general-purpose family for new trusted-input use. Its
+//! explicitly named configuration functions and constructors support a seed, a
+//! custom secret, or the reference algorithm's seed-and-secret routing. Custom
+//! secrets must contain at least [`SECRET_SIZE_MIN`] bytes. They change the
+//! deterministic output but do not protect attacker-controlled hash tables.
+//!
+//! With the default `std` feature, every streaming state implements
+//! [`std::io::Write`]. The [`kernel`] module reports and exposes the selected
+//! scalar or hardware XXH3 backend; ordinary callers do not need to choose one.
+//!
+//! ```
+//! use rache::xxhash::Xxh3;
+//! use rache::xxhash::xxh3_64;
+//!
+//! let mut state = Xxh3::new();
+//! state.update(b"ra");
+//! state.update(b"che");
+//! assert_eq!(state.digest(), xxh3_64(b"rache"));
+//! ```
 
-pub mod kernel;
 mod xxh3;
 mod xxh32;
 mod xxh64;
+
+pub mod kernel;
 
 pub use self::xxh3::DEFAULT_SECRET;
 pub use self::xxh3::DEFAULT_SECRET_SIZE;

@@ -13,6 +13,25 @@
 // limitations under the License.
 
 //! FNV-1a one-shot and streaming APIs with standard or custom offset bases.
+//!
+//! Call [`fnv1a_32`] or [`fnv1a_64`] for complete input. Use [`Fnv1a32`] or
+//! [`Fnv1a64`] when data arrives incrementally; both states also implement
+//! [`Hasher`] and have matching [`BuildHasher`] types for trusted-input hash
+//! collections. With the default `std` feature, they implement
+//! [`std::io::Write`] for I/O producers.
+//!
+//! A custom offset basis selects a different deterministic output namespace; it
+//! is not a security key and does not make FNV resistant to hash flooding.
+//!
+//! ```
+//! use rache::fnv::Fnv1a64;
+//! use rache::fnv::fnv1a_64;
+//!
+//! let mut state = Fnv1a64::new();
+//! state.update(b"ra");
+//! state.update(b"che");
+//! assert_eq!(state.digest(), fnv1a_64(b"rache"));
+//! ```
 
 use core::hash::BuildHasher;
 use core::hash::Hasher;

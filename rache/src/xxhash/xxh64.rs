@@ -130,13 +130,6 @@ impl Xxh64 {
         Self::with_seed(0)
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u64) -> u64 {
-        xxh64(input, seed)
-    }
-
     /// Creates an XXH64 state with `seed`.
     #[must_use]
     pub const fn with_seed(seed: u64) -> Self {
@@ -153,6 +146,13 @@ impl Xxh64 {
             total_len: 0,
             length_overflowed: false,
         }
+    }
+
+    /// Hashes a complete byte slice without constructing streaming state.
+    #[must_use]
+    #[inline]
+    pub fn oneshot(input: &[u8], seed: u64) -> u64 {
+        xxh64(input, seed)
     }
 
     /// Returns the seed used by this state.

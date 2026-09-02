@@ -14,8 +14,22 @@
 
 //! CityHash 1.1.1 one-shot APIs.
 //!
-//! CityHash depends on the complete input length and tail, so this module does
-//! not expose a streaming state that would need to retain the entire message.
+//! Use [`cityhash32`], [`cityhash64`], or [`cityhash128`] when compatibility
+//! requires the corresponding CityHash output. The 64- and 128-bit variants
+//! also provide the seeded forms defined by the reference algorithm.
+//!
+//! CityHash depends on the complete input length and tail. This module therefore
+//! accepts complete byte slices only; a streaming state would have to retain the
+//! entire message instead of providing bounded-memory incremental hashing.
+//! [`cityhash128_to_64`] reduces an existing 128-bit result and does not hash a
+//! new byte slice.
+//!
+//! ```
+//! use rache::cityhash::cityhash64_with_seed;
+//!
+//! let digest = cityhash64_with_seed(b"rache", 42);
+//! assert_ne!(digest, 0);
+//! ```
 
 use crate::fmix32;
 use crate::read_u32;

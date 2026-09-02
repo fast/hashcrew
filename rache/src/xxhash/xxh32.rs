@@ -107,13 +107,6 @@ impl Xxh32 {
         Self::with_seed(0)
     }
 
-    /// Hashes a complete byte slice without constructing streaming state.
-    #[must_use]
-    #[inline]
-    pub fn oneshot(input: &[u8], seed: u32) -> u32 {
-        xxh32(input, seed)
-    }
-
     /// Creates an XXH32 state with `seed`.
     #[must_use]
     pub const fn with_seed(seed: u32) -> Self {
@@ -130,6 +123,13 @@ impl Xxh32 {
             total_len: 0,
             length_overflowed: false,
         }
+    }
+
+    /// Hashes a complete byte slice without constructing streaming state.
+    #[must_use]
+    #[inline]
+    pub fn oneshot(input: &[u8], seed: u32) -> u32 {
+        xxh32(input, seed)
     }
 
     /// Returns the seed used by this state.

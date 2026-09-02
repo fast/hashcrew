@@ -18,8 +18,8 @@ use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
+use super::kernel;
 use super::kernel::Xxh3Kernel;
-use super::kernel::{self};
 use crate::mul128_fold64;
 use crate::read_u32;
 use crate::read_u64;

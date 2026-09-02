@@ -32,6 +32,49 @@
 //! variant when the application needs a lower collision probability than a
 //! 64-bit digest provides.
 //!
+//! # API model
+//!
+//! Choose the interface from the form of input rather than from a separate
+//! implementation:
+//!
+//! * Call a module-level function such as [`xxhash::xxh3_64`] when the complete byte slice is
+//!   available.
+//! * Construct a state such as [`xxhash::Xxh3`], call its `update` method for each slice, and call
+//!   `digest` when input is complete. `digest` does not consume the state, and `reset` preserves
+//!   its configuration.
+//! * With the default `std` feature, use the same state as [`std::io::Write`] when bytes come from
+//!   an I/O producer.
+//! * For a Rust hash collection, pass the matching builder as its [`core::hash::BuildHasher`].
+//!   These adapters consume Rust's typed [`core::hash::Hash`] encoding rather than a portable byte
+//!   serialization.
+//!
+//! Every streaming type also exposes associated `oneshot` functions that
+//! delegate to its module-level functions. They are namespaced conveniences,
+//! not a separate hashing mode.
+//!
+//! ## Capability map
+//!
+//! | Variant             | Complete input                         | Incremental state                       | Digest | [`Hasher`](core::hash::Hasher) / builder                                |
+//! |---------------------|----------------------------------------|-----------------------------------------|--------|------------------------------------------------------------------------|
+//! | CityHash32          | [`cityhash32`](cityhash::cityhash32)   | —                                       | `u32`  | —                                                                      |
+//! | CityHash64          | [`cityhash64`](cityhash::cityhash64)*  | —                                       | `u64`  | —                                                                      |
+//! | CityHash128         | [`cityhash128`](cityhash::cityhash128)* | —                                      | `u128` | —                                                                      |
+//! | XXH32               | [`xxh32`](xxhash::xxh32)               | [`Xxh32`](xxhash::Xxh32)                | `u32`  | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)       |
+//! | XXH64               | [`xxh64`](xxhash::xxh64)               | [`Xxh64`](xxhash::Xxh64)                | `u64`  | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)       |
+//! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*          | [`Xxh3`](xxhash::Xxh3)                  | `u64`  | [`Xxh3`](xxhash::Xxh3) / [`Xxh3Builder`](xxhash::Xxh3Builder)           |
+//! | XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*        | [`Xxh3_128`](xxhash::Xxh3_128)          | `u128` | —                                                                      |
+//! | MurmurHash3 x86_32  | [`murmur3_32`](murmur::murmur3_32)     | [`Murmur3_32`](murmur::Murmur3_32)      | `u32`  | [`Murmur3_32`](murmur::Murmur3_32) / [`Murmur3_32Builder`](murmur::Murmur3_32Builder) |
+//! | MurmurHash3 x64_128 | [`murmur3_128`](murmur::murmur3_128)   | [`Murmur3_128`](murmur::Murmur3_128)    | `u128` | —                                                                      |
+//! | FNV-1a 32           | [`fnv1a_32`](fnv::fnv1a_32)*           | [`Fnv1a32`](fnv::Fnv1a32)               | `u32`  | [`Fnv1a32`](fnv::Fnv1a32) / [`Fnv1a32Builder`](fnv::Fnv1a32Builder)     |
+//! | FNV-1a 64           | [`fnv1a_64`](fnv::fnv1a_64)*           | [`Fnv1a64`](fnv::Fnv1a64)               | `u64`  | [`Fnv1a64`](fnv::Fnv1a64) / [`Fnv1a64Builder`](fnv::Fnv1a64Builder)     |
+//!
+//! A trailing `*` indicates additional explicitly named configuration forms.
+//! [`xxhash::Xxh3SecretBuilder`] provides the custom-secret XXH3-64 hash-table
+//! adapter. The 128-bit states do not implement [`core::hash::Hasher`] because
+//! its [`finish`](core::hash::Hasher::finish) method can only return `u64`.
+//! CityHash has no streaming state because bounded-memory incremental hashing
+//! cannot reproduce its one-shot algorithm.
+//!
 //! # Feature flags
 //!
 //! The crate is dependency-free and allocation-free in every feature
@@ -94,6 +137,11 @@
 #![deny(rust_2018_idioms)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+pub mod cityhash;
+pub mod fnv;
+pub mod murmur;
+pub mod xxhash;
+
 #[cfg(test)]
 extern crate std;
 
@@ -127,8 +175,3 @@ fn mul128_fold64(lhs: u64, rhs: u64) -> u64 {
     let product = u128::from(lhs) * u128::from(rhs);
     product as u64 ^ (product >> 64) as u64
 }
-
-pub mod cityhash;
-pub mod fnv;
-pub mod murmur;
-pub mod xxhash;
