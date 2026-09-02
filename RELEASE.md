@@ -17,18 +17,19 @@ cargo x check
 cargo x test
 RUSTUP_TOOLCHAIN=1.85.0 cargo x test
 cargo x bench --no-run
-cargo +stable package -p rache --locked
-cargo +stable publish -p rache --locked --dry-run
+release_version=0.2.0
+cargo release "$release_version" --package rache
 ```
 
-Inspect `cargo +stable package -p rache --locked --list` before publishing. The archive must contain the license, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
+The `cargo release` command is a dry run unless `--execute` is present. Inspect `cargo +stable package -p rache --locked --list` before publishing. The archive must contain the license, README, third-party notices, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures.
 
 ## Publish
 
 Confirm the crate name, version, repository URL, and crates.io account before the irreversible step:
 
 ```shell
-cargo +stable publish -p rache --locked
+release_version=0.2.0
+cargo release "$release_version" --package rache --execute
 ```
 
-Create and push the matching `v<version>` tag only after crates.io confirms the release. Then verify the crate page and docs.rs build.
+This publishes the crate, creates the configured signed `v<version>` tag, and pushes the branch and tag. Do not create a second tag manually. After crates.io confirms the release, create the matching GitHub Release and verify the crate page and docs.rs build.
