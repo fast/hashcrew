@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Improve seeded XXH3 one-shot latency for long inputs and XXH32 streaming throughput on affected AArch64 toolchains.
+
 ## v0.1.0 (2026-09-02)
 
 * Provide dependency-free, allocation-free, and `no_std`-compatible implementations of CityHash32, CityHash64, CityHash128, XXH32, XXH64, XXH3-64, XXH3-128, all three reference MurmurHash3 variants, and FNV-1a 32 and 64.

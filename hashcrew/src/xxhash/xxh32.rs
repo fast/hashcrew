@@ -25,11 +25,51 @@ const PRIME3: u32 = 0xc2b2_ae3d;
 const PRIME4: u32 = 0x27d4_eb2f;
 const PRIME5: u32 = 0x1656_67b1;
 
-#[inline(always)]
-fn round(acc: u32, lane: u32) -> u32 {
-    acc.wrapping_add(lane.wrapping_mul(PRIME2))
-        .rotate_left(13)
-        .wrapping_mul(PRIME1)
+// Store each adjacent pair in reverse logical order. This keeps the input
+// multiplication outside the accumulator dependency chain in AArch64 codegen.
+#[derive(Clone, Debug)]
+struct Accumulators([u32; 4]);
+
+impl Accumulators {
+    const fn new(seed: u32) -> Self {
+        Self([
+            seed.wrapping_add(PRIME2),
+            seed.wrapping_add(PRIME1).wrapping_add(PRIME2),
+            seed.wrapping_sub(PRIME1),
+            seed,
+        ])
+    }
+
+    #[inline]
+    fn consume(&mut self, input: [u32; 4]) {
+        let [acc1, acc0, acc3, acc2] = &mut self.0;
+        let [product0, product1, product2, product3] =
+            input.map(|lane| u32::from_le(lane).wrapping_mul(PRIME2));
+        *acc0 = round_product(*acc0, product0);
+        *acc1 = round_product(*acc1, product1);
+        *acc2 = round_product(*acc2, product2);
+        *acc3 = round_product(*acc3, product3);
+    }
+
+    const fn digest(&self) -> u32 {
+        let [acc1, acc0, acc3, acc2] = self.0;
+        acc0.rotate_left(1)
+            .wrapping_add(acc1.rotate_left(7))
+            .wrapping_add(acc2.rotate_left(12))
+            .wrapping_add(acc3.rotate_left(18))
+    }
+}
+
+#[inline]
+const fn round(acc: u32, lane: u32) -> u32 {
+    round_product(acc, lane.wrapping_mul(PRIME2))
+}
+
+#[inline]
+const fn round_product(acc: u32, product: u32) -> u32 {
+    let acc = acc.wrapping_add(product);
+    let acc = acc.rotate_left(13);
+    acc.wrapping_mul(PRIME1)
 }
 
 #[inline(always)]
@@ -93,7 +133,7 @@ pub fn xxh32(input: &[u8], seed: u32) -> u32 {
 #[derive(Clone, Debug)]
 pub struct Xxh32 {
     seed: u32,
-    lanes: [u32; 4],
+    lanes: Accumulators,
     buffer: [u8; 16],
     buffered: usize,
     total_len: u64,
@@ -112,12 +152,7 @@ impl Xxh32 {
     pub const fn with_seed(seed: u32) -> Self {
         Self {
             seed,
-            lanes: [
-                seed.wrapping_add(PRIME1).wrapping_add(PRIME2),
-                seed.wrapping_add(PRIME2),
-                seed,
-                seed.wrapping_sub(PRIME1),
-            ],
+            lanes: Accumulators::new(seed),
             buffer: [0; 16],
             buffered: 0,
             total_len: 0,
@@ -147,6 +182,7 @@ impl Xxh32 {
     }
 
     /// Adds raw bytes to the hash state.
+    #[inline]
     pub fn update(&mut self, mut input: &[u8]) {
         let (total_len, overflowed) = self.total_len.overflowing_add(input.len() as u64);
         self.total_len = total_len;
@@ -165,9 +201,9 @@ impl Xxh32 {
             self.buffered = 0;
         }
 
-        while input.len() >= 16 {
-            consume_block(&mut self.lanes, &input[..16]);
-            input = &input[16..];
+        while let Some((block, rest)) = input.split_first_chunk::<16>() {
+            consume_block(&mut self.lanes, block);
+            input = rest;
         }
 
         self.buffer[..input.len()].copy_from_slice(input);
@@ -176,13 +212,10 @@ impl Xxh32 {
 
     /// Returns the XXH32 digest without consuming the state.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> u32 {
         let mut hash = if self.length_overflowed || self.total_len >= 16 {
-            self.lanes[0]
-                .rotate_left(1)
-                .wrapping_add(self.lanes[1].rotate_left(7))
-                .wrapping_add(self.lanes[2].rotate_left(12))
-                .wrapping_add(self.lanes[3].rotate_left(18))
+            self.lanes.digest()
         } else {
             self.seed.wrapping_add(PRIME5)
         };
@@ -191,12 +224,11 @@ impl Xxh32 {
     }
 }
 
-#[inline(always)]
-fn consume_block(lanes: &mut [u32; 4], block: &[u8]) {
-    lanes[0] = round(lanes[0], read_u32(block, 0));
-    lanes[1] = round(lanes[1], read_u32(block, 4));
-    lanes[2] = round(lanes[2], read_u32(block, 8));
-    lanes[3] = round(lanes[3], read_u32(block, 12));
+#[inline]
+fn consume_block(lanes: &mut Accumulators, block: &[u8; 16]) {
+    // SAFETY: `block` contains exactly four initialized `u32`-sized byte ranges,
+    // and `read_unaligned` does not require the input pointer to be `u32`-aligned.
+    lanes.consume(unsafe { block.as_ptr().cast::<[u32; 4]>().read_unaligned() });
 }
 
 impl Default for Xxh32 {
@@ -270,12 +302,7 @@ mod tests {
 
         assert!(hash.length_overflowed);
         assert_eq!(hash.total_len(), u64::MAX);
-        let expected = hash.lanes[0]
-            .rotate_left(1)
-            .wrapping_add(hash.lanes[1].rotate_left(7))
-            .wrapping_add(hash.lanes[2].rotate_left(12))
-            .wrapping_add(hash.lanes[3].rotate_left(18))
-            .wrapping_add(hash.total_len as u32);
+        let expected = hash.lanes.digest().wrapping_add(hash.total_len as u32);
         assert_eq!(
             hash.digest(),
             consume_tail(expected, &hash.buffer[..hash.buffered])
