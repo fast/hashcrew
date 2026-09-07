@@ -54,18 +54,7 @@ enum SubCommand {
 
 #[derive(Parser)]
 struct CommandBench {
-    #[arg(
-        long,
-        conflicts_with = "args",
-        help = "Compile benchmarks without running them."
-    )]
-    no_run: bool,
-
-    #[arg(
-        long,
-        value_name = "NAME",
-        help = "Run only the named benchmark target."
-    )]
+    #[arg(value_name = "NAME", help = "Run only the named benchmark target.")]
     bench: Option<String>,
 
     #[arg(last = true, help = "Arguments passed to the benchmark harness.")]
@@ -78,9 +67,6 @@ impl CommandBench {
         cmd.args(["bench", "--package", "benchmarks"]);
         if let Some(bench) = self.bench {
             cmd.args(["--bench", &bench]);
-        }
-        if self.no_run {
-            cmd.arg("--no-run");
         }
         if !self.args.is_empty() {
             cmd.arg("--").args(self.args);
