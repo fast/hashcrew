@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// The API organization and streaming design were informed by twox-hash 2.1.4.
+// Source adaptations are identified in the individual implementation files.
+// https://github.com/shepmaster/twox-hash/tree/6f866bffe73900c63df2650be4eed41e3ed9b500/src
+
 //! xxHash one-shot, streaming, hash-table, and XXH3 kernel APIs.
 //!
 //! Use [`xxh32`] and [`Xxh32`] for XXH32, [`xxh64`] and [`Xxh64`] for XXH64,

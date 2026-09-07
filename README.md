@@ -190,4 +190,4 @@ The policy is that the minimum Rust version required to use this crate can be in
 
 ## License and acknowledgements
 
-This project is licensed under [Apache License, Version 2.0][license-url]. See [third-party notices](THIRD_PARTY_NOTICES.md) for the specifications, implementations, and development-only comparison dependencies that informed Hashcrew.
+This project is licensed under [Apache License, Version 2.0](LICENSE). The license file also records incorporated third-party code and its copyright notices and terms.

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Implements the FNV-1a algorithm and constants specified in RFC 9923,
+// sections 2 and 5: https://www.rfc-editor.org/rfc/rfc9923.html
+
 //! FNV-1a one-shot and streaming APIs with standard or custom offset bases.
 //!
 //! Call [`fnv1a_32`] or [`fnv1a_64`] for complete input. Use [`Fnv1a32`] or
@@ -323,6 +326,8 @@ mod tests {
 
     #[test]
     fn specification_vectors_match() {
+        // Reference input/digest pairs from RFC 9923, section 8.3 (FNVhash.c):
+        // https://www.rfc-editor.org/rfc/rfc9923.html#section-8.3
         let vectors = [
             (b"".as_slice(), 0x811c_9dc5, 0xcbf2_9ce4_8422_2325),
             (b"a".as_slice(), 0xe40c_292c, 0xaf63_dc4c_8601_ec8c),

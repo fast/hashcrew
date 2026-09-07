@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Improve XXH64 streaming throughput for short chunks on affected toolchains.
+* Include upstream copyright notices and license terms for incorporated hash implementations in source distributions, with third-party terms consolidated in `LICENSE`.
 
 ## v0.1.1 (2026-09-02)
 

@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Portions of this implementation are derived from xxHash's xxhash.h.
+// Copyright (C) 2012-2023 Yann Collet
+// Hashcrew's modifications are Apache-2.0; the derived portions remain BSD-2-Clause.
+// See LICENSE for the full upstream terms.
+// Reference source (xxHash 0.8.3):
+// https://github.com/Cyan4973/xxHash/blob/e626a72bc2321cd320e953a0ccf1584cad60f363/xxhash.h
+
 //! XXH32 one-shot and streaming APIs.
 
 use core::hash::BuildHasher;

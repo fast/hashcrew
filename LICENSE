@@ -200,3 +200,141 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+THIRD-PARTY WORKS
+
+Hashcrew contains code derived or adapted from the works identified below.
+The Apache-2.0 source headers apply to Hashcrew's original code and
+modifications; they do not replace the copyright notices and license terms
+applicable to the incorporated portions.
+
+Local paths in this section are relative to the hashcrew package directory
+(hashcrew/ in the repository, or the root of the published crate archive).
+
+xxHash
+
+Portions of the following files are derived from the xxHash reference
+implementation in xxhash.h, including its constants and default XXH3 secret:
+
+  src/xxhash/xxh32.rs
+  src/xxhash/xxh64.rs
+  src/xxhash/xxh3.rs
+  src/xxhash/kernel/scalar.rs
+  src/xxhash/kernel/neon.rs
+  src/xxhash/kernel/x86.rs
+  src/lib.rs (mul128_fold64)
+
+The fixed source reference for these routines is xxHash 0.8.3:
+
+  https://github.com/Cyan4973/xxHash/blob/e626a72bc2321cd320e953a0ccf1584cad60f363/xxhash.h
+
+Hashcrew adapts these routines to Rust slice-based APIs, incremental states,
+and a separate XXH3 kernel interface. The upstream source carries the
+following copyright notice and BSD 2-Clause License:
+
+Copyright (C) 2012-2023 Yann Collet
+
+BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following disclaimer
+     in the documentation and/or other materials provided with the
+     distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+twox-hash
+
+Portions of the XXH3 SIMD kernels are adapted from twox-hash 2.1.4. Each local
+path is followed by its upstream source paths:
+
+  src/xxhash/kernel/neon.rs
+    src/xxhash3/large/neon.rs
+  src/xxhash/kernel/x86.rs
+    src/xxhash3/large/sse2.rs
+    src/xxhash3/large/avx2.rs
+
+The fixed upstream revision is:
+
+  https://github.com/shepmaster/twox-hash/tree/6f866bffe73900c63df2650be4eed41e3ed9b500
+
+The NEON adaptation includes four-lane accumulation, the scheduling barrier,
+and 64-by-32-bit multiplication. The x86 adaptation covers stripe
+accumulation; scrambling follows xxHash's SIMD routines. Hashcrew uses its
+own kernel interface and backend selection.
+
+twox-hash is licensed under the MIT License:
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Jake Goulding
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+CityHash
+
+The hash cores in src/cityhash/mod.rs are ported from the non-CRC functions
+in CityHash 1.1.1's src/city.cc and Hash128to64 in src/city.h. The fixed source
+references are:
+
+  https://github.com/google/cityhash/blob/f5dc54147fcce12cefd16548c8e760d68ac04226/src/city.cc
+  https://github.com/google/cityhash/blob/f5dc54147fcce12cefd16548c8e760d68ac04226/src/city.h
+
+Hashcrew translates these routines to Rust slice-based APIs and represents
+128-bit results as u128. The upstream sources credit:
+
+  CityHash, by Geoff Pike and Jyrki Alakuijala
+
+CityHash is licensed under the MIT License:
+
+Copyright (c) 2011 Google, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

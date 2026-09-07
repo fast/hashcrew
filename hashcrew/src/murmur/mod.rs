@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// The hash cores are ported from Austin Appleby's reference implementation.
+// MurmurHash3 was written by Austin Appleby, and is placed in the public
+// domain. The author hereby disclaims copyright to this source code.
+// Modified for Hashcrew's Rust APIs and incremental hashing.
+// Reference source:
+// https://github.com/aappleby/smhasher/blob/07bb4de10a63e8cc2e1724865454eba635742383/src/MurmurHash3.cpp
+
 //! MurmurHash3 x86_32, x86_128, and x64_128 one-shot and streaming APIs.
 //!
 //! [`murmur3_x86_32`] and [`Murmur3X86_32`] produce the x86_32 variant;
