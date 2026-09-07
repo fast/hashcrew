@@ -171,12 +171,14 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Use the repository workflow commands to run them:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. Use `cargo x --help` to list the workflows, or run tests and benchmarks with:
 
 ```shell
 cargo x test
 cargo x bench
 ```
+
+See the [release guide](RELEASE.md) for checks on stable and the MSRV.
 
 ## Correctness
 
