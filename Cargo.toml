@@ -44,8 +44,10 @@ which = { version = "8.0.6" }
 xxhash-rust = { version = "0.8.18", features = ["xxh3", "xxh32", "xxh64"] }
 
 [workspace.lints.rust]
+missing_debug_implementations = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
 unknown_lints = "deny"
-unsafe_op_in_unsafe_fn = "deny"
+unsafe_op_in_unsafe_fn = "forbid"
 
 [workspace.lints.clippy]
 dbg_macro = "deny"
