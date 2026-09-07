@@ -9,10 +9,10 @@ Only the `hashcrew` workspace package is published. Benchmarks, examples, and in
 3. Run the release-comparison inputs in the [benchmark guide](benchmarks/README.md) when performance-relevant code changed.
 4. Require every CI job to pass.
 
-Run the local release gate:
+Run the local release gate. `cargo x lint` runs Clippy and rustfmt with nightly:
 
 ```shell
-cargo +stable x lint
+cargo x lint
 cargo +stable x check
 cargo +stable x build --locked
 cargo +stable x test
