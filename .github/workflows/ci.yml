@@ -210,7 +210,12 @@ jobs:
       - name: Test package
         shell: bash
         run: |
-          package_dir="$(find target/package -mindepth 1 -maxdepth 1 -type d -name 'hashcrew-*' -print -quit)"
-          test -n "$package_dir"
+          package_dir="$(cargo metadata --format-version 1 --no-deps | jq -er '
+            .target_directory as $target
+            | .packages[]
+            | select(.name == "hashcrew")
+            | "\($target)/package/\(.name)-\(.version)"
+          ')"
+          test -f "$package_dir/Cargo.toml"
           cargo test --manifest-path "$package_dir/Cargo.toml" --all-features --locked
           cargo test --manifest-path "$package_dir/Cargo.toml" --no-default-features --locked
