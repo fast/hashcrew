@@ -89,12 +89,12 @@ All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/ha
 
 Hashcrew exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
 
-| Input or caller                                      | Interface                                                               | What it does                                                                                       |
-|------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| One complete byte slice                              | A module-level function such as `xxh3_64(input)`                        | Computes and returns the digest immediately without constructing a state.                          |
-| Byte slices arriving incrementally                   | A state such as `Xxh3_64`: construct, call `update`, then call `digest` | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
-| A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature  | Treats every written byte as input; finish the producer, then call `digest` separately.            |
-| A Rust hash collection or generic `Hash` caller      | A state through `Hasher`, usually constructed by its matching builder   | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                    |
+| Input or caller                                        | Interface                                                                 | What it does                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| One complete byte slice                                | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                            |
+| Byte slices arriving incrementally                     | A state such as `Xxh3_64`: construct, call `update`, then call `digest`   | Retains bounded working state; `digest` reads the current result and allows further updates.         |
+| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.              |
+| A Rust hash collection or generic `Hash` caller        | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                      |
 
 `Hasher` only supports a `u64` result, so 128-bit states deliberately preserve their complete output: MD5 returns `[u8; 16]` in standard digest byte order, while the other 128-bit algorithms return `u128`. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
 

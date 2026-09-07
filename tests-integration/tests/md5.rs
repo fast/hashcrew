@@ -51,14 +51,13 @@ fn padding_and_block_boundaries_match_reference() {
 #[test]
 fn randomized_streams_match_reference() {
     let mut random = 0xbb67_ae85_84ca_a73b;
-    let mut state = Md5::new();
     for case in 0..128 {
         let len = next_random(&mut random) as usize % (128 * 1_024);
         let bytes = random_input(&mut random, len);
         let expected: [u8; 16] = ReferenceMd5::digest(&bytes).into();
         assert_eq!(md5(&bytes), expected, "one-shot case={case} length={len}");
 
-        state.reset();
+        let mut state = Md5::new();
         let mut reference = ReferenceMd5::new();
         let mut offset = 0;
         while offset < len {

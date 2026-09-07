@@ -73,11 +73,6 @@ impl Md5 {
         }
     }
 
-    /// Resets the state to hash a new message.
-    pub fn reset(&mut self) {
-        *self = Self::new();
-    }
-
     /// Adds raw bytes to the hash state.
     #[inline]
     pub fn update(&mut self, mut input: &[u8]) {
@@ -104,7 +99,8 @@ impl Md5 {
         self.buffered = input.len();
     }
 
-    /// Returns the standard 16-byte MD5 digest without consuming the state.
+    /// Returns the standard 16-byte MD5 digest of all input so far.
+    /// Further updates extend the same message.
     #[must_use]
     pub fn digest(&self) -> [u8; 16] {
         let mut state = self.state;
@@ -280,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn digest_preserves_state_and_reset_starts_a_new_message() {
+    fn digest_preserves_state_for_further_updates() {
         let mut state = Md5::default();
         state.update(b"a");
         assert_eq!(
@@ -296,17 +292,6 @@ mod tests {
         assert_eq!(
             state.digest(),
             0x900150983cd24fb0d6963f7d28e17f72u128.to_be_bytes()
-        );
-
-        state.reset();
-        assert_eq!(
-            state.digest(),
-            0xd41d8cd98f00b204e9800998ecf8427eu128.to_be_bytes()
-        );
-        state.update(b"message digest");
-        assert_eq!(
-            state.digest(),
-            0xf96b697d7cb7938d525a2f31aaf161d0u128.to_be_bytes()
         );
     }
 }
