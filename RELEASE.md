@@ -21,7 +21,7 @@ release_version=0.1.0
 cargo release "$release_version" --package hashcrew
 ```
 
-The `cargo release` command is a dry run unless `--execute` is present. Inspect `cargo +stable package -p hashcrew --locked --list` before publishing. The archive must contain `LICENSE` with the applicable third-party terms, README, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures. Keep `hashcrew/LICENSE` identical to the root `LICENSE`, and check the license entries against the source-file attributions when incorporating or updating third-party code.
+The `cargo release` command is a dry run unless `--execute` is present. Inspect `cargo +stable package -p hashcrew --locked --list` before publishing. The archive must contain `LICENSE` with the applicable third-party terms, README, manifest, lockfile, and library sources, without workspace benchmarks or integration-test fixtures. The crate's `LICENSE` is a symbolic link to the root license. Update the root file and check its entries against the source-file attributions when incorporating or updating third-party code.
 
 ## Publish
 

@@ -192,7 +192,6 @@ jobs:
       - name: Validate package contents
         shell: bash
         run: |
-          cmp LICENSE hashcrew/LICENSE
           package_files="$(cargo package --package hashcrew --locked --list)"
           for required in Cargo.lock Cargo.toml README.md LICENSE src/lib.rs; do
             grep -Fxq "$required" <<< "$package_files" || {
