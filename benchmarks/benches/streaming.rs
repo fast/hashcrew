@@ -36,6 +36,37 @@ const CASES: &[(usize, usize)] = &[
     (1_024 * 1_024, 64 * 1_024),
 ];
 
+mod md5 {
+    use super::*;
+
+    #[divan::bench(args = CASES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = hashcrew::md5::Md5::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.digest()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn rustcrypto(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        use ::md5::Digest;
+        use ::md5::Md5;
+
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = Md5::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+}
+
 mod xxh32 {
     use super::*;
 

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Support standard 16-byte MD5 digests for compatibility with existing formats and protocols, with one-shot hashing, incremental updates, non-consuming digest reads, reset, and `std::io::Write` integration.
+
 ## v0.1.2 (2026-09-07)
 
 * Improve XXH64 streaming throughput for short chunks on affected toolchains.

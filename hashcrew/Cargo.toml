@@ -14,7 +14,7 @@
 
 [package]
 categories = ["algorithms", "no-std"]
-description = "Fast, portable non-cryptographic hashes for Rust"
+description = "Fast, portable hashing for non-cryptographic use"
 documentation = "https://docs.rs/hashcrew"
 homepage = "https://github.com/fast/hashcrew"
 keywords = ["hash", "xxhash", "cityhash", "murmurhash", "fnv"]
