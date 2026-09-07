@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Improve XXH64 streaming throughput for short chunks on affected toolchains.
+
+## v0.1.1 (2026-09-02)
+
 * Improve seeded XXH3 one-shot latency for long inputs and XXH32 streaming throughput on affected AArch64 toolchains.
 
 ## v0.1.0 (2026-09-02)

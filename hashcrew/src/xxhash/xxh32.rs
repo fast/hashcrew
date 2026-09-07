@@ -295,6 +295,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unaligned_streaming_blocks_match_oneshot() {
+        let mut storage = [0_u8; 80];
+        for (index, byte) in storage.iter_mut().enumerate() {
+            *byte = index.wrapping_mul(131).wrapping_add(17) as u8;
+        }
+
+        for offset in 0..16 {
+            for len in [15, 16, 17, 31, 32, 33, 64] {
+                let input = &storage[offset..offset + len];
+                let expected = xxh32(input, 42);
+                for split in [0, 1, 15] {
+                    let mut hash = Xxh32::with_seed(42);
+                    hash.update(&input[..split]);
+                    hash.update(&input[split..]);
+                    assert_eq!(
+                        hash.digest(),
+                        expected,
+                        "offset={offset} length={len} split={split}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn length_overflow_keeps_long_digest_mode() {
         let mut hash = Xxh32::new();
         hash.total_len = u64::MAX;

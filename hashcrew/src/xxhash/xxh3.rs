@@ -1153,6 +1153,17 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
 ///
 /// This builder is intended for trusted inputs. It does not randomize its seed
 /// and is not resistant to deliberate hash-flooding attacks.
+///
+/// ```
+/// use std::collections::HashMap;
+///
+/// use hashcrew::xxhash::Xxh3_64Builder;
+///
+/// let builder = Xxh3_64Builder::with_seed(42);
+/// let mut counts = HashMap::with_hasher(builder);
+/// counts.insert("apple", 3);
+/// assert_eq!(counts.get("apple"), Some(&3));
+/// ```
 #[derive(Clone, Copy)]
 pub struct Xxh3_64Builder {
     seed: u64,
