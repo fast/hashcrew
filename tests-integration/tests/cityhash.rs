@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Verify CityHash compatibility against reference implementations.
+
 use hashcrew::cityhash::cityhash32;
 use hashcrew::cityhash::cityhash64;
 use hashcrew::cityhash::cityhash64_with_seed;

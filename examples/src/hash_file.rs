@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Hash a file by streaming its contents into XXH3-64.
+
 use std::env;
 use std::fs::File;
 use std::io;

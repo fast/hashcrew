@@ -17,7 +17,7 @@
 //! Short XXH3 inputs use their dedicated scalar algorithms. For inputs larger
 //! than 240 bytes, `hashcrew` directly selects features guaranteed by the target.
 //! Otherwise, a `std` build caches runtime feature detection and a `no_std`
-//! build falls back to the portable scalar kernel.
+//! build uses target features, falling back to the portable scalar kernel.
 
 mod scalar;
 
@@ -54,9 +54,40 @@ impl Backend {
     pub fn is_available(self) -> bool {
         match self {
             Self::Scalar => true,
-            Self::Neon => neon_available(),
-            Self::Sse2 => sse2_available(),
-            Self::Avx2 => avx2_available(),
+            #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+            Self::Neon => {
+                #[cfg(feature = "std")]
+                {
+                    std::arch::is_aarch64_feature_detected!("neon")
+                }
+                #[cfg(not(feature = "std"))]
+                {
+                    cfg!(target_feature = "neon")
+                }
+            }
+            #[cfg(target_arch = "x86_64")]
+            Self::Sse2 => {
+                #[cfg(feature = "std")]
+                {
+                    std::arch::is_x86_feature_detected!("sse2")
+                }
+                #[cfg(not(feature = "std"))]
+                {
+                    cfg!(target_feature = "sse2")
+                }
+            }
+            #[cfg(target_arch = "x86_64")]
+            Self::Avx2 => {
+                #[cfg(feature = "std")]
+                {
+                    std::arch::is_x86_feature_detected!("avx2")
+                }
+                #[cfg(not(feature = "std"))]
+                {
+                    cfg!(target_feature = "avx2")
+                }
+            }
+            _ => false,
         }
     }
 }
@@ -64,116 +95,39 @@ impl Backend {
 /// Returns the backend automatically selected for XXH3 long inputs.
 #[must_use]
 pub fn selected_backend() -> Backend {
-    #[cfg(all(
+    if cfg!(all(
         target_arch = "aarch64",
         target_endian = "little",
         target_feature = "neon"
-    ))]
-    {
+    )) {
         Backend::Neon
-    }
-
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-    {
+    } else if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
         Backend::Avx2
-    }
+    } else {
+        #[cfg(feature = "std")]
+        {
+            use std::sync::OnceLock;
 
-    #[cfg(not(any(
-        all(
-            target_arch = "aarch64",
-            target_endian = "little",
-            target_feature = "neon"
-        ),
-        all(target_arch = "x86_64", target_feature = "avx2")
-    )))]
-    selected_backend_fallback()
+            static SELECTED: OnceLock<Backend> = OnceLock::new();
+            *SELECTED.get_or_init(detect_backend)
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            detect_backend()
+        }
+    }
 }
 
-#[cfg(not(any(
-    all(
-        target_arch = "aarch64",
-        target_endian = "little",
-        target_feature = "neon"
-    ),
-    all(target_arch = "x86_64", target_feature = "avx2")
-)))]
-fn selected_backend_fallback() -> Backend {
-    #[cfg(feature = "std")]
-    {
-        use std::sync::OnceLock;
-
-        static SELECTED: OnceLock<Backend> = OnceLock::new();
-        *SELECTED.get_or_init(detect_backend)
-    }
-
-    #[cfg(not(feature = "std"))]
-    detect_backend()
-}
-
-#[cfg(not(any(
-    all(
-        target_arch = "aarch64",
-        target_endian = "little",
-        target_feature = "neon"
-    ),
-    all(target_arch = "x86_64", target_feature = "avx2")
-)))]
 fn detect_backend() -> Backend {
-    if avx2_available() {
+    if Backend::Avx2.is_available() {
         Backend::Avx2
-    } else if sse2_available() {
+    } else if Backend::Sse2.is_available() {
         Backend::Sse2
-    } else if neon_available() {
+    } else if Backend::Neon.is_available() {
         Backend::Neon
     } else {
         Backend::Scalar
     }
-}
-
-#[inline]
-fn neon_available() -> bool {
-    #[cfg(all(feature = "std", target_arch = "aarch64", target_endian = "little"))]
-    {
-        return std::arch::is_aarch64_feature_detected!("neon");
-    }
-    #[cfg(all(
-        not(feature = "std"),
-        target_arch = "aarch64",
-        target_endian = "little"
-    ))]
-    {
-        return cfg!(target_feature = "neon");
-    }
-    #[allow(unreachable_code)]
-    false
-}
-
-#[inline]
-fn sse2_available() -> bool {
-    #[cfg(all(feature = "std", target_arch = "x86_64"))]
-    {
-        return std::arch::is_x86_feature_detected!("sse2");
-    }
-    #[cfg(all(not(feature = "std"), target_arch = "x86_64"))]
-    {
-        return cfg!(target_feature = "sse2");
-    }
-    #[allow(unreachable_code)]
-    false
-}
-
-#[inline]
-fn avx2_available() -> bool {
-    #[cfg(all(feature = "std", target_arch = "x86_64"))]
-    {
-        return std::arch::is_x86_feature_detected!("avx2");
-    }
-    #[cfg(all(not(feature = "std"), target_arch = "x86_64"))]
-    {
-        return cfg!(target_feature = "avx2");
-    }
-    #[allow(unreachable_code)]
-    false
 }
 
 pub(crate) trait Xxh3Kernel: Copy {
@@ -188,33 +142,22 @@ macro_rules! dispatch {
             $crate::xxhash::kernel::Backend::Scalar => {
                 $function($crate::xxhash::kernel::Scalar, $($argument),*)
             }
+            #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
             $crate::xxhash::kernel::Backend::Neon => {
-                #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
-                {
-                    // SAFETY: Backend selection checked the current CPU for NEON.
-                    $function(unsafe { $crate::xxhash::kernel::Neon::new_unchecked() }, $($argument),*)
-                }
-                #[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]
-                unreachable!("NEON cannot be selected on this target")
+                // SAFETY: Backend selection checked the current CPU for NEON.
+                $function(unsafe { $crate::xxhash::kernel::Neon::new_unchecked() }, $($argument),*)
             }
+            #[cfg(target_arch = "x86_64")]
             $crate::xxhash::kernel::Backend::Sse2 => {
-                #[cfg(target_arch = "x86_64")]
-                {
-                    // SAFETY: Backend selection checked the current CPU for SSE2.
-                    $function(unsafe { $crate::xxhash::kernel::Sse2::new_unchecked() }, $($argument),*)
-                }
-                #[cfg(not(target_arch = "x86_64"))]
-                unreachable!("SSE2 cannot be selected on this target")
+                // SAFETY: Backend selection checked the current CPU for SSE2.
+                $function(unsafe { $crate::xxhash::kernel::Sse2::new_unchecked() }, $($argument),*)
             }
+            #[cfg(target_arch = "x86_64")]
             $crate::xxhash::kernel::Backend::Avx2 => {
-                #[cfg(target_arch = "x86_64")]
-                {
-                    // SAFETY: Backend selection checked the current CPU for AVX2.
-                    $function(unsafe { $crate::xxhash::kernel::Avx2::new_unchecked() }, $($argument),*)
-                }
-                #[cfg(not(target_arch = "x86_64"))]
-                unreachable!("AVX2 cannot be selected on this target")
+                // SAFETY: Backend selection checked the current CPU for AVX2.
+                $function(unsafe { $crate::xxhash::kernel::Avx2::new_unchecked() }, $($argument),*)
             }
+            _ => unreachable!("backend cannot be selected on this target"),
         }
     }};
 }

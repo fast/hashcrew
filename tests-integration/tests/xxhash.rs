@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Verify xxHash compatibility and streaming behavior.
+
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 use std::collections::HashMap;

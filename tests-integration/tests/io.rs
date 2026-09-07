@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Verify the streaming hashers implement the standard I/O contracts.
+
 use std::io::Cursor;
 use std::io::Write;
 

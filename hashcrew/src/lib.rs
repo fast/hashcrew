@@ -129,19 +129,15 @@
 //! assert_eq!(state.digest(), expected);
 //! ```
 
-#![cfg_attr(not(feature = "std"), no_std)]
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
-#![deny(rust_2018_idioms)]
-#![forbid(unsafe_op_in_unsafe_fn)]
+#![no_std]
+
+#[cfg(any(test, feature = "std"))]
+extern crate std;
 
 pub mod cityhash;
 pub mod fnv;
 pub mod murmur;
 pub mod xxhash;
-
-#[cfg(test)]
-extern crate std;
 
 #[inline(always)]
 fn read_u32(input: &[u8], offset: usize) -> u32 {
