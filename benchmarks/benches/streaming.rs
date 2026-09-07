@@ -65,6 +65,34 @@ mod md5 {
             state.finalize()
         });
     }
+
+    mod digest {
+        use super::*;
+
+        const LENGTHS: &[usize] = &[0, 32, 55, 56, 63, 64];
+
+        #[divan::bench(args = LENGTHS)]
+        fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
+            let mut state = hashcrew::md5::Md5::new();
+            state.update(&input(len));
+            // Prepare fresh states outside timing, as for consuming finalization below.
+            bencher
+                .with_inputs(|| state.clone())
+                .bench_values(|state| state.digest());
+        }
+
+        #[divan::bench(args = LENGTHS)]
+        fn rustcrypto(bencher: Bencher<'_, '_>, len: usize) {
+            use ::md5::Digest;
+            use ::md5::Md5;
+
+            let mut state = Md5::new();
+            state.update(input(len));
+            bencher
+                .with_inputs(|| state.clone())
+                .bench_values(|state| state.finalize());
+        }
+    }
 }
 
 mod xxh32 {

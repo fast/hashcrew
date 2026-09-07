@@ -102,6 +102,7 @@ impl Md5 {
     /// Returns the standard 16-byte MD5 digest of all input so far.
     /// Further updates extend the same message.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> [u8; 16] {
         let mut state = self.state;
         let mut block = [0; 64];
