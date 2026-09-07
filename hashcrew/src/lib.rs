@@ -129,6 +129,7 @@
 //! assert_eq!(state.digest(), expected);
 //! ```
 
+#![deny(missing_docs)]
 #![no_std]
 
 #[cfg(any(test, feature = "std"))]

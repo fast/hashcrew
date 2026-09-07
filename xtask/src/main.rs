@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Repository build, test, and quality-check commands.
-
 use std::path::Path;
 use std::process::Command as StdCommand;
 

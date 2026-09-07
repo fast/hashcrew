@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Compare one-shot hashing throughput across implementations.
-
 use core::hash::Hasher as _;
 use std::io::Cursor;
 
