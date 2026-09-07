@@ -170,6 +170,7 @@ impl Xxh64 {
     }
 
     /// Adds raw bytes to the hash state.
+    #[inline]
     pub fn update(&mut self, mut input: &[u8]) {
         let (total_len, overflowed) = self.total_len.overflowing_add(input.len() as u64);
         self.total_len = total_len;
@@ -199,6 +200,7 @@ impl Xxh64 {
 
     /// Returns the XXH64 digest without consuming the state.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> u64 {
         let mut hash = if self.length_overflowed || self.total_len >= 32 {
             let hash = self.lanes[0]

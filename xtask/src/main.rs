@@ -54,16 +54,36 @@ enum SubCommand {
 
 #[derive(Parser)]
 struct CommandBench {
-    #[arg(long, help = "Compile benchmarks without running them.")]
+    #[arg(
+        long,
+        conflicts_with = "args",
+        help = "Compile benchmarks without running them."
+    )]
     no_run: bool,
+
+    #[arg(
+        long,
+        value_name = "NAME",
+        help = "Run only the named benchmark target."
+    )]
+    bench: Option<String>,
+
+    #[arg(last = true, help = "Arguments passed to the benchmark harness.")]
+    args: Vec<std::ffi::OsString>,
 }
 
 impl CommandBench {
     fn run(self) {
         let mut cmd = cargo();
         cmd.args(["bench", "--package", "benchmarks"]);
+        if let Some(bench) = self.bench {
+            cmd.args(["--bench", &bench]);
+        }
         if self.no_run {
             cmd.arg("--no-run");
+        }
+        if !self.args.is_empty() {
+            cmd.arg("--").args(self.args);
         }
         run_command(cmd);
     }

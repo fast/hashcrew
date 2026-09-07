@@ -28,6 +28,7 @@ fn main() {
 }
 
 const SIZES: &[usize] = &[
+    0,
     1,
     3,
     4,
