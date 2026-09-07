@@ -182,11 +182,11 @@ cargo x bench
 
 Integration tests compare CityHash, xxHash, and MurmurHash3 with independent implementations, and verify FNV-1a against RFC vectors plus an independent 64-bit implementation. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
 
-## Minimum Supported Rust Version (MSRV)
+## Minimum Rust version policy
 
-This crate is built against the latest stable release, and its minimum supported rustc version is 1.85.0.
+This crate's minimum supported `rustc` version is `1.85.0`.
 
-The minimum supported Rust version is kept unchanged in patch releases and may be raised in minor releases.
+The current policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if `crate 1.0` requires Rust 1.85.0, then `crate 1.0.z` for all values of `z` will also require Rust 1.85.0 or newer. However, `crate 1.y` for `y > 0` may require a newer minimum version of Rust.
 
 ## License and acknowledgements
 
