@@ -171,22 +171,24 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Use the repository workflow commands to run them:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. Use `cargo x --help` to list the workflows, or run tests and benchmarks with:
 
 ```shell
 cargo x test
 cargo x bench
 ```
 
+See the [release guide](RELEASE.md) for checks on stable and the MSRV.
+
 ## Correctness
 
 Integration tests compare CityHash, xxHash, and MurmurHash3 with independent implementations, and verify FNV-1a against RFC vectors plus an independent 64-bit implementation. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
 
-## Minimum Supported Rust Version (MSRV)
+## Minimum Rust version policy
 
-This crate is built against the latest stable release, and its minimum supported rustc version is 1.85.0.
+This crate's minimum supported `rustc` version is `1.85.0`.
 
-The policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if Asyncband 1.0 requires Rust 1.20.0, then Asyncband 1.0.z for all values of z will also require Rust 1.20.0 or newer. However, Asyncband 1.y for y > 0 may require a newer minimum version of Rust.
+The current policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if `crate 1.0` requires Rust 1.85.0, then `crate 1.0.z` for all values of `z` will also require Rust 1.85.0 or newer. However, `crate 1.y` for `y > 0` may require a newer minimum version of Rust.
 
 ## License and acknowledgements
 
