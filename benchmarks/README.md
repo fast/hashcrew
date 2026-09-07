@@ -42,5 +42,3 @@ The streaming cases include 32 B / 8 B chunks, 241 B / 17 B chunks, 4 KiB / 7 B 
 Pass harness options after `--`, or use `cargo x bench --no-run` to compile both targets without measuring. For example, `cargo x bench --bench streaming -- --list` lists cases and `cargo x bench --bench streaming -- --help` shows Divan options.
 
 Use a fixed toolchain and the same target features for all compared implementations. Run suites serially, repeat measurements, and compare medians; results from another CPU or compiler are not directly comparable. Constant seeds in the one-shot suite represent fixed-seed workloads and may permit compiler specialization. The suite compares Rust implementations, not the upstream C/C++ libraries. Some variants lack a comparable API in these dependencies, including seeded CityHash128, two-seed CityHash64, FNV-1a 32, and incremental MurmurHash3. Custom-secret streaming currently measures only `hashcrew`.
-
-See the [2026-09-07 review](2026-09-07-review.md) for a measured comparison, the XXH64 optimization, and remaining opportunities.
