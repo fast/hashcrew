@@ -140,6 +140,8 @@ fn randomized_murmur_inputs_match_reference() {
 
 #[test]
 fn fnv_matches_specification_and_reference() {
+    // Reference input/digest pairs from RFC 9923, section 8.3 (FNVhash.c):
+    // https://www.rfc-editor.org/rfc/rfc9923.html#section-8.3
     let vectors = [
         (b"".as_slice(), 0x811c_9dc5, 0xcbf2_9ce4_8422_2325),
         (b"a".as_slice(), 0xe40c_292c, 0xaf63_dc4c_8601_ec8c),

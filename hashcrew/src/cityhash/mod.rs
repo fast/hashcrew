@@ -12,6 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// The hash cores are ported from CityHash 1.1.1's src/city.cc and src/city.h.
+// Copyright (c) 2011 Google, Inc.
+// CityHash, by Geoff Pike and Jyrki Alakuijala
+// Hashcrew's modifications are Apache-2.0; the ported portions remain MIT-licensed.
+// See LICENSE for the full upstream terms.
+// Reference sources:
+// https://github.com/google/cityhash/blob/f5dc54147fcce12cefd16548c8e760d68ac04226/src/city.cc
+// https://github.com/google/cityhash/blob/f5dc54147fcce12cefd16548c8e760d68ac04226/src/city.h
+
 //! CityHash 1.1.1 one-shot APIs.
 //!
 //! Use [`cityhash32`], [`cityhash64`], or [`cityhash128`] when compatibility

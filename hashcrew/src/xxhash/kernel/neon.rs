@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This kernel adapts xxHash's XXH3 NEON routines and twox-hash's Rust implementation.
+// The four-lane accumulation, scheduling barrier, and 64-by-32-bit multiplication
+// follow twox-hash 2.1.4's src/xxhash3/large/neon.rs.
+// Copyright (C) 2012-2023 Yann Collet
+// Copyright (c) 2015 Jake Goulding
+// Hashcrew's modifications are Apache-2.0; the xxHash and twox-hash portions
+// retain their BSD-2-Clause and MIT terms, respectively. See LICENSE.
+// Reference sources:
+// https://github.com/Cyan4973/xxHash/blob/e626a72bc2321cd320e953a0ccf1584cad60f363/xxhash.h
+// https://github.com/shepmaster/twox-hash/blob/6f866bffe73900c63df2650be4eed41e3ed9b500/src/xxhash3/large/neon.rs
+
 use core::arch::aarch64::*;
 
 use super::Xxh3Kernel;

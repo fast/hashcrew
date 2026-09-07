@@ -156,6 +156,8 @@ fn read_u64(input: &[u8], offset: usize) -> u64 {
     u64::from_le_bytes(bytes)
 }
 
+// Ported from Austin Appleby's public-domain MurmurHash3 finalizer:
+// https://github.com/aappleby/smhasher/blob/07bb4de10a63e8cc2e1724865454eba635742383/src/MurmurHash3.cpp
 #[inline(always)]
 fn fmix32(mut value: u32) -> u32 {
     value ^= value >> 16;
@@ -165,6 +167,10 @@ fn fmix32(mut value: u32) -> u32 {
     value ^ (value >> 16)
 }
 
+// Derived from XXH3_mul128_fold64 in xxHash 0.8.3's xxhash.h:
+// https://github.com/Cyan4973/xxHash/blob/e626a72bc2321cd320e953a0ccf1584cad60f363/xxhash.h
+// Copyright (C) 2012-2023 Yann Collet. The derived portion remains BSD-2-Clause;
+// Hashcrew's modifications are Apache-2.0. See LICENSE for the full upstream terms.
 #[inline(always)]
 fn mul128_fold64(lhs: u64, rhs: u64) -> u64 {
     let product = u128::from(lhs) * u128::from(rhs);
