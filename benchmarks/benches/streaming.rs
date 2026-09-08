@@ -36,6 +36,65 @@ const CASES: &[(usize, usize)] = &[
     (1_024 * 1_024, 64 * 1_024),
 ];
 
+mod md5 {
+    use super::*;
+
+    #[divan::bench(args = CASES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = hashcrew::md5::Md5::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.digest()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn rustcrypto(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        use ::md5::Digest;
+        use ::md5::Md5;
+
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = Md5::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    mod digest {
+        use super::*;
+
+        const LENGTHS: &[usize] = &[0, 32, 55, 56, 63, 64];
+
+        #[divan::bench(args = LENGTHS)]
+        fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
+            let mut state = hashcrew::md5::Md5::new();
+            state.update(&input(len));
+            // Prepare fresh states outside timing, as for consuming finalization below.
+            bencher
+                .with_inputs(|| state.clone())
+                .bench_values(|state| state.digest());
+        }
+
+        #[divan::bench(args = LENGTHS)]
+        fn rustcrypto(bencher: Bencher<'_, '_>, len: usize) {
+            use ::md5::Digest;
+            use ::md5::Md5;
+
+            let mut state = Md5::new();
+            state.update(input(len));
+            bencher
+                .with_inputs(|| state.clone())
+                .bench_values(|state| state.finalize());
+        }
+    }
+}
+
 mod xxh32 {
     use super::*;
 

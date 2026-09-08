@@ -17,6 +17,7 @@ use std::io::Cursor;
 use std::io::Write;
 
 use hashcrew::fnv;
+use hashcrew::md5;
 use hashcrew::murmur;
 use hashcrew::xxhash;
 
@@ -45,6 +46,7 @@ fn assert_writer<W: Write, D: Debug + Eq>(
 
 #[test]
 fn streaming_states_are_standard_io_writers() {
+    assert_writer(md5::Md5::new(), md5::Md5::digest, md5::md5);
     assert_writer(fnv::Fnv1a32::new(), fnv::Fnv1a32::digest, fnv::fnv1a_32);
     assert_writer(fnv::Fnv1a64::new(), fnv::Fnv1a64::digest, fnv::fnv1a_64);
     assert_writer(

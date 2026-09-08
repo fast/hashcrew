@@ -18,7 +18,7 @@
 
 ## Overview
 
-Hashcrew is a zero-dependency Rust library for fast, deterministic, non-cryptographic hashing. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
+Hashcrew is a zero-dependency Rust library for fast, deterministic hashing in non-cryptographic applications. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
 Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends; the other algorithms use compact portable Rust cores.
 
@@ -83,45 +83,48 @@ hash.update(b"hashcrew");
 assert_eq!(hash.digest(), expected);
 ```
 
-All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), and [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
+All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/), and [`md5`](https://docs.rs/hashcrew/*/hashcrew/md5/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
 
 ## API model
 
 Hashcrew exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
 
-| Input or caller                                      | Interface                                                               | What it does                                                                                       |
-|------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| One complete byte slice                              | A module-level function such as `xxh3_64(input)`                        | Computes and returns the digest immediately without constructing a state.                          |
-| Byte slices arriving incrementally                   | A state such as `Xxh3_64`: construct, call `update`, then call `digest` | Retains bounded working state; `digest` does not consume it, and `reset` reuses its configuration. |
-| A file, socket, decoder, or another `std::io` source | The same state through `std::io::Write` with the default `std` feature  | Treats every written byte as input; finish the producer, then call `digest` separately.            |
-| A Rust hash collection or generic `Hash` caller      | A state through `Hasher`, usually constructed by its matching builder   | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                    |
+| Input or caller                                        | Interface                                                                 | What it does                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| One complete byte slice                                | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                            |
+| Byte slices arriving incrementally                     | A state such as `Xxh3_64`: construct, call `update`, then call `digest`   | Retains bounded working state; `digest` reads the current result and allows further updates.         |
+| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.              |
+| A Rust hash collection or generic `Hash` caller        | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                      |
 
-`Hasher` only supports a `u64` result, so 128-bit states deliberately expose `digest() -> u128` instead of truncating their output. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
+`Hasher` only supports a `u64` result, so 128-bit states deliberately preserve their complete output: MD5 returns `[u8; 16]` in standard digest byte order, while the other 128-bit algorithms return `u128`. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
 
 ## Algorithm and capability map
 
 The table names the canonical module-level function for complete input. A trailing `*` means the family also provides explicitly named seeded, custom-secret, or custom-offset-basis forms.
 
-| Variant             | Complete input    | Incremental state | Digest | `Hasher` / `BuildHasher`                       |
-|---------------------|-------------------|-------------------|--------|------------------------------------------------|
-| CityHash32          | `cityhash32`      | —                 | `u32`  | —                                              |
-| CityHash64          | `cityhash64*`     | —                 | `u64`  | —                                              |
-| CityHash128         | `cityhash128*`    | —                 | `u128` | —                                              |
-| XXH32               | `xxh32`           | `Xxh32`           | `u32`  | `Xxh32` / `Xxh32Builder`                       |
-| XXH64               | `xxh64`           | `Xxh64`           | `u64`  | `Xxh64` / `Xxh64Builder`                       |
-| XXH3-64             | `xxh3_64*`        | `Xxh3_64`         | `u64`  | `Xxh3_64` / `Xxh3_64Builder` or secret builder |
-| XXH3-128            | `xxh3_128*`       | `Xxh3_128`        | `u128` | —                                              |
-| MurmurHash3 x86_32  | `murmur3_x86_32`  | `Murmur3X86_32`   | `u32`  | `Murmur3X86_32` / `Murmur3X86_32Builder`       |
-| MurmurHash3 x86_128 | `murmur3_x86_128` | `Murmur3X86_128`  | `u128` | —                                              |
-| MurmurHash3 x64_128 | `murmur3_x64_128` | `Murmur3X64_128`  | `u128` | —                                              |
-| FNV-1a 32           | `fnv1a_32*`       | `Fnv1a32`         | `u32`  | `Fnv1a32` / `Fnv1a32Builder`                   |
-| FNV-1a 64           | `fnv1a_64*`       | `Fnv1a64`         | `u64`  | `Fnv1a64` / `Fnv1a64Builder`                   |
+| Variant               | Complete input      | Incremental state   | Digest     | `Hasher` / `BuildHasher`                         |
+| --------------------- | ------------------- | ------------------- | ---------- | ------------------------------------------------ |
+| CityHash32            | `cityhash32`        | —                   | `u32`      | —                                                |
+| CityHash64            | `cityhash64*`       | —                   | `u64`      | —                                                |
+| CityHash128           | `cityhash128*`      | —                   | `u128`     | —                                                |
+| XXH32                 | `xxh32`             | `Xxh32`             | `u32`      | `Xxh32` / `Xxh32Builder`                         |
+| XXH64                 | `xxh64`             | `Xxh64`             | `u64`      | `Xxh64` / `Xxh64Builder`                         |
+| XXH3-64               | `xxh3_64*`          | `Xxh3_64`           | `u64`      | `Xxh3_64` / `Xxh3_64Builder` or secret builder   |
+| XXH3-128              | `xxh3_128*`         | `Xxh3_128`          | `u128`     | —                                                |
+| MurmurHash3 x86_32    | `murmur3_x86_32`    | `Murmur3X86_32`     | `u32`      | `Murmur3X86_32` / `Murmur3X86_32Builder`         |
+| MurmurHash3 x86_128   | `murmur3_x86_128`   | `Murmur3X86_128`    | `u128`     | —                                                |
+| MurmurHash3 x64_128   | `murmur3_x64_128`   | `Murmur3X64_128`    | `u128`     | —                                                |
+| FNV-1a 32             | `fnv1a_32*`         | `Fnv1a32`           | `u32`      | `Fnv1a32` / `Fnv1a32Builder`                     |
+| FNV-1a 64             | `fnv1a_64*`         | `Fnv1a64`           | `u64`      | `Fnv1a64` / `Fnv1a64Builder`                     |
+| MD5                   | `md5`               | `Md5`               | `[u8; 16]` | —                                                |
 
 Hashcrew implements all three variants from the original MurmurHash3 family under their reference-qualified `x86_32`, `x86_128`, and `x64_128` names. These architecture labels distinguish algorithms and do not restrict which target can run them. `cityhash128_to_64` reduces an existing 128-bit CityHash value; it does not hash a new byte slice.
 
 ## Choosing an algorithm
 
 Use XXH3 for a new general-purpose checksum, cache key, or trusted-input hash table unless interoperability requires another family. Choose a 128-bit result when the application hashes enough distinct values for 64-bit collision probability to matter. XXH32, XXH64, CityHash, MurmurHash3, and FNV-1a are primarily useful for matching an existing format, protocol, or data set; their different outputs are not interchangeable.
+
+MD5 is provided for compatibility with existing formats and protocols that require its standard digest. Its cryptographic security is broken. Call `hashcrew::md5::md5(input)` for complete input, or use `hashcrew::md5::Md5` for streaming; both return the same 16 digest bytes without a RustCrypto dependency.
 
 ## Streaming input
 

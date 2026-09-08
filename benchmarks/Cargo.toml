@@ -25,6 +25,7 @@ cityhasher = { workspace = true }
 divan = { workspace = true }
 fnv = { workspace = true }
 hashcrew = { workspace = true }
+md-5 = { workspace = true }
 murmur3 = { workspace = true }
 twox-hash = { workspace = true }
 xxhash-rust = { workspace = true }

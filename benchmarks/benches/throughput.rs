@@ -49,6 +49,29 @@ const SIZES: &[usize] = &[
 ];
 const SEED: u64 = 0x0123_4567_89ab_cdef;
 
+mod md5 {
+    use super::*;
+
+    #[divan::bench(args = SIZES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| hashcrew::md5::md5(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn rustcrypto(bencher: Bencher<'_, '_>, len: usize) {
+        use ::md5::Digest;
+        use ::md5::Md5;
+
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| Md5::digest(black_box(&bytes)));
+    }
+}
+
 mod cityhash32 {
     use super::*;
 
