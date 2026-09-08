@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-* Support standard 16-byte MD5 digests for compatibility with existing formats and protocols, with one-shot hashing, incremental updates, repeatable digest reads, and `std::io::Write` integration.
+* Make each hash family opt-in through the `cityhash`, `fnv`, `md5`, `murmur`, and `xxhash` Cargo features. Enable the families your application uses in its dependency declaration; no algorithms are enabled by default. The independent `std` feature remains enabled by default.
+* Support standard 16-byte MD5 digests behind the `md5` feature for compatibility with existing formats and protocols, with one-shot hashing, incremental updates, repeatable digest reads, and `std::io::Write` integration.
 
 ## v0.1.2 (2026-09-07)
 

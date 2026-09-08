@@ -27,6 +27,7 @@ rust-version = "1.85"
 hashcrew = { path = "hashcrew" }
 
 # Crates.io dependencies
+cargo_metadata = { version = "0.19.2" }
 cityhash-rs = { version = "1.0.1" }
 cityhasher = { version = "0.1.0" }
 clap = { version = "4.6.6", features = ["derive"] }

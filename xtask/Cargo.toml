@@ -22,6 +22,7 @@ readme.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+cargo_metadata = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 which = { workspace = true }
 

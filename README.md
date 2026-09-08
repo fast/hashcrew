@@ -28,45 +28,38 @@ Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a 
 
 ## Getting started
 
+Hash families are opt-in Cargo features. For example, enable xxHash with:
+
 ```shell
-cargo add hashcrew
+cargo add hashcrew --features xxhash
 ```
 
 Disable the default `std` feature for bare-metal and other `no_std` targets:
 
 ```toml
 [dependencies]
-hashcrew = { version = "0.1", default-features = false }
+hashcrew = { version = "0.1", default-features = false, features = ["xxhash"] }
 ```
 
 Import the algorithm family when the complete input is already in memory:
 
 ```rust
-use hashcrew::{cityhash, fnv, murmur, xxhash};
+use hashcrew::xxhash::xxh3_64;
 
-let data = b"hashcrew";
-let city = cityhash::cityhash64(data);
-let xxh3 = xxhash::xxh3_64(data);
-let murmur = murmur::murmur3_x64_128(data, 42);
-let fnv = fnv::fnv1a_64(data);
-
-assert_ne!(city, 0);
-assert_ne!(xxh3, 0);
-assert_ne!(murmur, 0);
-assert_ne!(fnv, 0);
+assert_ne!(xxh3_64(b"hashcrew"), 0);
 ```
 
 Use a state type when data arrives incrementally:
 
 ```rust
-use hashcrew::murmur::Murmur3X64_128;
-use hashcrew::murmur::murmur3_x64_128;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::xxh3_64;
 
-let mut hash = Murmur3X64_128::with_seed(42);
+let mut hash = Xxh3_64::new();
 hash.update(b"hash");
 hash.update(b"crew");
 
-assert_eq!(hash.digest(), murmur3_x64_128(b"hashcrew", 42));
+assert_eq!(hash.digest(), xxh3_64(b"hashcrew"));
 ```
 
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
@@ -84,6 +77,21 @@ assert_eq!(hash.digest(), expected);
 ```
 
 All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/), and [`md5`](https://docs.rs/hashcrew/*/hashcrew/md5/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
+
+## Feature flags
+
+No hash family is enabled by default. Each family feature exposes the same-named module, including all of its variants and adapters. Enable multiple families together, such as `features = ["xxhash", "md5"]`.
+
+| Feature    | Enables                                                  | Default |
+| ---------- | -------------------------------------------------------- | ------- |
+| `cityhash` | CityHash32, CityHash64, and CityHash128                  | No      |
+| `fnv`      | FNV-1a 32 and 64                                         | No      |
+| `md5`      | MD5                                                      | No      |
+| `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128                 | No      |
+| `xxhash`   | XXH32, XXH64, XXH3-64, and XXH3-128                      | No      |
+| `std`      | `std::io::Write` adapters and XXH3 runtime CPU detection | Yes     |
+
+The `std` feature does not enable any hash family. All family features work with `default-features = false`; feature selection does not change digest values, and every configuration remains dependency-free and allocation-free.
 
 ## API model
 

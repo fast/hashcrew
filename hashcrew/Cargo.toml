@@ -29,10 +29,17 @@ rust-version.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]
 std = []
+
+cityhash = []
+fnv = []
+md5 = []
+murmur = []
+xxhash = []
 
 [lints]
 workspace = true

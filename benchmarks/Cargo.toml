@@ -24,7 +24,13 @@ cityhash-rs = { workspace = true }
 cityhasher = { workspace = true }
 divan = { workspace = true }
 fnv = { workspace = true }
-hashcrew = { workspace = true }
+hashcrew = { workspace = true, features = [
+  "cityhash",
+  "fnv",
+  "md5",
+  "murmur",
+  "xxhash",
+] }
 md-5 = { workspace = true }
 murmur3 = { workspace = true }
 twox-hash = { workspace = true }

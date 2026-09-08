@@ -1053,8 +1053,8 @@ impl<S: AsRef<[u8]>> std::io::Write for Xxh3_64<S> {
 ///
 /// Feed byte slices with [`update`](Self::update), then call
 /// [`digest`](Self::digest) without consuming the state. With the default
-/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
-/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// `std` feature, the state can also receive bytes from [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or
+/// another [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)-based producer. It does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.

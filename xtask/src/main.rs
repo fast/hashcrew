@@ -105,8 +105,14 @@ struct CommandCheck;
 
 impl CommandCheck {
     fn run(self) {
-        run_command(make_check_cmd(false));
-        run_command(make_check_cmd(true));
+        let families = family_features();
+        for std in [false, true] {
+            run_command(make_check_cmd(&[], std));
+            for family in families.chunks(1) {
+                run_command(make_check_cmd(family, std));
+            }
+            run_command(make_check_cmd(&families, std));
+        }
     }
 }
 
@@ -125,6 +131,7 @@ impl CommandTest {
 
         let mut no_std = cargo();
         no_std.args(["test", "--package", PACKAGE_NAME, "--no-default-features"]);
+        no_std.args(["--features", &family_features().join(",")]);
         add_test_output_args(&mut no_std, self.no_capture);
         run_command(no_std);
 
@@ -188,7 +195,25 @@ fn add_test_output_args(cmd: &mut StdCommand, no_capture: bool) {
     }
 }
 
-fn make_check_cmd(all_features: bool) -> StdCommand {
+fn family_features() -> Vec<String> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .manifest_path(Path::new(env!("CARGO_WORKSPACE_DIR")).join("Cargo.toml"))
+        .no_deps()
+        .exec()
+        .expect("failed to read workspace metadata");
+    let package = metadata
+        .packages
+        .into_iter()
+        .find(|package| package.name == PACKAGE_NAME)
+        .expect("failed to find hashcrew package");
+    package
+        .features
+        .into_keys()
+        .filter(|feature| !matches!(feature.as_str(), "default" | "std"))
+        .collect()
+}
+
+fn make_check_cmd(features: &[String], std: bool) -> StdCommand {
     let mut cmd = cargo();
     cmd.env("RUSTFLAGS", "-D warnings");
     cmd.args([
@@ -198,8 +223,11 @@ fn make_check_cmd(all_features: bool) -> StdCommand {
         "--all-targets",
         "--no-default-features",
     ]);
-    if all_features {
-        cmd.arg("--all-features");
+    for feature in features {
+        cmd.args(["--features", feature]);
+    }
+    if std {
+        cmd.args(["--features", "std"]);
     }
     cmd
 }
