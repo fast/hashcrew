@@ -184,7 +184,7 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc; its documentation check uses all features and the same `docsrs` configuration as docs.rs. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc; it checks documentation with no features and each family individually, then generates all-feature documentation with the same `docsrs` configuration as docs.rs. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
 
 ```shell
 cargo x check

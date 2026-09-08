@@ -230,6 +230,15 @@ impl CommandLint {
         run_command(make_typos_cmd());
         run_command(make_hawkeye_cmd(self.fix));
         run_command(make_doc_cmd());
+        for family in family_features() {
+            let mut cmd = make_doc_cmd();
+            cmd.args(["--features", &family]);
+            run_command(cmd);
+        }
+        let mut docsrs = make_doc_cmd();
+        docsrs.env("RUSTDOCFLAGS", "-D warnings --cfg docsrs");
+        docsrs.arg("--all-features");
+        run_command(docsrs);
     }
 }
 
@@ -341,13 +350,13 @@ fn make_taplo_cmd(fix: bool) -> StdCommand {
 
 fn make_doc_cmd() -> StdCommand {
     let mut cmd = cargo();
-    cmd.env("RUSTDOCFLAGS", "-D warnings --cfg docsrs");
+    cmd.env("RUSTDOCFLAGS", "-D warnings");
     cmd.args([
         "+nightly",
         "doc",
         "--package",
         PACKAGE_NAME,
-        "--all-features",
+        "--no-default-features",
         "--no-deps",
     ]);
     cmd
