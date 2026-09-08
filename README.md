@@ -38,7 +38,7 @@ No features are enabled by default, and every family works in `no_std` builds. E
 
 ```toml
 [dependencies]
-hashcrew = { version = "0.1", features = ["std", "xxhash"] }
+hashcrew = { version = "0.2", features = ["std", "xxhash"] }
 ```
 
 Import the algorithm family when the complete input is already in memory:
