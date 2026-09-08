@@ -14,11 +14,11 @@
 
 //! Fast, portable hashing for non-cryptographic use.
 //!
-//! APIs are grouped by family under `cityhash`, `xxhash`, `murmur`, `fnv`,
-//! and `md5`. Each module requires its same-named Cargo feature; no family is
-//! enabled by default. Use free functions for complete byte slices and state types for
-//! incremental input. CityHash is intentionally one-shot. Outputs that fit in
-//! 64 bits also implement [`core::hash::Hasher`].
+//! APIs are grouped by family under [`cityhash`], [`fnv`], [`md5`], [`murmur`],
+//! and [`xxhash`]. No features are enabled by default; each family requires its
+//! same-named Cargo feature. Use free functions for complete byte slices and
+//! state types for incremental input. CityHash is intentionally one-shot.
+//! Streaming states with 32- or 64-bit digests also implement [`core::hash::Hasher`].
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
 //! [`core::hash`] adapters use Rust's native typed encodings and are not a
@@ -40,36 +40,36 @@
 //! Choose the interface from the form of input rather than from a separate
 //! implementation:
 //!
-//! * Call a module-level function such as `xxhash::xxh3_64` when the complete byte slice is
+//! * Call a module-level function such as [`xxhash::xxh3_64`] when the complete byte slice is
 //!   available.
-//! * Construct a state such as `xxhash::Xxh3_64`, call its `update` method for each slice, and call
-//!   `digest` to read the current result. Further updates extend the same message.
-//! * With the default `std` feature, use the same state as [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
-//!   when bytes come from an I/O producer.
+//! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and
+//!   call `digest` to read the current result. Further updates extend the same message.
+//! * With the `std` feature, use the same state as [`std::io::Write`] when bytes come from an I/O
+//!   producer.
 //! * For a Rust hash collection, pass the matching builder as its [`core::hash::BuildHasher`].
 //!   These adapters consume Rust's typed [`core::hash::Hash`] encoding rather than a portable byte
 //!   serialization.
 //!
 //! ## Capability map
 //!
-//! | Variant             | Complete input    | Incremental state | Digest     | [`Hasher`](core::hash::Hasher) / builder |
-//! | ------------------- | ----------------- | ----------------- | ---------- | ---------------------------------------- |
-//! | CityHash32          | `cityhash32`      | —                 | `u32`      | —                                        |
-//! | CityHash64          | `cityhash64`*     | —                 | `u64`      | —                                        |
-//! | CityHash128         | `cityhash128`*    | —                 | `u128`     | —                                        |
-//! | XXH32               | `xxh32`           | `Xxh32`           | `u32`      | `Xxh32` / `Xxh32Builder`                 |
-//! | XXH64               | `xxh64`           | `Xxh64`           | `u64`      | `Xxh64` / `Xxh64Builder`                 |
-//! | XXH3-64             | `xxh3_64`*        | `Xxh3_64`         | `u64`      | `Xxh3_64` / `Xxh3_64Builder`             |
-//! | XXH3-128            | `xxh3_128`*       | `Xxh3_128`        | `u128`     | —                                        |
-//! | MurmurHash3 x86_32  | `murmur3_x86_32`  | `Murmur3X86_32`   | `u32`      | `Murmur3X86_32` / `Murmur3X86_32Builder` |
-//! | MurmurHash3 x86_128 | `murmur3_x86_128` | `Murmur3X86_128`  | `u128`     | —                                        |
-//! | MurmurHash3 x64_128 | `murmur3_x64_128` | `Murmur3X64_128`  | `u128`     | —                                        |
-//! | FNV-1a 32           | `fnv1a_32`*       | `Fnv1a32`         | `u32`      | `Fnv1a32` / `Fnv1a32Builder`             |
-//! | FNV-1a 64           | `fnv1a_64`*       | `Fnv1a64`         | `u64`      | `Fnv1a64` / `Fnv1a64Builder`             |
-//! | MD5                 | `md5`             | `Md5`             | `[u8; 16]` | —                                        |
+//! | Variant             | Complete input                               | Incremental state                          | Digest     | [`Hasher`](core::hash::Hasher) / builder                                                          |
+//! | ------------------- | -------------------------------------------- | ------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------- |
+//! | CityHash32          | [`cityhash32`](cityhash::cityhash32)         | —                                          | `u32`      | —                                                                                                 |
+//! | CityHash64          | [`cityhash64`](cityhash::cityhash64)*        | —                                          | `u64`      | —                                                                                                 |
+//! | CityHash128         | [`cityhash128`](cityhash::cityhash128)*      | —                                          | `u128`     | —                                                                                                 |
+//! | XXH32               | [`xxh32`](xxhash::xxh32)                     | [`Xxh32`](xxhash::Xxh32)                   | `u32`      | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)                                 |
+//! | XXH64               | [`xxh64`](xxhash::xxh64)                     | [`Xxh64`](xxhash::Xxh64)                   | `u64`      | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)                                 |
+//! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*                | [`Xxh3_64`](xxhash::Xxh3_64)               | `u64`      | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3_64Builder`](xxhash::Xxh3_64Builder)                         |
+//! | XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*              | [`Xxh3_128`](xxhash::Xxh3_128)             | `u128`     | —                                                                                                 |
+//! | MurmurHash3 x86_32  | [`murmur3_x86_32`](murmur::murmur3_x86_32)   | [`Murmur3X86_32`](murmur::Murmur3X86_32)   | `u32`      | [`Murmur3X86_32`](murmur::Murmur3X86_32) / [`Murmur3X86_32Builder`](murmur::Murmur3X86_32Builder) |
+//! | MurmurHash3 x86_128 | [`murmur3_x86_128`](murmur::murmur3_x86_128) | [`Murmur3X86_128`](murmur::Murmur3X86_128) | `u128`     | —                                                                                                 |
+//! | MurmurHash3 x64_128 | [`murmur3_x64_128`](murmur::murmur3_x64_128) | [`Murmur3X64_128`](murmur::Murmur3X64_128) | `u128`     | —                                                                                                 |
+//! | FNV-1a 32           | [`fnv1a_32`](fnv::fnv1a_32)*                 | [`Fnv1a32`](fnv::Fnv1a32)                  | `u32`      | [`Fnv1a32`](fnv::Fnv1a32) / [`Fnv1a32Builder`](fnv::Fnv1a32Builder)                               |
+//! | FNV-1a 64           | [`fnv1a_64`](fnv::fnv1a_64)*                 | [`Fnv1a64`](fnv::Fnv1a64)                  | `u64`      | [`Fnv1a64`](fnv::Fnv1a64) / [`Fnv1a64Builder`](fnv::Fnv1a64Builder)                               |
+//! | MD5                 | [`md5`](md5::md5)                            | [`Md5`](md5::Md5)                          | `[u8; 16]` | —                                                                                                 |
 //!
 //! A trailing `*` indicates additional explicitly named configuration forms.
-//! `xxhash::Xxh3_64SecretBuilder` provides the custom-secret XXH3-64 hash-table
+//! [`xxhash::Xxh3_64SecretBuilder`] provides the custom-secret XXH3-64 hash-table
 //! adapter. The 128-bit states do not implement [`core::hash::Hasher`] because
 //! its [`finish`](core::hash::Hasher::finish) method can only return `u64`.
 //! MD5 returns its standard 16 digest bytes; the other 128-bit algorithms return
@@ -80,8 +80,8 @@
 //!
 //! # Feature flags
 //!
-//! Enable only the families an application uses. Each family feature exposes
-//! its same-named module with all variants and adapters:
+//! No features are enabled by default. Enable the families an application uses;
+//! each family feature exposes its same-named module:
 //!
 //! | Feature    | Hash family                              |
 //! | ---------- | ---------------------------------------- |
@@ -96,15 +96,15 @@
 //! hashcrew = { version = "0.1", features = ["xxhash", "md5"] }
 //! ```
 //!
-//! The independent `std` feature is enabled by default. It integrates enabled
-//! streaming states with [`std::io`](https://doc.rust-lang.org/std/io/index.html) and enables runtime CPU-feature detection
-//! for XXH3, but does not enable any hash family. Disable default features for
-//! `no_std` targets; hardware kernels are then selected only from features
-//! guaranteed by the target, with scalar code as the fallback:
+//! All families work without `std`. Enable the independent `std` feature for
+//! [`std::io::Write`] adapters and XXH3 runtime CPU-feature detection. It does
+//! not enable any hash family. Without it, XXH3 selects hardware kernels only
+//! from features guaranteed by the target, with scalar code as the fallback.
+//! For example, enable xxHash with standard I/O integration using:
 //!
 //! ```toml
 //! [dependencies]
-//! hashcrew = { version = "0.1", default-features = false, features = ["xxhash"] }
+//! hashcrew = { version = "0.1", features = ["std", "xxhash"] }
 //! ```
 //!
 //! The crate is dependency-free and allocation-free in every configuration.
@@ -113,8 +113,8 @@
 //! # Streaming input
 //!
 //! Call `update` when the application already receives byte slices. With the
-//! default `std` feature, every incremental state can also be the destination
-//! of [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or another producer that writes to [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+//! `std` feature, every incremental state can also be the destination of
+//! [`std::io::copy`] or another producer that accepts [`std::io::Write`].
 //! Bytes written to the state become hash input: `write` accepts the complete
 //! buffer, and `flush` has no work to perform. Obtain the digest separately
 //! after the producer finishes.
@@ -161,6 +161,9 @@
 
 #[cfg(any(test, feature = "std"))]
 extern crate std;
+
+#[cfg(feature = "std")]
+mod io;
 
 #[cfg(feature = "cityhash")]
 #[cfg_attr(docsrs, doc(cfg(feature = "cityhash")))]

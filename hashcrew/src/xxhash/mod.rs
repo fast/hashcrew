@@ -30,9 +30,9 @@
 //! secrets must contain at least [`SECRET_SIZE_MIN`] bytes. They change the
 //! deterministic output but do not protect attacker-controlled hash tables.
 //!
-//! With the default `std` feature, every streaming state implements
-//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html). The [`kernel`] module reports and exposes the selected
-//! scalar or hardware XXH3 backend; ordinary callers do not need to choose one.
+//! Enable the `std` feature for [`std::io::Write`] integration and runtime
+//! CPU-feature detection. The [`kernel`] module reports the selected scalar or
+//! hardware XXH3 backend; ordinary callers do not need to choose one.
 //!
 //! ```
 //! use hashcrew::xxhash::Xxh3_64;

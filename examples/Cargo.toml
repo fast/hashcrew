@@ -20,7 +20,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-hashcrew = { workspace = true, features = ["xxhash"] }
+hashcrew = { workspace = true, features = ["std", "xxhash"] }
 
 [[bin]]
 name = "hash-file"

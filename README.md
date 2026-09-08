@@ -34,11 +34,11 @@ Hash families are opt-in Cargo features. For example, enable xxHash with:
 cargo add hashcrew --features xxhash
 ```
 
-Disable the default `std` feature for bare-metal and other `no_std` targets:
+No features are enabled by default, and every family works in `no_std` builds. Enable `std` explicitly when you need standard I/O adapters or XXH3 runtime CPU detection:
 
 ```toml
 [dependencies]
-hashcrew = { version = "0.1", default-features = false, features = ["xxhash"] }
+hashcrew = { version = "0.1", features = ["std", "xxhash"] }
 ```
 
 Import the algorithm family when the complete input is already in memory:
@@ -80,18 +80,18 @@ All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/ha
 
 ## Feature flags
 
-No hash family is enabled by default. Each family feature exposes the same-named module, including all of its variants and adapters. Enable multiple families together, such as `features = ["xxhash", "md5"]`.
+No features are enabled by default. Each family feature exposes its same-named module. Enable multiple families together, such as `features = ["xxhash", "md5"]`, and add `std` when its adapters or runtime CPU detection are needed.
 
-| Feature    | Enables                                                  | Default |
-| ---------- | -------------------------------------------------------- | ------- |
-| `cityhash` | CityHash32, CityHash64, and CityHash128                  | No      |
-| `fnv`      | FNV-1a 32 and 64                                         | No      |
-| `md5`      | MD5                                                      | No      |
-| `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128                 | No      |
-| `xxhash`   | XXH32, XXH64, XXH3-64, and XXH3-128                      | No      |
-| `std`      | `std::io::Write` adapters and XXH3 runtime CPU detection | Yes     |
+| Feature    | Enables                                                  |
+| ---------- | -------------------------------------------------------- |
+| `cityhash` | CityHash32, CityHash64, and CityHash128                  |
+| `fnv`      | FNV-1a 32 and 64                                         |
+| `md5`      | MD5                                                      |
+| `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128                 |
+| `xxhash`   | XXH32, XXH64, XXH3-64, and XXH3-128                      |
+| `std`      | `std::io::Write` adapters and XXH3 runtime CPU detection |
 
-The `std` feature does not enable any hash family. All family features work with `default-features = false`; feature selection does not change digest values, and every configuration remains dependency-free and allocation-free.
+The `std` feature does not enable any hash family. All families work without it; feature selection does not change digest values, and every configuration remains dependency-free and allocation-free.
 
 ## API model
 
@@ -101,7 +101,7 @@ Hashcrew exposes the same algorithm at different integration boundaries. Pick th
 | ------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | One complete byte slice                                | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                            |
 | Byte slices arriving incrementally                     | A state such as `Xxh3_64`: construct, call `update`, then call `digest`   | Retains bounded working state; `digest` reads the current result and allows further updates.         |
-| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.              |
+| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the `std` feature            | Treats every written byte as input; finish the producer, then call `digest` separately.              |
 | A Rust hash collection or generic `Hash` caller        | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                      |
 
 `Hasher` only supports a `u64` result, so 128-bit states deliberately preserve their complete output: MD5 returns `[u8; 16]` in standard digest byte order, while the other 128-bit algorithms return `u128`. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
@@ -136,7 +136,7 @@ MD5 is provided for compatibility with existing formats and protocols that requi
 
 ## Streaming input
 
-Call `update` when the application already has byte slices, as in the getting-started example above. With the default `std` feature, every streaming state can also be used as the destination of `std::io::copy` or another producer that accepts `std::io::Write`.
+Call `update` when the application already has byte slices, as in the getting-started example above. With the `std` feature, every streaming state can also be used as the destination of `std::io::copy` or another producer that accepts `std::io::Write`.
 
 The adapter treats every written byte as hash input; it accepts the complete buffer and has nothing to flush. It does not write the digest anywhere. Finish the producer first, then call `digest` on the state:
 
@@ -182,7 +182,7 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc; its documentation check uses all features and the same `docsrs` configuration as docs.rs. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
 
 ```shell
 cargo x check

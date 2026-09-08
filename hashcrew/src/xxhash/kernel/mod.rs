@@ -16,8 +16,9 @@
 //!
 //! Short XXH3 inputs use their dedicated scalar algorithms. For inputs larger
 //! than 240 bytes, `hashcrew` directly selects features guaranteed by the target.
-//! Otherwise, a `std` build caches runtime feature detection and a `no_std`
-//! build uses target features, falling back to the portable scalar kernel.
+//! With the `std` feature, other builds cache runtime CPU-feature detection.
+//! Without it, selection uses target features and falls back to the portable
+//! scalar kernel.
 
 mod scalar;
 

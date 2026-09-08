@@ -341,8 +341,9 @@ fn make_taplo_cmd(fix: bool) -> StdCommand {
 
 fn make_doc_cmd() -> StdCommand {
     let mut cmd = cargo();
-    cmd.env("RUSTDOCFLAGS", "-D warnings");
+    cmd.env("RUSTDOCFLAGS", "-D warnings --cfg docsrs");
     cmd.args([
+        "+nightly",
         "doc",
         "--package",
         PACKAGE_NAME,
