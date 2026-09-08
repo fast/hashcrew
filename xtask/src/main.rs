@@ -87,9 +87,12 @@ struct CommandBuild {
 impl CommandBuild {
     fn run(self) {
         let mut cmd = cargo();
+        // Windows locks the running xtask executable, which is already built.
         cmd.args([
             "build",
             "--workspace",
+            "--exclude",
+            env!("CARGO_PKG_NAME"),
             "--all-features",
             "--tests",
             "--examples",
