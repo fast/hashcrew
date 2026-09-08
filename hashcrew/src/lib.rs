@@ -14,8 +14,8 @@
 
 //! Fast, portable hashing for non-cryptographic use.
 //!
-//! APIs are grouped by family under [`cityhash`], [`fnv`], [`md5`], [`murmur`],
-//! and [`xxhash`]. No features are enabled by default; each family requires its
+//! APIs are grouped by family under `cityhash`, `fnv`, `md5`, `murmur`,
+//! and `xxhash`. No features are enabled by default; each family requires its
 //! same-named Cargo feature. Use free functions for complete byte slices and
 //! state types for incremental input. CityHash is intentionally one-shot.
 //! Streaming states with 32- or 64-bit digests also implement [`core::hash::Hasher`].
@@ -43,10 +43,10 @@
 //! Choose the interface from the form of input rather than from a separate
 //! implementation:
 //!
-//! * Call a module-level function such as [`xxhash::xxh3_64`] when the complete byte slice is
+//! * Call a module-level function such as `xxhash::xxh3_64` when the complete byte slice is
 //!   available.
-//! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and
-//!   call `digest` to read the current result. Further updates extend the same message.
+//! * Construct a state such as `xxhash::Xxh3_64`, call its `update` method for each slice, and call
+//!   `digest` to read the current result. Further updates extend the same message.
 //! * With the `std` feature, use the same state as [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
 //!   for an I/O producer.
 //! * For a Rust hash collection, pass the matching builder as its [`core::hash::BuildHasher`].
@@ -55,24 +55,42 @@
 //!
 //! ## Capability map
 //!
+//! The table lists the variants enabled in this build. Enable a family's Cargo
+//! feature to include its APIs and documentation.
+//!
 //! | Variant             | Complete input                               | Incremental state                          | Digest     | [`Hasher`](core::hash::Hasher) / builder                                                          |
 //! | ------------------- | -------------------------------------------- | ------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-//! | CityHash32          | [`cityhash32`](cityhash::cityhash32)         | —                                          | `u32`      | —                                                                                                 |
-//! | CityHash64          | [`cityhash64`](cityhash::cityhash64)*        | —                                          | `u64`      | —                                                                                                 |
-//! | CityHash128         | [`cityhash128`](cityhash::cityhash128)*      | —                                          | `u128`     | —                                                                                                 |
-//! | XXH32               | [`xxh32`](xxhash::xxh32)                     | [`Xxh32`](xxhash::Xxh32)                   | `u32`      | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)                                 |
-//! | XXH64               | [`xxh64`](xxhash::xxh64)                     | [`Xxh64`](xxhash::Xxh64)                   | `u64`      | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)                                 |
-//! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*                | [`Xxh3_64`](xxhash::Xxh3_64)               | `u64`      | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3_64Builder`](xxhash::Xxh3_64Builder)                         |
-//! | XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*              | [`Xxh3_128`](xxhash::Xxh3_128)             | `u128`     | —                                                                                                 |
-//! | MurmurHash3 x86_32  | [`murmur3_x86_32`](murmur::murmur3_x86_32)   | [`Murmur3X86_32`](murmur::Murmur3X86_32)   | `u32`      | [`Murmur3X86_32`](murmur::Murmur3X86_32) / [`Murmur3X86_32Builder`](murmur::Murmur3X86_32Builder) |
-//! | MurmurHash3 x86_128 | [`murmur3_x86_128`](murmur::murmur3_x86_128) | [`Murmur3X86_128`](murmur::Murmur3X86_128) | `u128`     | —                                                                                                 |
-//! | MurmurHash3 x64_128 | [`murmur3_x64_128`](murmur::murmur3_x64_128) | [`Murmur3X64_128`](murmur::Murmur3X64_128) | `u128`     | —                                                                                                 |
-//! | FNV-1a 32           | [`fnv1a_32`](fnv::fnv1a_32)*                 | [`Fnv1a32`](fnv::Fnv1a32)                  | `u32`      | [`Fnv1a32`](fnv::Fnv1a32) / [`Fnv1a32Builder`](fnv::Fnv1a32Builder)                               |
-//! | FNV-1a 64           | [`fnv1a_64`](fnv::fnv1a_64)*                 | [`Fnv1a64`](fnv::Fnv1a64)                  | `u64`      | [`Fnv1a64`](fnv::Fnv1a64) / [`Fnv1a64Builder`](fnv::Fnv1a64Builder)                               |
-//! | MD5                 | [`md5`](md5::md5)                            | [`Md5`](md5::Md5)                          | `[u8; 16]` | —                                                                                                 |
+#![cfg_attr(
+    feature = "cityhash",
+    doc = "| CityHash32          | [`cityhash32`](cityhash::cityhash32)         | —                                          | `u32`      | —                                                                                                 |
+| CityHash64          | [`cityhash64`](cityhash::cityhash64)*        | —                                          | `u64`      | —                                                                                                 |
+| CityHash128         | [`cityhash128`](cityhash::cityhash128)*      | —                                          | `u128`     | —                                                                                                 |"
+)]
+#![cfg_attr(
+    feature = "xxhash",
+    doc = "| XXH32               | [`xxh32`](xxhash::xxh32)                     | [`Xxh32`](xxhash::Xxh32)                   | `u32`      | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)                                 |
+| XXH64               | [`xxh64`](xxhash::xxh64)                     | [`Xxh64`](xxhash::Xxh64)                   | `u64`      | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)                                 |
+| XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*                | [`Xxh3_64`](xxhash::Xxh3_64)               | `u64`      | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3_64Builder`](xxhash::Xxh3_64Builder)                         |
+| XXH3-128            | [`xxh3_128`](xxhash::xxh3_128)*              | [`Xxh3_128`](xxhash::Xxh3_128)             | `u128`     | —                                                                                                 |"
+)]
+#![cfg_attr(
+    feature = "murmur",
+    doc = "| MurmurHash3 x86_32  | [`murmur3_x86_32`](murmur::murmur3_x86_32)   | [`Murmur3X86_32`](murmur::Murmur3X86_32)   | `u32`      | [`Murmur3X86_32`](murmur::Murmur3X86_32) / [`Murmur3X86_32Builder`](murmur::Murmur3X86_32Builder) |
+| MurmurHash3 x86_128 | [`murmur3_x86_128`](murmur::murmur3_x86_128) | [`Murmur3X86_128`](murmur::Murmur3X86_128) | `u128`     | —                                                                                                 |
+| MurmurHash3 x64_128 | [`murmur3_x64_128`](murmur::murmur3_x64_128) | [`Murmur3X64_128`](murmur::Murmur3X64_128) | `u128`     | —                                                                                                 |"
+)]
+#![cfg_attr(
+    feature = "fnv",
+    doc = "| FNV-1a 32           | [`fnv1a_32`](fnv::fnv1a_32)*                 | [`Fnv1a32`](fnv::Fnv1a32)                  | `u32`      | [`Fnv1a32`](fnv::Fnv1a32) / [`Fnv1a32Builder`](fnv::Fnv1a32Builder)                               |
+| FNV-1a 64           | [`fnv1a_64`](fnv::fnv1a_64)*                 | [`Fnv1a64`](fnv::Fnv1a64)                  | `u64`      | [`Fnv1a64`](fnv::Fnv1a64) / [`Fnv1a64Builder`](fnv::Fnv1a64Builder)                               |"
+)]
+#![cfg_attr(
+    feature = "md5",
+    doc = "| MD5                 | [`md5`](md5::md5)                            | [`Md5`](md5::Md5)                          | `[u8; 16]` | —                                                                                                 |"
+)]
 //!
 //! A trailing `*` indicates additional explicitly named configuration forms.
-//! [`xxhash::Xxh3_64SecretBuilder`] provides the custom-secret XXH3-64 hash-table
+//! `xxhash::Xxh3_64SecretBuilder` provides the custom-secret XXH3-64 hash-table
 //! adapter. The 128-bit states do not implement [`core::hash::Hasher`] because
 //! its [`finish`](core::hash::Hasher::finish) method can only return `u64`.
 //! MD5 returns its standard 16 digest bytes; the other 128-bit algorithms return
