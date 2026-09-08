@@ -28,45 +28,38 @@ Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a 
 
 ## Getting started
 
+Hash families are opt-in Cargo features. For example, enable xxHash with:
+
 ```shell
-cargo add hashcrew
+cargo add hashcrew --features xxhash
 ```
 
-Disable the default `std` feature for bare-metal and other `no_std` targets:
+No features are enabled by default, and every family works in `no_std` builds. Enable `std` explicitly when you need standard I/O adapters or XXH3 runtime CPU detection:
 
 ```toml
 [dependencies]
-hashcrew = { version = "0.1", default-features = false }
+hashcrew = { version = "0.1", features = ["std", "xxhash"] }
 ```
 
 Import the algorithm family when the complete input is already in memory:
 
 ```rust
-use hashcrew::{cityhash, fnv, murmur, xxhash};
+use hashcrew::xxhash::xxh3_64;
 
-let data = b"hashcrew";
-let city = cityhash::cityhash64(data);
-let xxh3 = xxhash::xxh3_64(data);
-let murmur = murmur::murmur3_x64_128(data, 42);
-let fnv = fnv::fnv1a_64(data);
-
-assert_ne!(city, 0);
-assert_ne!(xxh3, 0);
-assert_ne!(murmur, 0);
-assert_ne!(fnv, 0);
+assert_ne!(xxh3_64(b"hashcrew"), 0);
 ```
 
 Use a state type when data arrives incrementally:
 
 ```rust
-use hashcrew::murmur::Murmur3X64_128;
-use hashcrew::murmur::murmur3_x64_128;
+use hashcrew::xxhash::Xxh3_64;
+use hashcrew::xxhash::xxh3_64;
 
-let mut hash = Murmur3X64_128::with_seed(42);
+let mut hash = Xxh3_64::new();
 hash.update(b"hash");
 hash.update(b"crew");
 
-assert_eq!(hash.digest(), murmur3_x64_128(b"hashcrew", 42));
+assert_eq!(hash.digest(), xxh3_64(b"hashcrew"));
 ```
 
 Custom XXH3 secrets can be borrowed or moved into the streaming state. Owning the storage is useful when a factory or component needs to return a self-contained hasher:
@@ -85,6 +78,21 @@ assert_eq!(hash.digest(), expected);
 
 All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/), and [`md5`](https://docs.rs/hashcrew/*/hashcrew/md5/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
 
+## Feature flags
+
+No features are enabled by default. Each family feature exposes its same-named module. Enable multiple families together, such as `features = ["xxhash", "md5"]`, and add `std` when its adapters or runtime CPU detection are needed.
+
+| Feature    | Enables                                                  |
+| ---------- | -------------------------------------------------------- |
+| `cityhash` | CityHash32, CityHash64, and CityHash128                  |
+| `fnv`      | FNV-1a 32 and 64                                         |
+| `md5`      | MD5                                                      |
+| `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128                 |
+| `xxhash`   | XXH32, XXH64, XXH3-64, and XXH3-128                      |
+| `std`      | `std::io::Write` adapters and XXH3 runtime CPU detection |
+
+The `std` feature does not enable any hash family. All families work without it; feature selection does not change digest values, and every configuration remains dependency-free and allocation-free.
+
 ## API model
 
 Hashcrew exposes the same algorithm at different integration boundaries. Pick the narrowest interface that matches where the bytes come from:
@@ -93,7 +101,7 @@ Hashcrew exposes the same algorithm at different integration boundaries. Pick th
 | ------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | One complete byte slice                                | A module-level function such as `xxh3_64(input)`                          | Computes and returns the digest immediately without constructing a state.                            |
 | Byte slices arriving incrementally                     | A state such as `Xxh3_64`: construct, call `update`, then call `digest`   | Retains bounded working state; `digest` reads the current result and allows further updates.         |
-| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the default `std` feature    | Treats every written byte as input; finish the producer, then call `digest` separately.              |
+| A file, socket, decoder, or another `std::io` source   | The same state through `std::io::Write` with the `std` feature            | Treats every written byte as input; finish the producer, then call `digest` separately.              |
 | A Rust hash collection or generic `Hash` caller        | A state through `Hasher`, usually constructed by its matching builder     | Accepts Rust's typed `Hash` encoding and returns a `u64` from `Hasher::finish`.                      |
 
 `Hasher` only supports a `u64` result, so 128-bit states deliberately preserve their complete output: MD5 returns `[u8; 16]` in standard digest byte order, while the other 128-bit algorithms return `u128`. CityHash has neither a state nor standard adapters because it cannot hash incrementally with bounded memory.
@@ -128,7 +136,7 @@ MD5 is provided for compatibility with existing formats and protocols that requi
 
 ## Streaming input
 
-Call `update` when the application already has byte slices, as in the getting-started example above. With the default `std` feature, every streaming state can also be used as the destination of `std::io::copy` or another producer that accepts `std::io::Write`.
+Call `update` when the application already has byte slices, as in the getting-started example above. With the `std` feature, every streaming state can also be used as the destination of `std::io::copy` or another producer that accepts `std::io::Write`.
 
 The adapter treats every written byte as hash input; it accepts the complete buffer and has nothing to flush. It does not write the digest anywhere. Finish the producer first, then call `digest` on the state:
 
@@ -174,12 +182,16 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. Use `cargo x --help` to list the workflows, or run tests and benchmarks with:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc; its documentation check uses all features and the same `docsrs` configuration as docs.rs. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
 
 ```shell
+cargo x check
 cargo x test
 cargo x bench
+cargo +nightly x miri
 ```
+
+`cargo x check` validates empty, individual, and combined family configurations with and without `std`. Cross-target checks use `--target <triple>` and compile the library; add `--no-std` for targets without the standard library, and `--rustflags "-C target-feature=..."` to validate a specific hardware backend.
 
 See the [release guide](RELEASE.md) for checks on stable and the MSRV.
 

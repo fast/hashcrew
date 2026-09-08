@@ -18,8 +18,8 @@
 //! MD5 one-shot and streaming APIs for compatibility with existing digests.
 //!
 //! Call [`md5()`] for complete input or use [`Md5`] for incremental input.
-//! Both return the standard 16 digest bytes in RFC 1321 order. With the default
-//! `std` feature, the streaming state also implements [`std::io::Write`].
+//! Both return the standard 16 digest bytes in RFC 1321 order. Enable the `std`
+//! feature to use [`Md5`] as [`std::io::Write`].
 //!
 //! MD5 is cryptographically broken. Use it only for compatibility with existing
 //! formats and protocols, not for security-sensitive applications.
@@ -128,20 +128,6 @@ impl Md5 {
 impl Default for Md5 {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::io::Write for Md5 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 

@@ -33,6 +33,7 @@ impl Command {
             SubCommand::Build(cmd) => cmd.run(),
             SubCommand::Check(cmd) => cmd.run(),
             SubCommand::Lint(cmd) => cmd.run(),
+            SubCommand::Miri(cmd) => cmd.run(),
             SubCommand::Test(cmd) => cmd.run(),
         }
     }
@@ -48,6 +49,8 @@ enum SubCommand {
     Check(CommandCheck),
     #[command(about = "Run workspace quality checks.")]
     Lint(CommandLint),
+    #[command(about = "Check memory safety with Miri.")]
+    Miri(CommandMiri),
     #[command(about = "Run workspace tests.")]
     Test(CommandTest),
 }
@@ -84,9 +87,12 @@ struct CommandBuild {
 impl CommandBuild {
     fn run(self) {
         let mut cmd = cargo();
+        // Windows locks the running xtask executable, which is already built.
         cmd.args([
             "build",
             "--workspace",
+            "--exclude",
+            env!("CARGO_PKG_NAME"),
             "--all-features",
             "--tests",
             "--examples",
@@ -101,12 +107,85 @@ impl CommandBuild {
 }
 
 #[derive(Parser)]
-struct CommandCheck;
+struct CommandCheck {
+    #[arg(
+        long,
+        value_name = "TRIPLE",
+        help = "Check the library for this target."
+    )]
+    target: Option<String>,
+
+    #[arg(long, help = "Check only configurations without std.")]
+    no_std: bool,
+
+    #[arg(
+        long,
+        value_name = "FLAGS",
+        allow_hyphen_values = true,
+        help = "Additional rustc flags for the checked library."
+    )]
+    rustflags: Option<String>,
+}
 
 impl CommandCheck {
     fn run(self) {
-        run_command(make_check_cmd(false));
-        run_command(make_check_cmd(true));
+        let families = family_features();
+        for with_std in [false, true] {
+            if with_std && self.no_std {
+                continue;
+            }
+            self.check(&[], with_std);
+            for family in families.chunks(1) {
+                self.check(family, with_std);
+            }
+            self.check(&families, with_std);
+        }
+    }
+
+    fn check(&self, features: &[String], with_std: bool) {
+        let mut cmd = cargo();
+        let mut rustflags = std::env::var_os("RUSTFLAGS").unwrap_or_default();
+        rustflags.push(" -D warnings");
+        if let Some(flags) = &self.rustflags {
+            rustflags.push(" ");
+            rustflags.push(flags);
+        }
+        cmd.env("RUSTFLAGS", rustflags);
+        cmd.args(["check", "--package", PACKAGE_NAME, "--no-default-features"]);
+        if let Some(target) = &self.target {
+            cmd.args(["--target", target]);
+        } else {
+            cmd.arg("--all-targets");
+        }
+        for feature in features {
+            cmd.args(["--features", feature]);
+        }
+        if with_std {
+            cmd.args(["--features", "std"]);
+        }
+        run_command(cmd);
+    }
+}
+
+#[derive(Parser)]
+struct CommandMiri;
+
+impl CommandMiri {
+    fn run(self) {
+        let mut cmd = cargo();
+        // Release mode keeps debug assertions from masking unsafe precondition violations.
+        cmd.args([
+            "+nightly",
+            "miri",
+            "test",
+            "--package",
+            PACKAGE_NAME,
+            "--lib",
+            "--no-default-features",
+            "--release",
+        ]);
+        cmd.args(["--features", &family_features().join(",")]);
+        run_command(cmd);
     }
 }
 
@@ -125,6 +204,7 @@ impl CommandTest {
 
         let mut no_std = cargo();
         no_std.args(["test", "--package", PACKAGE_NAME, "--no-default-features"]);
+        no_std.args(["--features", &family_features().join(",")]);
         add_test_output_args(&mut no_std, self.no_capture);
         run_command(no_std);
 
@@ -188,20 +268,22 @@ fn add_test_output_args(cmd: &mut StdCommand, no_capture: bool) {
     }
 }
 
-fn make_check_cmd(all_features: bool) -> StdCommand {
-    let mut cmd = cargo();
-    cmd.env("RUSTFLAGS", "-D warnings");
-    cmd.args([
-        "check",
-        "--package",
-        PACKAGE_NAME,
-        "--all-targets",
-        "--no-default-features",
-    ]);
-    if all_features {
-        cmd.arg("--all-features");
-    }
-    cmd
+fn family_features() -> Vec<String> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .manifest_path(Path::new(env!("CARGO_WORKSPACE_DIR")).join("Cargo.toml"))
+        .no_deps()
+        .exec()
+        .expect("failed to read workspace metadata");
+    let package = metadata
+        .packages
+        .into_iter()
+        .find(|package| package.name == PACKAGE_NAME)
+        .expect("failed to find hashcrew package");
+    package
+        .features
+        .into_keys()
+        .filter(|feature| !matches!(feature.as_str(), "default" | "std"))
+        .collect()
 }
 
 fn make_format_cmd(fix: bool) -> StdCommand {
@@ -259,8 +341,9 @@ fn make_taplo_cmd(fix: bool) -> StdCommand {
 
 fn make_doc_cmd() -> StdCommand {
     let mut cmd = cargo();
-    cmd.env("RUSTDOCFLAGS", "-D warnings");
+    cmd.env("RUSTDOCFLAGS", "-D warnings --cfg docsrs");
     cmd.args([
+        "+nightly",
         "doc",
         "--package",
         PACKAGE_NAME,

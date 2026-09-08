@@ -101,6 +101,11 @@ unsafe fn scramble_neon(acc: &mut [u64; 8], secret: &[u8; 64]) {
 #[target_feature(enable = "neon")]
 #[inline]
 unsafe fn scheduling_barrier(value: uint64x2_t) {
+    // Miri does not support inline assembly or model instruction scheduling.
+    #[cfg(miri)]
+    let _ = value;
+
+    #[cfg(not(miri))]
     // SAFETY: The empty assembly statement only creates a data dependency for
     // instruction scheduling and does not read or modify memory.
     unsafe {

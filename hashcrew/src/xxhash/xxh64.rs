@@ -253,20 +253,6 @@ impl Hasher for Xxh64 {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::io::Write for Xxh64 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
 /// Deterministic [`BuildHasher`] for [`Xxh64`].
 ///
 /// This builder is intended for trusted inputs. It does not randomize its seed

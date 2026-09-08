@@ -27,8 +27,8 @@
 //! names distinguish incompatible algorithms, not target requirements: all
 //! three implementations are portable. All forms accept a 32-bit seed.
 //!
-//! All three states support `update`, non-consuming `digest`, and `reset`, and
-//! implement [`std::io::Write`] with the default `std` feature. Only the 32-bit
+//! All three states support `update`, repeatable `digest` reads, and `reset`.
+//! Enable the `std` feature for [`std::io::Write`] integration. Only the 32-bit
 //! state implements [`Hasher`] and has a [`Murmur3X86_32Builder`], because
 //! [`Hasher::finish`] can return only `u64`.
 //!
@@ -188,20 +188,6 @@ impl Hasher for Murmur3X86_32 {
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
         self.update(bytes);
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::io::Write for Murmur3X86_32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 
@@ -392,10 +378,10 @@ pub fn murmur3_x86_128(input: &[u8], seed: u32) -> u128 {
 
 /// Incremental state for the x86_128 variant of MurmurHash3.
 ///
-/// Feed byte slices with [`update`](Self::update), then call
-/// [`digest`](Self::digest) without consuming the state. With the default
-/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
-/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// Feed byte slices with [`update`](Self::update), then read the current result
+/// with [`digest`](Self::digest). Further updates extend the same message. Enable
+/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
+/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 #[derive(Clone, Debug)]
 pub struct Murmur3X86_128 {
@@ -464,20 +450,6 @@ impl Murmur3X86_128 {
 impl Default for Murmur3X86_128 {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::io::Write for Murmur3X86_128 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 
@@ -574,10 +546,10 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 
 /// Incremental state for the 128-bit x64 variant of MurmurHash3.
 ///
-/// Feed byte slices with [`update`](Self::update), then call
-/// [`digest`](Self::digest) without consuming the state. With the default
-/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
-/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// Feed byte slices with [`update`](Self::update), then read the current result
+/// with [`digest`](Self::digest). Further updates extend the same message. Enable
+/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
+/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 #[derive(Clone, Debug)]
 pub struct Murmur3X64_128 {
@@ -648,20 +620,6 @@ impl Murmur3X64_128 {
 impl Default for Murmur3X64_128 {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::io::Write for Murmur3X64_128 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 

@@ -256,20 +256,6 @@ impl Hasher for Xxh32 {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::io::Write for Xxh32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
 /// Deterministic [`BuildHasher`] for [`Xxh32`].
 ///
 /// XXH32 only provides 32 bits of output and is usually a poor choice for a

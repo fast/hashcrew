@@ -20,7 +20,7 @@
 //! Call [`fnv1a_32`] or [`fnv1a_64`] for complete input. Use [`Fnv1a32`] or
 //! [`Fnv1a64`] when data arrives incrementally; both states also implement
 //! [`Hasher`] and have matching [`BuildHasher`] types for trusted-input hash
-//! collections. With the default `std` feature, they implement
+//! collections. Enable the `std` feature to use either state as
 //! [`std::io::Write`] for I/O producers.
 //!
 //! A custom offset basis selects a different deterministic output namespace; it
@@ -163,20 +163,6 @@ impl Hasher for Fnv1a32 {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::io::Write for Fnv1a32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
 /// Deterministic [`BuildHasher`] for [`Fnv1a32`].
 ///
 /// FNV-1a is intended for trusted inputs and is not resistant to deliberate
@@ -271,20 +257,6 @@ impl Hasher for Fnv1a64 {
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
         self.update(bytes);
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::io::Write for Fnv1a64 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 

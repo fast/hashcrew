@@ -1035,26 +1035,12 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3_64<S> {
     }
 }
 
-#[cfg(feature = "std")]
-impl<S: AsRef<[u8]>> std::io::Write for Xxh3_64<S> {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
 /// Incremental XXH3-128 state.
 ///
-/// Feed byte slices with [`update`](Self::update), then call
-/// [`digest`](Self::digest) without consuming the state. With the default
-/// `std` feature, the state can also receive bytes from [`std::io::copy`] or
-/// another [`std::io::Write`]-based producer. It does not implement [`Hasher`]
+/// Feed byte slices with [`update`](Self::update), then read the current result
+/// with [`digest`](Self::digest). Further updates extend the same message. Enable
+/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
+/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.
@@ -1135,20 +1121,6 @@ impl<S: AsRef<[u8]>> fmt::Debug for Xxh3_128<S> {
             .field("seed", &self.seed())
             .field("total_len", &self.total_len())
             .finish_non_exhaustive()
-    }
-}
-
-#[cfg(feature = "std")]
-impl<S: AsRef<[u8]>> std::io::Write for Xxh3_128<S> {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
     }
 }
 
