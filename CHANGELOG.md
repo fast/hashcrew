@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-* Improve MurmurHash3 streaming throughput for short chunks on affected toolchains without link-time optimization.
+## v0.2.0 (2026-09-08)
 
-* Make each hash family opt-in through the `cityhash`, `fnv`, `md5`, `murmur`, and `xxhash` Cargo features, with no features enabled by default. Enable the families your application uses in its dependency declaration, and enable `std` explicitly for standard I/O adapters and XXH3 runtime CPU detection.
+* **Breaking:** Make each hash family opt-in through the `cityhash`, `fnv`, `md5`, `murmur`, and `xxhash` Cargo features, with no features enabled by default. When upgrading from 0.1, enable the families your application uses and enable `std` explicitly for standard I/O adapters and XXH3 runtime CPU detection; for example, use `hashcrew = { version = "0.2", features = ["std", "xxhash"] }` for xxHash with standard I/O integration.
 * Support standard 16-byte MD5 digests behind the `md5` feature for compatibility with existing formats and protocols, with one-shot hashing, incremental updates, repeatable digest reads, and optional `std::io::Write` integration.
+* Improve MurmurHash3 streaming throughput for short chunks on affected toolchains without link-time optimization.
 
 ## v0.1.2 (2026-09-07)
 
