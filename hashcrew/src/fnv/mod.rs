@@ -304,6 +304,11 @@ mod tests {
             (b"".as_slice(), 0x811c_9dc5, 0xcbf2_9ce4_8422_2325),
             (b"a".as_slice(), 0xe40c_292c, 0xaf63_dc4c_8601_ec8c),
             (b"foobar".as_slice(), 0xbf9c_f968, 0x8594_4171_f739_67e8),
+            (
+                b"Hello!\x01\xff\xed".as_slice(),
+                0xfd9d_3881,
+                0xbd51_ea70_94ee_6fa1,
+            ),
         ];
         for (input, expected32, expected64) in vectors {
             assert_eq!(fnv1a_32(input), expected32);
