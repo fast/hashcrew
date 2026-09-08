@@ -33,6 +33,7 @@ impl Command {
             SubCommand::Build(cmd) => cmd.run(),
             SubCommand::Check(cmd) => cmd.run(),
             SubCommand::Lint(cmd) => cmd.run(),
+            SubCommand::Miri(cmd) => cmd.run(),
             SubCommand::Test(cmd) => cmd.run(),
         }
     }
@@ -48,6 +49,8 @@ enum SubCommand {
     Check(CommandCheck),
     #[command(about = "Run workspace quality checks.")]
     Lint(CommandLint),
+    #[command(about = "Check memory safety with Miri.")]
+    Miri(CommandMiri),
     #[command(about = "Run workspace tests.")]
     Test(CommandTest),
 }
@@ -101,18 +104,85 @@ impl CommandBuild {
 }
 
 #[derive(Parser)]
-struct CommandCheck;
+struct CommandCheck {
+    #[arg(
+        long,
+        value_name = "TRIPLE",
+        help = "Check the library for this target."
+    )]
+    target: Option<String>,
+
+    #[arg(long, help = "Check only configurations without std.")]
+    no_std: bool,
+
+    #[arg(
+        long,
+        value_name = "FLAGS",
+        allow_hyphen_values = true,
+        help = "Additional rustc flags for the checked library."
+    )]
+    rustflags: Option<String>,
+}
 
 impl CommandCheck {
     fn run(self) {
         let families = family_features();
-        for std in [false, true] {
-            run_command(make_check_cmd(&[], std));
-            for family in families.chunks(1) {
-                run_command(make_check_cmd(family, std));
+        for with_std in [false, true] {
+            if with_std && self.no_std {
+                continue;
             }
-            run_command(make_check_cmd(&families, std));
+            self.check(&[], with_std);
+            for family in families.chunks(1) {
+                self.check(family, with_std);
+            }
+            self.check(&families, with_std);
         }
+    }
+
+    fn check(&self, features: &[String], with_std: bool) {
+        let mut cmd = cargo();
+        let mut rustflags = std::env::var_os("RUSTFLAGS").unwrap_or_default();
+        rustflags.push(" -D warnings");
+        if let Some(flags) = &self.rustflags {
+            rustflags.push(" ");
+            rustflags.push(flags);
+        }
+        cmd.env("RUSTFLAGS", rustflags);
+        cmd.args(["check", "--package", PACKAGE_NAME, "--no-default-features"]);
+        if let Some(target) = &self.target {
+            cmd.args(["--target", target]);
+        } else {
+            cmd.arg("--all-targets");
+        }
+        for feature in features {
+            cmd.args(["--features", feature]);
+        }
+        if with_std {
+            cmd.args(["--features", "std"]);
+        }
+        run_command(cmd);
+    }
+}
+
+#[derive(Parser)]
+struct CommandMiri;
+
+impl CommandMiri {
+    fn run(self) {
+        let mut cmd = cargo();
+        // Release mode keeps debug assertions from masking unsafe precondition violations.
+        cmd.args([
+            "+nightly",
+            "miri",
+            "test",
+            "--package",
+            PACKAGE_NAME,
+            "--lib",
+            "--no-default-features",
+            "--release",
+        ]);
+        cmd.args(["--features", &family_features().join(",")]);
+        run_command(cmd);
     }
 }
 
@@ -211,25 +281,6 @@ fn family_features() -> Vec<String> {
         .into_keys()
         .filter(|feature| !matches!(feature.as_str(), "default" | "std"))
         .collect()
-}
-
-fn make_check_cmd(features: &[String], std: bool) -> StdCommand {
-    let mut cmd = cargo();
-    cmd.env("RUSTFLAGS", "-D warnings");
-    cmd.args([
-        "check",
-        "--package",
-        PACKAGE_NAME,
-        "--all-targets",
-        "--no-default-features",
-    ]);
-    for feature in features {
-        cmd.args(["--features", feature]);
-    }
-    if std {
-        cmd.args(["--features", "std"]);
-    }
-    cmd
 }
 
 fn make_format_cmd(fix: bool) -> StdCommand {

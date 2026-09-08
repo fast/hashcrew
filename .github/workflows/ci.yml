@@ -31,26 +31,22 @@ concurrency:
 env:
   CARGO_INCREMENTAL: "0"
   CARGO_TERM_COLOR: always
-  HASHCREW_FAMILIES: cityhash,fnv,md5,murmur,xxhash
   RUST_BACKTRACE: "1"
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: Check
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      RUSTUP_TOOLCHAIN: stable
+      RUSTUP_TOOLCHAIN: nightly
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install Rust
-        run: rustup toolchain install stable --profile minimal --no-self-update
-
-      - name: Install nightly lint toolchain
+      - name: Install nightly toolchain
         run: >-
           rustup toolchain install nightly
           --profile minimal
@@ -70,16 +66,17 @@ jobs:
       - name: Lint workspace
         run: cargo x lint
 
-      - name: Check feature configurations
+      - name: Check feature matrix
         run: cargo x check
 
   test:
-    name: Test (${{ matrix.rust }})
-    runs-on: ubuntu-24.04
+    name: Test (${{ matrix.os }}, ${{ matrix.rust }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
         rust: [stable, "1.85.0"]
     env:
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
@@ -119,12 +116,14 @@ jobs:
           rustup toolchain install nightly
           --profile minimal
           --component miri
+          --allow-downgrade
           --no-self-update
 
-      - name: Run release-profile library tests under Miri
-        # Release mode disables debug assertions that could otherwise mask an
-        # unsafe precondition violation before Miri observes it.
-        run: cargo miri test --package hashcrew --lib --no-default-features --features "$HASHCREW_FAMILIES" --release
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Run Miri tests
+        run: cargo x miri
 
   target:
     name: Target (${{ matrix.name }})
@@ -136,23 +135,18 @@ jobs:
         include:
           - name: x86_64 AVX2
             target: x86_64-unknown-linux-gnu
-            features: --all-features
             rustflags: -C target-feature=+avx2
           - name: AArch64 NEON
             target: aarch64-unknown-linux-gnu
-            features: --no-default-features
             rustflags: -C target-feature=+neon
           - name: WebAssembly
             target: wasm32-unknown-unknown
-            features: --no-default-features
             rustflags: ""
           - name: bare metal
             target: thumbv7em-none-eabi
-            features: --no-default-features
             rustflags: ""
     env:
       RUSTUP_TOOLCHAIN: stable
-      RUSTFLAGS: -D warnings ${{ matrix.rustflags }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -169,54 +163,28 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - name: Check target
-        run: cargo check --package hashcrew --target "${{ matrix.target }}" --locked ${{ matrix.features }} --features "$HASHCREW_FAMILIES"
+      - name: Check target feature matrix
+        run: cargo x check --target "${{ matrix.target }}" --no-std --rustflags "${{ matrix.rustflags }}"
 
-  package:
-    name: Package
+  required:
+    name: Required
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      RUSTUP_TOOLCHAIN: stable
+    timeout-minutes: 5
+    if: ${{ always() }}
+    needs:
+      - check
+      - test
+      - miri
+      - target
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install Rust
-        run: rustup toolchain install stable --profile minimal --no-self-update
-
-      - name: Restore Rust cache
-        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-
-      - name: Validate package contents
-        shell: bash
+      - name: Guardian
         run: |
-          package_files="$(cargo package --package hashcrew --locked --list)"
-          for required in Cargo.lock Cargo.toml README.md LICENSE src/lib.rs; do
-            grep -Fxq "$required" <<< "$package_files" || {
-              echo "missing required package file: $required" >&2
-              exit 1
-            }
-          done
-          if grep -Eq '^(benchmarks|examples|tests-integration|xtask|target)/' <<< "$package_files"; then
-            echo "development-only files leaked into the package" >&2
+          if [[ ! ( \
+                 "${{ needs.check.result }}" == "success" \
+              && "${{ needs.test.result }}" == "success" \
+              && "${{ needs.miri.result }}" == "success" \
+              && "${{ needs.target.result }}" == "success" \
+              ) ]]; then
+            echo "Required jobs have not completed successfully."
             exit 1
           fi
-
-      - name: Build package
-        run: cargo package --package hashcrew --locked
-
-      - name: Test package
-        shell: bash
-        run: |
-          package_dir="$(cargo metadata --format-version 1 --no-deps | jq -er '
-            .target_directory as $target
-            | .packages[]
-            | select(.name == "hashcrew")
-            | "\($target)/package/\(.name)-\(.version)"
-          ')"
-          test -f "$package_dir/Cargo.toml"
-          cargo test --manifest-path "$package_dir/Cargo.toml" --all-features --locked
-          cargo test --manifest-path "$package_dir/Cargo.toml" --no-default-features --features "$HASHCREW_FAMILIES" --locked

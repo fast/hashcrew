@@ -182,12 +182,16 @@ Target-guaranteed CPU features are selected at compile time. Other `std` builds 
 
 Runnable examples live in the [`examples`](examples) workspace crate. The [`benchmarks`](benchmarks) crate contains one-shot and streaming comparisons with independent implementations; see its [benchmark guide](benchmarks/README.md) for filters, input sizes, and the complete case matrix.
 
-Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. Use `cargo x --help` to list the workflows, or run tests and benchmarks with:
+Repository workflows use the active Rust toolchain. `cargo x lint` selects nightly for Clippy and rustfmt; its rustdoc check uses the active toolchain. `cargo x miri` also selects nightly. Use `cargo x --help` to list the workflows, or run common workflows with:
 
 ```shell
+cargo x check
 cargo x test
 cargo x bench
+cargo +nightly x miri
 ```
+
+`cargo x check` validates empty, individual, and combined family configurations with and without `std`. Cross-target checks use `--target <triple>` and compile the library; add `--no-std` for targets without the standard library, and `--rustflags "-C target-feature=..."` to validate a specific hardware backend.
 
 See the [release guide](RELEASE.md) for checks on stable and the MSRV.
 
