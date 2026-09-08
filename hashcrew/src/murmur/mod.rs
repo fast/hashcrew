@@ -32,6 +32,11 @@
 //! state implements [`Hasher`] and has a [`Murmur3X86_32Builder`], because
 //! [`Hasher::finish`] can return only `u64`.
 //!
+//! To reproduce the reference implementation's output bytes on little-endian
+//! systems, call `to_le_bytes()` on the returned integer. For both 128-bit
+//! variants this emits the first output word first. Formatting a `u128` as
+//! hexadecimal instead prints the most significant word first.
+//!
 //! ```
 //! use hashcrew::murmur::Murmur3X64_128;
 //! use hashcrew::murmur::murmur3_x64_128;

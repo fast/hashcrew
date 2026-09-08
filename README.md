@@ -174,7 +174,9 @@ XXH3 accepts custom secrets of at least 136 bytes and returns an error for short
 
 ## Portability
 
-Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use native typed encodings, including platform endianness and `usize` width, and are not a portable serialization format.
+Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use typed encodings that can vary across platforms and compiler versions. They can also add framing bytes to strings and slices, so `builder.hash_one(value)` need not match hashing `value.as_bytes()` or the slice directly. Use one-shot functions or `update` with a defined byte encoding for persistent checksums and cross-language protocols.
+
+Integer digests still need an explicit output byte order: xxHash's canonical format uses `to_be_bytes()`, while FNV's RFC format uses `to_le_bytes()`. MurmurHash3's `to_le_bytes()` reproduces the reference output on little-endian systems; for CityHash, follow the consuming format's word and byte order. MD5 already returns its standard digest bytes; its [module documentation](https://docs.rs/hashcrew/*/hashcrew/md5/#hexadecimal-output) shows how to format them as hexadecimal with leading zeroes.
 
 Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`hashcrew::xxhash::kernel::selected_backend()`](https://docs.rs/hashcrew/*/hashcrew/xxhash/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
 

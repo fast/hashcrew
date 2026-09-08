@@ -43,6 +43,14 @@
 //! state.update(b"crew");
 //! assert_eq!(state.digest(), xxh3_64(b"hashcrew"));
 //! ```
+//!
+//! # Digest representation
+//!
+//! Use the returned integer's `to_be_bytes()` for the
+//! [canonical xxHash byte format](https://github.com/Cyan4973/xxHash/blob/v0.8.3/xxhash.h).
+//! This applies to XXH32, XXH64, XXH3-64, and XXH3-128. Hexadecimal text uses
+//! the integer's usual order: `format!("{:016x}", xxh3_64(input))` for 64 bits,
+//! `:08x` for 32 bits, and `:032x` for 128 bits, preserving leading zeroes.
 
 mod xxh3;
 mod xxh32;

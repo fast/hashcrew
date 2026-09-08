@@ -26,6 +26,12 @@
 //! A custom offset basis selects a different deterministic output namespace; it
 //! is not a security key and does not make FNV resistant to hash flooding.
 //!
+//! The functions and states return integers. Use `to_le_bytes()` for the
+//! little-endian byte representation specified by
+//! [RFC 9923, section 2.3](https://www.rfc-editor.org/rfc/rfc9923.html#section-2.3).
+//! Formatting the integer as hexadecimal displays its most significant digit
+//! first, which differs from printing those little-endian bytes in order.
+//!
 //! ```
 //! use hashcrew::fnv::Fnv1a64;
 //! use hashcrew::fnv::fnv1a_64;
