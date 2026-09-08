@@ -6,23 +6,36 @@ All notable changes to this project will be documented in this file.
 
 ## v0.2.0 (2026-09-08)
 
-* **Breaking:** Make each hash family opt-in through the `cityhash`, `fnv`, `md5`, `murmur`, and `xxhash` Cargo features, with no features enabled by default. When upgrading from 0.1, enable the families your application uses and enable `std` explicitly for standard I/O adapters and XXH3 runtime CPU detection; for example, use `hashcrew = { version = "0.2", features = ["std", "xxhash"] }` for xxHash with standard I/O integration.
-* Support standard 16-byte MD5 digests behind the `md5` feature for compatibility with existing formats and protocols, with one-shot hashing, incremental updates, repeatable digest reads, and optional `std::io::Write` integration.
+### Breaking changes
+
+* Gate all hash families behind opt-in Cargo features and enable no features by default. Enable `cityhash`, `fnv`, `md5`, `murmur`, or `xxhash` for each family your application uses, and enable `std` for standard I/O adapters and XXH3 runtime CPU detection.
+
+### New features
+
+* Add MD5 behind the `md5` feature, with standard 16-byte digests, one-shot hashing, incremental updates, repeatable digest reads, and optional `std::io::Write` integration.
+
+### Improvements
+
 * Improve MurmurHash3 streaming throughput for short chunks on affected toolchains without link-time optimization.
 
 ## v0.1.2 (2026-09-07)
 
+### Improvements
+
 * Improve XXH64 streaming throughput for short chunks on affected toolchains.
-* Include upstream copyright notices and license terms for incorporated hash implementations in source distributions, with third-party terms consolidated in `LICENSE`.
+* Preserve upstream copyright notices and license terms for incorporated hash implementations in source distributions, with third-party terms consolidated in `LICENSE`.
 
 ## v0.1.1 (2026-09-02)
+
+### Improvements
 
 * Improve seeded XXH3 one-shot latency for long inputs and XXH32 streaming throughput on affected AArch64 toolchains.
 
 ## v0.1.0 (2026-09-02)
 
-* Provide dependency-free, allocation-free, and `no_std`-compatible implementations of CityHash32, CityHash64, CityHash128, XXH32, XXH64, XXH3-64, XXH3-128, all three reference MurmurHash3 variants, and FNV-1a 32 and 64.
-* Group each algorithm family under `hashcrew::{cityhash, xxhash, murmur, fnv}` with one-shot functions for complete byte slices, bounded-memory streaming states where the algorithm permits them, and matching `Hasher` and `BuildHasher` adapters for 32-bit and 64-bit states.
-* Support seeded and custom-secret XXH3, seeded CityHash, seeded MurmurHash3, custom FNV offset bases, and caller-owned or borrowed XXH3 secret storage without allocation.
-* Accelerate long-input XXH3 with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 kernels selected from target features and cached runtime detection where available.
-* Integrate streaming states with `std::io::Write` under the default `std` feature while keeping direct `update` and `digest` APIs available in every build.
+This is the initial release. It provides dependency-free, allocation-free, and `no_std`-compatible implementations of the following hash families:
+
+* CityHash32, CityHash64, and CityHash128.
+* XXH32, XXH64, XXH3-64, and XXH3-128.
+* MurmurHash3 x86_32, x86_128, and x64_128.
+* FNV-1a 32 and 64.
