@@ -199,7 +199,7 @@ See the [release guide](RELEASE.md) for checks on stable and the MSRV.
 
 ## Correctness
 
-Integration tests compare CityHash, xxHash, and MurmurHash3 with independent implementations, and verify FNV-1a against RFC vectors plus an independent 64-bit implementation. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
+Integration tests compare CityHash, xxHash, MurmurHash3, and MD5 with independent implementations. FNV-1a and MD5 also have RFC vectors in the library tests; FNV-1a 64 has an independent implementation comparison. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
 
 ## Minimum Rust version policy
 
