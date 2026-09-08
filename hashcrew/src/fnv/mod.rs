@@ -21,7 +21,7 @@
 //! [`Fnv1a64`] when data arrives incrementally; both states also implement
 //! [`Hasher`] and have matching [`BuildHasher`] types for trusted-input hash
 //! collections. Enable the `std` feature to use either state as
-//! [`std::io::Write`] for I/O producers.
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html) for I/O producers.
 //!
 //! A custom offset basis selects a different deterministic output namespace; it
 //! is not a security key and does not make FNV resistant to hash flooding.

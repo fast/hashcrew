@@ -28,7 +28,8 @@
 //! three implementations are portable. All forms accept a 32-bit seed.
 //!
 //! All three states support `update`, repeatable `digest` reads, and `reset`.
-//! Enable the `std` feature for [`std::io::Write`] integration. Only the 32-bit
+//! Enable the `std` feature for
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html) integration. Only the 32-bit
 //! state implements [`Hasher`] and has a [`Murmur3X86_32Builder`], because
 //! [`Hasher::finish`] can return only `u64`.
 //!
@@ -387,8 +388,10 @@ pub fn murmur3_x86_128(input: &[u8], seed: u32) -> u128 {
 ///
 /// Feed byte slices with [`update`](Self::update), then read the current result
 /// with [`digest`](Self::digest). Further updates extend the same message. Enable
-/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
-/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
+/// the `std` feature to receive bytes from
+/// [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or another producer
+/// that accepts [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+/// This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 #[derive(Clone, Debug)]
 pub struct Murmur3X86_128 {
@@ -557,8 +560,10 @@ pub fn murmur3_x64_128(input: &[u8], seed: u32) -> u128 {
 ///
 /// Feed byte slices with [`update`](Self::update), then read the current result
 /// with [`digest`](Self::digest). Further updates extend the same message. Enable
-/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
-/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
+/// the `std` feature to receive bytes from
+/// [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or another producer
+/// that accepts [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+/// This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 #[derive(Clone, Debug)]
 pub struct Murmur3X64_128 {

@@ -47,8 +47,8 @@
 //!   available.
 //! * Construct a state such as [`xxhash::Xxh3_64`], call its `update` method for each slice, and
 //!   call `digest` to read the current result. Further updates extend the same message.
-//! * With the `std` feature, use the same state as [`std::io::Write`] when bytes come from an I/O
-//!   producer.
+//! * With the `std` feature, use the same state as [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
+//!   for an I/O producer.
 //! * For a Rust hash collection, pass the matching builder as its [`core::hash::BuildHasher`].
 //!   These adapters consume Rust's typed [`core::hash::Hash`] encoding rather than a portable byte
 //!   serialization.
@@ -101,7 +101,8 @@
 //! ```
 //!
 //! All families work without `std`. Enable the independent `std` feature for
-//! [`std::io::Write`] adapters and XXH3 runtime CPU-feature detection. It does
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)
+//! adapters and XXH3 runtime CPU-feature detection. It does
 //! not enable any hash family. Without it, XXH3 selects hardware kernels only
 //! from features guaranteed by the target, with scalar code as the fallback.
 //! For example, enable xxHash with standard I/O integration using:
@@ -118,7 +119,9 @@
 //!
 //! Call `update` when the application already receives byte slices. With the
 //! `std` feature, every incremental state can also be the destination of
-//! [`std::io::copy`] or another producer that accepts [`std::io::Write`].
+//! [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or another
+//! producer that accepts
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 //! Bytes written to the state become hash input: `write` accepts the complete
 //! buffer, and `flush` has no work to perform. Obtain the digest separately
 //! after the producer finishes.

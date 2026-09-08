@@ -1039,8 +1039,10 @@ impl<S: AsRef<[u8]>> Hasher for Xxh3_64<S> {
 ///
 /// Feed byte slices with [`update`](Self::update), then read the current result
 /// with [`digest`](Self::digest). Further updates extend the same message. Enable
-/// the `std` feature to receive bytes from [`std::io::copy`] or another producer
-/// that accepts [`std::io::Write`]. This state does not implement [`Hasher`]
+/// the `std` feature to receive bytes from
+/// [`std::io::copy`](https://doc.rust-lang.org/std/io/fn.copy.html) or another producer
+/// that accepts [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
+/// This state does not implement [`Hasher`]
 /// because that trait cannot return a 128-bit digest.
 /// If custom storage exposes slices of different lengths across calls, hashing
 /// panics before reading the secret.

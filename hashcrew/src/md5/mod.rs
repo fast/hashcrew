@@ -19,7 +19,8 @@
 //!
 //! Call [`md5()`] for complete input or use [`Md5`] for incremental input.
 //! Both return the standard 16 digest bytes in RFC 1321 order. Enable the `std`
-//! feature to use [`Md5`] as [`std::io::Write`].
+//! feature to use [`Md5`] as
+//! [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
 //!
 //! MD5 is cryptographically broken. Use it only for compatibility with existing
 //! formats and protocols, not for security-sensitive applications.
