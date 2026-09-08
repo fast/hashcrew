@@ -166,19 +166,14 @@ extern crate std;
 mod io;
 
 #[cfg(feature = "cityhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "cityhash")))]
 pub mod cityhash;
 #[cfg(feature = "fnv")]
-#[cfg_attr(docsrs, doc(cfg(feature = "fnv")))]
 pub mod fnv;
 #[cfg(feature = "md5")]
-#[cfg_attr(docsrs, doc(cfg(feature = "md5")))]
 pub mod md5;
 #[cfg(feature = "murmur")]
-#[cfg_attr(docsrs, doc(cfg(feature = "murmur")))]
 pub mod murmur;
 #[cfg(feature = "xxhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "xxhash")))]
 pub mod xxhash;
 
 #[cfg(any(

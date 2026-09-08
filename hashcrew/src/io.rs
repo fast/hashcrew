@@ -14,152 +14,31 @@
 
 //! Standard I/O adapters for streaming hash states.
 
-#[cfg(feature = "fnv")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::fnv::Fnv1a32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
+macro_rules! impl_write {
+    ($feature:literal, $($implementation:tt)*) => {
+        #[cfg(feature = $feature)]
+        $($implementation)* {
+            #[inline]
+            fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+                self.update(input);
+                Ok(input.len())
+            }
 
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
+            #[inline]
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+    };
 }
 
-#[cfg(feature = "fnv")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::fnv::Fnv1a64 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "md5")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::md5::Md5 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "murmur")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::murmur::Murmur3X86_32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "murmur")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::murmur::Murmur3X86_128 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "murmur")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::murmur::Murmur3X64_128 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "xxhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::xxhash::Xxh32 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "xxhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::io::Write for crate::xxhash::Xxh64 {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "xxhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<S: AsRef<[u8]>> std::io::Write for crate::xxhash::Xxh3_64<S> {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "xxhash")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<S: AsRef<[u8]>> std::io::Write for crate::xxhash::Xxh3_128<S> {
-    #[inline]
-    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
-        self.update(input);
-        Ok(input.len())
-    }
-
-    #[inline]
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
+impl_write!("fnv", impl std::io::Write for crate::fnv::Fnv1a32);
+impl_write!("fnv", impl std::io::Write for crate::fnv::Fnv1a64);
+impl_write!("md5", impl std::io::Write for crate::md5::Md5);
+impl_write!("murmur", impl std::io::Write for crate::murmur::Murmur3X86_32);
+impl_write!("murmur", impl std::io::Write for crate::murmur::Murmur3X86_128);
+impl_write!("murmur", impl std::io::Write for crate::murmur::Murmur3X64_128);
+impl_write!("xxhash", impl std::io::Write for crate::xxhash::Xxh32);
+impl_write!("xxhash", impl std::io::Write for crate::xxhash::Xxh64);
+impl_write!("xxhash", impl<S: AsRef<[u8]>> std::io::Write for crate::xxhash::Xxh3_64<S>);
+impl_write!("xxhash", impl<S: AsRef<[u8]>> std::io::Write for crate::xxhash::Xxh3_128<S>);
