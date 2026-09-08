@@ -21,9 +21,12 @@
 //! Streaming states with 32- or 64-bit digests also implement [`core::hash::Hasher`].
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
-//! [`core::hash`] adapters use Rust's native typed encodings and are not a
-//! portable serialization format. These hashes are deterministic and are
-//! **not cryptographically secure**.
+//! [`core::hash`] adapters use Rust's typed encodings, which can vary across
+//! platforms and compiler versions. In particular, hashing a string or slice
+//! through [`core::hash::Hash`] can add framing bytes that a raw one-shot call
+//! does not receive. Use the free functions or `update` with an explicitly
+//! defined byte encoding for persistent checksums and cross-language protocols.
+//! These hashes are deterministic and are **not cryptographically secure**.
 //!
 //! # Choosing an algorithm
 //!
@@ -73,7 +76,8 @@
 //! adapter. The 128-bit states do not implement [`core::hash::Hasher`] because
 //! its [`finish`](core::hash::Hasher::finish) method can only return `u64`.
 //! MD5 returns its standard 16 digest bytes; the other 128-bit algorithms return
-//! `u128`.
+//! `u128`. Integer results need an explicit byte order for storage or transmission;
+//! see each family's module documentation for digest encoding.
 //! CityHash has no streaming state because bounded-memory incremental hashing
 //! cannot reproduce its one-shot algorithm. MurmurHash3's `x86` and `x64`
 //! labels distinguish incompatible algorithms, not target requirements.

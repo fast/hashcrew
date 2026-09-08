@@ -139,25 +139,7 @@ fn randomized_murmur_inputs_match_reference() {
 }
 
 #[test]
-fn fnv_matches_specification_and_reference() {
-    // Reference input/digest pairs from RFC 9923, section 8.3 (FNVhash.c):
-    // https://www.rfc-editor.org/rfc/rfc9923.html#section-8.3
-    let vectors = [
-        (b"".as_slice(), 0x811c_9dc5, 0xcbf2_9ce4_8422_2325),
-        (b"a".as_slice(), 0xe40c_292c, 0xaf63_dc4c_8601_ec8c),
-        (b"foobar".as_slice(), 0xbf9c_f968, 0x8594_4171_f739_67e8),
-        (
-            b"Hello!\x01\xff\xed".as_slice(),
-            0xfd9d_3881,
-            0xbd51_ea70_94ee_6fa1,
-        ),
-    ];
-    for (bytes, expected32, expected64) in vectors {
-        assert_eq!(fnv1a_32(bytes), expected32);
-        assert_eq!(fnv1a_64(bytes), expected64);
-        assert_eq!(fnv1a_64(bytes), reference_fnv1a_64(bytes));
-    }
-
+fn fnv_64_matches_reference() {
     for &len in LENGTHS {
         let bytes = input(len);
         assert_eq!(fnv1a_64(&bytes), reference_fnv1a_64(&bytes));

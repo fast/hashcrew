@@ -33,6 +33,19 @@
 //! state.update(b"crew");
 //! assert_eq!(state.digest(), md5(b"hashcrew"));
 //! ```
+//!
+//! # Hexadecimal output
+//!
+//! The returned bytes are already in standard MD5 order. To display the usual
+//! 32-character hexadecimal checksum, preserve that order and any leading zeroes:
+//!
+//! ```
+//! use hashcrew::md5::md5;
+//!
+//! let digest = md5(b"a");
+//! let checksum = format!("{:032x}", u128::from_be_bytes(digest));
+//! assert_eq!(checksum, "0cc175b9c0f1b6a831c399e269772661");
+//! ```
 
 use crate::read_u32;
 

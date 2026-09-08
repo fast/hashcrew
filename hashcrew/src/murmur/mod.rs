@@ -32,6 +32,11 @@
 //! state implements [`Hasher`] and has a [`Murmur3X86_32Builder`], because
 //! [`Hasher::finish`] can return only `u64`.
 //!
+//! To reproduce the reference implementation's output bytes on little-endian
+//! systems, call `to_le_bytes()` on the returned integer. For both 128-bit
+//! variants this emits the first output word first. Formatting a `u128` as
+//! hexadecimal instead prints the most significant word first.
+//!
 //! ```
 //! use hashcrew::murmur::Murmur3X64_128;
 //! use hashcrew::murmur::murmur3_x64_128;
@@ -125,6 +130,7 @@ impl Murmur3X86_32 {
     }
 
     /// Adds raw bytes to the hash state.
+    #[inline]
     pub fn update(&mut self, mut input: &[u8]) {
         self.total_len = self.total_len.wrapping_add(input.len() as u64);
 
@@ -151,6 +157,7 @@ impl Murmur3X86_32 {
 
     /// Returns the digest without consuming the state.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> u32 {
         finish_32(self.hash, &self.buffer[..self.buffered], self.total_len)
     }
@@ -412,6 +419,7 @@ impl Murmur3X86_128 {
     }
 
     /// Adds raw bytes to the hash state.
+    #[inline]
     pub fn update(&mut self, input: &[u8]) {
         update_128_state(
             &mut self.hash,
@@ -425,6 +433,7 @@ impl Murmur3X86_128 {
 
     /// Returns the digest without consuming the state.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> u128 {
         finish_x86_128(self.hash, &self.buffer[..self.buffered], self.total_len)
     }
@@ -580,6 +589,7 @@ impl Murmur3X64_128 {
     }
 
     /// Adds raw bytes to the hash state.
+    #[inline]
     pub fn update(&mut self, input: &[u8]) {
         update_128_state(
             &mut self.hash,
@@ -595,6 +605,7 @@ impl Murmur3X64_128 {
 
     /// Returns the digest without consuming the state.
     #[must_use]
+    #[inline]
     pub fn digest(&self) -> u128 {
         finish_x64_128(self.hash, &self.buffer[..self.buffered], self.total_len)
     }
