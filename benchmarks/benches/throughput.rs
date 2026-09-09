@@ -49,6 +49,122 @@ const SIZES: &[usize] = &[
 ];
 const SEED: u64 = 0x0123_4567_89ab_cdef;
 
+mod crc32_iso_hdlc {
+    use super::*;
+
+    const REFERENCE: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
+    const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
+        crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISO_HDLC);
+
+    #[divan::bench(args = SIZES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| hashcrew::crc::crc32_iso_hdlc(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc_table_1(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| REFERENCE.checksum(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc_table_16(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| REFERENCE_16.checksum(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc32fast(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc32fast::hash(black_box(&bytes)));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = SIZES)]
+    fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::crc32_iso_hdlc(black_box(&bytes)));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = SIZES)]
+    fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::checksum(crc_fast::CrcAlgorithm::Crc32IsoHdlc, black_box(&bytes)));
+    }
+}
+
+mod crc32_iscsi {
+    use super::*;
+
+    const REFERENCE: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_ISCSI);
+    const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
+        crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISCSI);
+
+    #[divan::bench(args = SIZES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| hashcrew::crc::crc32_iscsi(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc_table_1(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| REFERENCE.checksum(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc_table_16(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| REFERENCE_16.checksum(black_box(&bytes)));
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn crc32c(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc32c::crc32c(black_box(&bytes)));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = SIZES)]
+    fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::crc32_iscsi(black_box(&bytes)));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = SIZES)]
+    fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::checksum(crc_fast::CrcAlgorithm::Crc32Iscsi, black_box(&bytes)));
+    }
+}
+
 mod md5 {
     use super::*;
 

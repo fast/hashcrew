@@ -22,10 +22,14 @@ rust-version.workspace = true
 [dev-dependencies]
 cityhash-rs = { workspace = true }
 cityhasher = { workspace = true }
+crc = { workspace = true }
+crc32c = { workspace = true }
+crc32fast = { workspace = true }
 fnv = { workspace = true }
 hashcrew = { workspace = true, features = [
   "std",
   "cityhash",
+  "crc",
   "fnv",
   "md5",
   "murmur",

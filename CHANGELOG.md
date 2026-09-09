@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### New features
+
+* Add CRC-32/ISO-HDLC (IEEE CRC32) and CRC-32/ISCSI (CRC32C) behind the `crc` feature, with one-shot and incremental checksums, resuming finalized checksums, combining independently checksummed segments, and optional `std::io::Write` integration.
+
 ## v0.2.0 (2026-09-08)
 
 ### Breaking changes

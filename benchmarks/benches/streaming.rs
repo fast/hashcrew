@@ -36,6 +36,144 @@ const CASES: &[(usize, usize)] = &[
     (1_024 * 1_024, 64 * 1_024),
 ];
 
+mod crc32_iso_hdlc {
+    use super::*;
+
+    const REFERENCE: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
+    const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
+        crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISO_HDLC);
+
+    #[divan::bench(args = CASES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = hashcrew::crc::Crc32IsoHdlc::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.digest()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc_table_1(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = REFERENCE.digest();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc_table_16(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = REFERENCE_16.digest();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc32fast(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = crc32fast::Hasher::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = CASES)]
+    fn crc_fast(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc32IsoHdlc);
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+}
+
+mod crc32_iscsi {
+    use super::*;
+
+    const REFERENCE: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_ISCSI);
+    const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
+        crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISCSI);
+
+    #[divan::bench(args = CASES)]
+    fn hashcrew(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = hashcrew::crc::Crc32Iscsi::new();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.digest()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc_table_1(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = REFERENCE.digest();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc_table_16(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = REFERENCE_16.digest();
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+
+    #[divan::bench(args = CASES)]
+    fn crc32c(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut checksum = 0;
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                checksum = crc32c::crc32c_append(checksum, chunk);
+            }
+            checksum
+        });
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = CASES)]
+    fn crc_fast(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
+        let bytes = input(len);
+        bencher.counter(BytesCount::new(len)).bench(|| {
+            let mut state = crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc32Iscsi);
+            for chunk in black_box(&bytes).chunks(chunk_size) {
+                state.update(chunk);
+            }
+            state.finalize()
+        });
+    }
+}
+
 mod md5 {
     use super::*;
 

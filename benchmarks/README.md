@@ -1,6 +1,6 @@
 # Benchmarks
 
-The benchmark package uses Divan to measure public `hashcrew` APIs alongside `cityhasher`, `cityhash-rs`, `twox-hash`, `xxhash-rust`, `murmur3`, `fnv`, and RustCrypto's `md-5`. These comparison crates are development-only dependencies and are not linked into the published library.
+The benchmark package uses Divan to measure public `hashcrew` APIs alongside `cityhasher`, `cityhash-rs`, `crc`, `crc32fast`, `crc32c`, `twox-hash`, `xxhash-rust`, `murmur3`, `fnv`, and RustCrypto's `md-5`, with an optional `crc-fast` comparison. These comparison crates are development-only dependencies and are not linked into the published library.
 
 | Target       | Coverage                                                                                                                                              |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -35,13 +35,24 @@ cargo x bench throughput -- murmur3
 cargo x bench throughput -- fnv1a
 cargo x bench throughput -- md5
 cargo x bench streaming -- md5
+cargo x bench throughput -- crc32
+cargo x bench streaming -- crc32
 cargo x bench streaming -- xxh64
 cargo x bench streaming -- hashcrew
 ```
 
 The streaming cases include 32 B / 8 B chunks, 241 B / 17 B chunks, 4 KiB / 7 B chunks, 4 KiB / 64 B chunks, 4 KiB / 1 KiB chunks, 64 KiB / 1 KiB chunks, and 1 MiB / 64 KiB chunks. The repeated 4 KiB size isolates chunking overhead from total input size. Each iteration includes construction, all updates, and the final digest; it does not measure only the compression loop. Input generation happens outside the timed closure.
 
-CI uses `cargo x build --locked` to compile all workspace targets, including both benchmark executables, without running measurements. Use the same command locally when only a build check is needed.
+CRC comparisons keep the algorithm fixed: `crc32_iso_hdlc` compares IEEE CRC32 against `crc32fast`, and `crc32_iscsi` compares Castagnoli CRC32C against `crc32c`. Both include the default `crc::Table<1>` and `crc::Table<16>` implementations, with tables prepared outside timing. Hashcrew currently measures its portable scalar implementation; comparison crates select their available hardware acceleration. The `crc32c` streaming case uses its finalized-checksum append API.
+
+Add `--crc-fast` to include `crc-fast` 1.10 comparisons on Rust 1.89 or newer. The throughput target measures both its specialized helper and generic algorithm-selector API; the streaming target measures its `Digest`. This optional benchmark dependency does not change Hashcrew's Rust 1.85 minimum:
+
+```shell
+cargo x bench throughput --crc-fast -- crc32
+cargo x bench streaming --crc-fast -- crc32
+```
+
+CI uses `cargo x build --locked` to compile all workspace targets with every Hashcrew family enabled, including both benchmark executables, without running measurements. This leaves optional benchmark-only features disabled for MSRV compatibility; nightly `cargo x lint` also checks the `crc-fast` cases. Use the same build command locally when only a build check is needed.
 
 Pass harness options after `--`. For example, `cargo x bench streaming -- --list` lists cases and `cargo x bench streaming -- --help` shows Divan options.
 

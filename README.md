@@ -18,9 +18,9 @@
 
 ## Overview
 
-Hashcrew is a zero-dependency Rust library for fast, deterministic hashing in non-cryptographic applications. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
+Hashcrew is a zero-dependency Rust library for fast, deterministic hashing and checksums in non-cryptographic applications. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
-Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends; the other algorithms use compact portable Rust cores.
+Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends; the other algorithms use portable Rust cores. CRC currently uses a scalar slicing-by-8 implementation with compile-time lookup tables.
 
 > [!WARNING]
 >
@@ -76,7 +76,7 @@ hash.update(b"hashcrew");
 assert_eq!(hash.digest(), expected);
 ```
 
-All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/), and [`md5`](https://docs.rs/hashcrew/*/hashcrew/md5/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
+All public APIs are grouped under the [`cityhash`](https://docs.rs/hashcrew/*/hashcrew/cityhash/), [`crc`](https://docs.rs/hashcrew/*/hashcrew/crc/), [`xxhash`](https://docs.rs/hashcrew/*/hashcrew/xxhash/), [`murmur`](https://docs.rs/hashcrew/*/hashcrew/murmur/), [`fnv`](https://docs.rs/hashcrew/*/hashcrew/fnv/), and [`md5`](https://docs.rs/hashcrew/*/hashcrew/md5/) modules. Each module keeps its one-shot functions, streaming states, builders, and configuration together.
 
 ## Feature flags
 
@@ -85,6 +85,7 @@ No features are enabled by default. Each family feature exposes its same-named m
 | Feature    | Enables                                                  |
 | ---------- | -------------------------------------------------------- |
 | `cityhash` | CityHash32, CityHash64, and CityHash128                  |
+| `crc`      | CRC-32/ISO-HDLC (IEEE CRC32) and CRC-32/ISCSI (CRC32C)   |
 | `fnv`      | FNV-1a 32 and 64                                         |
 | `md5`      | MD5                                                      |
 | `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128                 |
@@ -115,6 +116,8 @@ The table names the canonical module-level function for complete input. A traili
 | CityHash32            | `cityhash32`        | —                   | `u32`      | —                                                |
 | CityHash64            | `cityhash64*`       | —                   | `u64`      | —                                                |
 | CityHash128           | `cityhash128*`      | —                   | `u128`     | —                                                |
+| CRC-32/ISO-HDLC       | `crc32_iso_hdlc`    | `Crc32IsoHdlc`      | `u32`      | —                                                |
+| CRC-32/ISCSI          | `crc32_iscsi`       | `Crc32Iscsi`        | `u32`      | —                                                |
 | XXH32                 | `xxh32`             | `Xxh32`             | `u32`      | `Xxh32` / `Xxh32Builder`                         |
 | XXH64                 | `xxh64`             | `Xxh64`             | `u64`      | `Xxh64` / `Xxh64Builder`                         |
 | XXH3-64               | `xxh3_64*`          | `Xxh3_64`           | `u64`      | `Xxh3_64` / `Xxh3_64Builder` or secret builder   |
@@ -133,6 +136,8 @@ Hashcrew implements all three variants from the original MurmurHash3 family unde
 Use XXH3 for a new general-purpose checksum, cache key, or trusted-input hash table unless interoperability requires another family. Choose a 128-bit result when the application hashes enough distinct values for 64-bit collision probability to matter. XXH32, XXH64, CityHash, MurmurHash3, and FNV-1a are primarily useful for matching an existing format, protocol, or data set; their different outputs are not interchangeable.
 
 MD5 is provided for compatibility with existing formats and protocols that require its standard digest. Its cryptographic security is broken. Call `hashcrew::md5::md5(input)` for complete input, or use `hashcrew::md5::Md5` for streaming; both return the same 16 digest bytes without a RustCrypto dependency.
+
+Enable `crc` when a format requires IEEE CRC32 (`crc32_iso_hdlc`) or Castagnoli CRC32C (`crc32_iscsi`). The variants have different polynomials and cannot be substituted for each other. Their `Crc32IsoHdlc` and `Crc32Iscsi` states support `update`, repeatable `digest`, and `reset`. `from_digest` resumes from a finalized checksum, while `crc32_iso_hdlc_combine` and `crc32_iscsi_combine` combine independently computed checksums using the right-hand segment's byte length, without reading either segment. CRC states checksum raw bytes and have no hash-table adapters.
 
 ## Streaming input
 
@@ -156,7 +161,7 @@ This adapter is only needed for `std` interoperability. The direct `update` API 
 
 ## Hash tables
 
-The 32-bit and 64-bit streaming states implement `core::hash::Hasher`, with matching `BuildHasher` types for trusted-input hash tables:
+The 32-bit and 64-bit xxHash, MurmurHash3, and FNV streaming states implement `core::hash::Hasher`, with matching `BuildHasher` types for trusted-input hash tables:
 
 ```rust
 use std::collections::HashMap;
@@ -176,7 +181,7 @@ XXH3 accepts custom secrets of at least 136 bytes and returns an error for short
 
 Raw and streaming digests are stable across platforms for identical byte streams. Rust's `Hash` and `BuildHasher` adapters use typed encodings that can vary across platforms and compiler versions. They can also add framing bytes to strings and slices, so `builder.hash_one(value)` need not match hashing `value.as_bytes()` or the slice directly. Use one-shot functions or `update` with a defined byte encoding for persistent checksums and cross-language protocols.
 
-Integer digests still need an explicit output byte order: xxHash's canonical format uses `to_be_bytes()`, while FNV's RFC format uses `to_le_bytes()`. MurmurHash3's `to_le_bytes()` reproduces the reference output on little-endian systems; for CityHash, follow the consuming format's word and byte order. MD5 already returns its standard digest bytes; its [module documentation](https://docs.rs/hashcrew/*/hashcrew/md5/#hexadecimal-output) shows how to format them as hexadecimal with leading zeroes.
+Integer digests still need an explicit output byte order: xxHash's canonical format uses `to_be_bytes()`, while FNV's RFC format uses `to_le_bytes()`. MurmurHash3's `to_le_bytes()` reproduces the reference output on little-endian systems; for CityHash and CRC, follow the consuming format's word and byte order. MD5 already returns its standard digest bytes; its [module documentation](https://docs.rs/hashcrew/*/hashcrew/md5/#hexadecimal-output) shows how to format them as hexadecimal with leading zeroes.
 
 Target-guaranteed CPU features are selected at compile time. Other `std` builds cache runtime feature detection; `no_std` builds use compile-time features only and otherwise fall back to the scalar kernel. [`hashcrew::xxhash::kernel::selected_backend()`](https://docs.rs/hashcrew/*/hashcrew/xxhash/kernel/fn.selected_backend.html) reports the selected XXH3 backend.
 
@@ -199,7 +204,7 @@ See the [release guide](RELEASE.md) for checks on stable and the MSRV.
 
 ## Correctness
 
-Integration tests compare CityHash, xxHash, MurmurHash3, and MD5 with independent implementations. FNV-1a and MD5 also have RFC vectors in the library tests; FNV-1a 64 has an independent implementation comparison. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds.
+Integration tests compare CityHash, CRC, xxHash, MurmurHash3, and MD5 with independent implementations. FNV-1a and MD5 also have RFC vectors in the library tests; FNV-1a 64 has an independent implementation comparison. The suite covers boundary lengths, multiple seeds, custom secrets, custom FNV offset bases, randomized inputs, streaming partitions, available hardware backends, and both `std` and `no_std` builds. CRC tests additionally cover resumed checksums, zeroed checksum fields, concatenation, and combination lengths beyond 4 GiB.
 
 ## Minimum Rust version policy
 
