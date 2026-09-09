@@ -16,6 +16,7 @@ use std::fmt::Debug;
 use std::io::Cursor;
 use std::io::Write;
 
+use hashcrew::crc;
 use hashcrew::fnv;
 use hashcrew::md5;
 use hashcrew::murmur;
@@ -46,6 +47,16 @@ fn assert_writer<W: Write, D: Debug + Eq>(
 
 #[test]
 fn streaming_states_are_standard_io_writers() {
+    assert_writer(
+        crc::Crc32IsoHdlc::new(),
+        crc::Crc32IsoHdlc::digest,
+        crc::crc32_iso_hdlc,
+    );
+    assert_writer(
+        crc::Crc32Iscsi::new(),
+        crc::Crc32Iscsi::digest,
+        crc::crc32_iscsi,
+    );
     assert_writer(md5::Md5::new(), md5::Md5::digest, md5::md5);
     assert_writer(fnv::Fnv1a32::new(), fnv::Fnv1a32::digest, fnv::fnv1a_32);
     assert_writer(fnv::Fnv1a64::new(), fnv::Fnv1a64::digest, fnv::fnv1a_64);

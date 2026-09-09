@@ -32,6 +32,8 @@ macro_rules! impl_write {
     };
 }
 
+impl_write!("crc", impl std::io::Write for crate::crc::Crc32IsoHdlc);
+impl_write!("crc", impl std::io::Write for crate::crc::Crc32Iscsi);
 impl_write!("fnv", impl std::io::Write for crate::fnv::Fnv1a32);
 impl_write!("fnv", impl std::io::Write for crate::fnv::Fnv1a64);
 impl_write!("md5", impl std::io::Write for crate::md5::Md5);

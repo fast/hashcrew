@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Fast, portable hashing for non-cryptographic use.
+//! Fast, portable hashing and checksums for non-cryptographic use.
 //!
-//! APIs are grouped by family under [`cityhash`], [`fnv`], [`md5`], [`murmur`],
+//! APIs are grouped by family under [`cityhash`], [`crc`], [`fnv`], [`md5`], [`murmur`],
 //! and [`xxhash`]. No features are enabled by default; each family requires its
 //! same-named Cargo feature. Use free functions for complete byte slices and
 //! state types for incremental input. CityHash is intentionally one-shot.
-//! Streaming states with 32- or 64-bit digests also implement [`core::hash::Hasher`].
+//! The 32- and 64-bit xxHash, MurmurHash3, and FNV states also implement
+//! [`core::hash::Hasher`]. CRC states are for raw byte-stream checksums.
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
 //! [`core::hash`] adapters use Rust's typed encodings, which can vary across
@@ -37,6 +38,8 @@
 //! 64-bit digest provides.
 //! MD5 is available for compatibility with existing formats and protocols that
 //! require its standard digest; it is cryptographically broken.
+//! CRC-32/ISO-HDLC (IEEE CRC32) and CRC-32/ISCSI (CRC32C) provide checksum
+//! compatibility for formats and protocols that require those distinct variants.
 //!
 //! # API model
 //!
@@ -60,6 +63,8 @@
 //! | CityHash32          | [`cityhash32`](cityhash::cityhash32)         | —                                          | `u32`      | —                                                                                                 |
 //! | CityHash64          | [`cityhash64`](cityhash::cityhash64)*        | —                                          | `u64`      | —                                                                                                 |
 //! | CityHash128         | [`cityhash128`](cityhash::cityhash128)*      | —                                          | `u128`     | —                                                                                                 |
+//! | CRC-32/ISO-HDLC     | [`crc32_iso_hdlc`](crc::crc32_iso_hdlc)      | [`Crc32IsoHdlc`](crc::Crc32IsoHdlc)        | `u32`      | —                                                                                                 |
+//! | CRC-32/ISCSI        | [`crc32_iscsi`](crc::crc32_iscsi)            | [`Crc32Iscsi`](crc::Crc32Iscsi)            | `u32`      | —                                                                                                 |
 //! | XXH32               | [`xxh32`](xxhash::xxh32)                     | [`Xxh32`](xxhash::Xxh32)                   | `u32`      | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)                                 |
 //! | XXH64               | [`xxh64`](xxhash::xxh64)                     | [`Xxh64`](xxhash::Xxh64)                   | `u64`      | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)                                 |
 //! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*                | [`Xxh3_64`](xxhash::Xxh3_64)               | `u64`      | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3_64Builder`](xxhash::Xxh3_64Builder)                         |
@@ -90,6 +95,7 @@
 //! | Feature    | Hash family                              |
 //! | ---------- | ---------------------------------------- |
 //! | `cityhash` | CityHash32, CityHash64, and CityHash128  |
+//! | `crc`      | CRC-32/ISO-HDLC and CRC-32/ISCSI         |
 //! | `fnv`      | FNV-1a 32 and 64                         |
 //! | `md5`      | MD5                                      |
 //! | `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128 |
@@ -171,6 +177,8 @@ mod io;
 
 #[cfg(feature = "cityhash")]
 pub mod cityhash;
+#[cfg(feature = "crc")]
+pub mod crc;
 #[cfg(feature = "fnv")]
 pub mod fnv;
 #[cfg(feature = "md5")]
