@@ -49,6 +49,13 @@ const SIZES: &[usize] = &[
 ];
 const SEED: u64 = 0x0123_4567_89ab_cdef;
 
+const CRC_SIZES: &[usize] = &[
+    0, 1, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32, 63, 64, 65, 127, 128, 129, 191, 192, 193, 207, 208,
+    209, 239, 240, 241, 255, 256, 257, 383, 384, 385, 1023, 1024, 1025, 4095, 4096, 4097, 8191,
+    8192, 8193, 16_384, 65_536, 1_048_576,
+];
+const CRC_UNALIGNED_SIZES: &[usize] = &[32, 128, 256, 4096, 65_536, 1_048_576];
+
 mod crc32_iso_hdlc {
     use super::*;
 
@@ -56,7 +63,7 @@ mod crc32_iso_hdlc {
     const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
         crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISO_HDLC);
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -64,7 +71,7 @@ mod crc32_iso_hdlc {
             .bench(|| hashcrew::crc::crc32_iso_hdlc(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_table_1(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -72,7 +79,7 @@ mod crc32_iso_hdlc {
             .bench(|| REFERENCE.checksum(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_table_16(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -80,7 +87,7 @@ mod crc32_iso_hdlc {
             .bench(|| REFERENCE_16.checksum(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc32fast(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -89,7 +96,7 @@ mod crc32_iso_hdlc {
     }
 
     #[cfg(feature = "crc-fast")]
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -98,12 +105,29 @@ mod crc32_iso_hdlc {
     }
 
     #[cfg(feature = "crc-fast")]
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
             .bench(|| crc_fast::checksum(crc_fast::CrcAlgorithm::Crc32IsoHdlc, black_box(&bytes)));
+    }
+
+    #[divan::bench(args = CRC_UNALIGNED_SIZES)]
+    fn hashcrew_unaligned(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len + 1);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| hashcrew::crc::crc32_iso_hdlc(black_box(&bytes[1..])));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = CRC_UNALIGNED_SIZES)]
+    fn crc_fast_unaligned(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len + 1);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::crc32_iso_hdlc(black_box(&bytes[1..])));
     }
 }
 
@@ -114,7 +138,7 @@ mod crc32_iscsi {
     const REFERENCE_16: crc::Crc<u32, crc::Table<16>> =
         crc::Crc::<u32, crc::Table<16>>::new(&crc::CRC_32_ISCSI);
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn hashcrew(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -122,7 +146,7 @@ mod crc32_iscsi {
             .bench(|| hashcrew::crc::crc32_iscsi(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_table_1(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -130,7 +154,7 @@ mod crc32_iscsi {
             .bench(|| REFERENCE.checksum(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_table_16(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -138,7 +162,7 @@ mod crc32_iscsi {
             .bench(|| REFERENCE_16.checksum(black_box(&bytes)));
     }
 
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc32c(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -147,7 +171,7 @@ mod crc32_iscsi {
     }
 
     #[cfg(feature = "crc-fast")]
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
@@ -156,12 +180,29 @@ mod crc32_iscsi {
     }
 
     #[cfg(feature = "crc-fast")]
-    #[divan::bench(args = SIZES)]
+    #[divan::bench(args = CRC_SIZES)]
     fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
         bencher
             .counter(BytesCount::new(len))
             .bench(|| crc_fast::checksum(crc_fast::CrcAlgorithm::Crc32Iscsi, black_box(&bytes)));
+    }
+
+    #[divan::bench(args = CRC_UNALIGNED_SIZES)]
+    fn hashcrew_unaligned(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len + 1);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| hashcrew::crc::crc32_iscsi(black_box(&bytes[1..])));
+    }
+
+    #[cfg(feature = "crc-fast")]
+    #[divan::bench(args = CRC_UNALIGNED_SIZES)]
+    fn crc_fast_unaligned(bencher: Bencher<'_, '_>, len: usize) {
+        let bytes = input(len + 1);
+        bencher
+            .counter(BytesCount::new(len))
+            .bench(|| crc_fast::crc32_iscsi(black_box(&bytes[1..])));
     }
 }
 

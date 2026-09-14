@@ -50,6 +50,20 @@ fn pclmul_available() -> bool {
 
 #[cfg(crc_vpclmulqdq)]
 #[inline]
+fn avx2_available() -> bool {
+    #[cfg(feature = "std")]
+    {
+        std::arch::is_x86_feature_detected!("avx2")
+            && std::arch::is_x86_feature_detected!("vpclmulqdq")
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        cfg!(target_feature = "avx2") && cfg!(target_feature = "vpclmulqdq")
+    }
+}
+
+#[cfg(crc_vpclmulqdq)]
+#[inline]
 fn wide_available() -> bool {
     #[cfg(feature = "std")]
     {
@@ -74,6 +88,11 @@ pub(super) fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
             // SAFETY: All features used by wide were checked, including OS
             // support for saving the extended vector register state.
             return unsafe { wide::<CASTAGNOLI>(state, input) };
+        }
+        #[cfg(crc_vpclmulqdq)]
+        if input.len() >= 256 && avx2_available() {
+            // SAFETY: AVX2 and VPCLMULQDQ, including OS support, were checked.
+            return unsafe { avx2::<CASTAGNOLI>(state, input) };
         }
         if CASTAGNOLI {
             // SAFETY: SSE4.2 and PCLMULQDQ were checked above.
@@ -229,29 +248,29 @@ unsafe fn shift(state: u32, bytes: usize) -> u64 {
 #[inline]
 #[target_feature(enable = "sse4.2,pclmulqdq")]
 unsafe fn fusion(state: u32, input: &[u8]) -> u32 {
-    // Eight vector streams run alongside three native CRC streams, following
-    // corsix's v8s3x3 schedule. This also serves CPUs without wide VPCLMULQDQ.
-    // SAFETY: SSE4.2 and PCLMULQDQ are enabled. Each group contains 128 vector
+    // Four vector streams run alongside three native CRC streams, following
+    // corsix's v4s3x3 schedule. This also serves CPUs without wide VPCLMULQDQ.
+    // SAFETY: SSE4.2 and PCLMULQDQ are enabled. Each group contains 64 vector
     // bytes and 3 * 24 scalar bytes, with eight more bytes reserved for merging.
     // Every pointer stays in the slice; all loads accept unaligned addresses.
     unsafe {
-        if input.len() < 208 {
+        if input.len() < 144 {
             return native(state, input);
         }
-        let groups = (input.len() - 8) / 200;
+        let groups = (input.len() - 8) / 136;
         let scalar_len = groups * 24;
         let mut vector = input.as_ptr();
-        let mut ptr = vector.add(groups * 128);
-        let mut lanes = [_mm_setzero_si128(); 8];
+        let mut ptr = vector.add(groups * 64);
+        let mut lanes = [_mm_setzero_si128(); 4];
         for (i, lane) in lanes.iter_mut().enumerate() {
             *lane = _mm_loadu_si128(vector.add(i * 16).cast());
         }
         lanes[0] = _mm_xor_si128(lanes[0], _mm_cvtsi32_si128(state as i32));
-        vector = vector.add(128);
+        vector = vector.add(64);
         let mut first = 0_u64;
         let mut second = 0_u64;
         let mut third = 0_u64;
-        let factors = _mm_loadu_si128(const { &folding_factors::<true>(128) }.as_ptr().cast());
+        let factors = _mm_loadu_si128(const { &folding_factors::<true>(64) }.as_ptr().cast());
         macro_rules! scalar_step {
             ($offset:expr) => {
                 first = _mm_crc32_u64(first, ptr.add($offset).cast::<u64>().read_unaligned());
@@ -281,14 +300,10 @@ unsafe fn fusion(state: u32, input: &[u8]) -> u32 {
             step!(1);
             step!(2);
             step!(3);
-            step!(4);
-            step!(5);
-            step!(6);
-            step!(7);
             scalar_step!(0);
             scalar_step!(8);
             scalar_step!(16);
-            vector = vector.add(128);
+            vector = vector.add(64);
             ptr = ptr.add(24);
         }
         scalar_step!(0);
@@ -297,23 +312,98 @@ unsafe fn fusion(state: u32, input: &[u8]) -> u32 {
         let factors = _mm_loadu_si128(const { &folding_factors::<true>(16) }.as_ptr().cast());
         lanes[0] = fold(lanes[0], factors, lanes[1]);
         lanes[2] = fold(lanes[2], factors, lanes[3]);
-        lanes[4] = fold(lanes[4], factors, lanes[5]);
-        lanes[6] = fold(lanes[6], factors, lanes[7]);
         let factors = _mm_loadu_si128(const { &folding_factors::<true>(32) }.as_ptr().cast());
         lanes[0] = fold(lanes[0], factors, lanes[2]);
-        lanes[4] = fold(lanes[4], factors, lanes[6]);
-        let factors = _mm_loadu_si128(const { &folding_factors::<true>(64) }.as_ptr().cast());
-        lanes[0] = fold(lanes[0], factors, lanes[4]);
         let merged = shift(first as u32, scalar_len * 2 + 8)
             ^ shift(second as u32, scalar_len + 8)
             ^ shift(reduce::<true>(lanes[0]), scalar_len * 3 + 8);
         let last = input
             .as_ptr()
-            .add(groups * 200)
+            .add(groups * 136)
             .cast::<u64>()
             .read_unaligned();
         let state = _mm_crc32_u64(third, last ^ merged) as u32;
-        native(state, &input[groups * 200 + 8..])
+        native(state, &input[groups * 136 + 8..])
+    }
+}
+
+#[cfg(crc_vpclmulqdq)]
+#[allow(clippy::incompatible_msrv)] // Compiled only on Rust 1.89+ by build.rs.
+#[inline]
+#[target_feature(enable = "sse4.2,pclmulqdq,avx2,vpclmulqdq")]
+unsafe fn avx2<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
+    // Eight 128-bit lanes keep the carryless multipliers busy without AVX-512.
+    // SAFETY: The caller checks every enabled feature. Each unaligned vector
+    // load lies in a complete 128-byte block, with the remainder handled below.
+    unsafe {
+        if input.len() < 128 {
+            return pclmul::<CASTAGNOLI>(state, input);
+        }
+        let blocks = input.len() / 128;
+        let mut ptr = input.as_ptr();
+        let mut a = _mm256_loadu_si256(ptr.cast());
+        let mut b = _mm256_loadu_si256(ptr.add(32).cast());
+        let mut c = _mm256_loadu_si256(ptr.add(64).cast());
+        let mut d = _mm256_loadu_si256(ptr.add(96).cast());
+        a = _mm256_xor_si256(a, _mm256_setr_epi64x(state as i64, 0, 0, 0));
+        ptr = ptr.add(128);
+        let factors = _mm256_broadcastsi128_si256(_mm_loadu_si128(
+            const { &folding_factors::<CASTAGNOLI>(128) }
+                .as_ptr()
+                .cast(),
+        ));
+        macro_rules! step {
+            ($value:ident, $offset:expr) => {
+                let low = _mm256_clmulepi64_epi128($value, factors, 0);
+                let high = _mm256_clmulepi64_epi128($value, factors, 17);
+                $value = _mm256_xor_si256(
+                    _mm256_xor_si256(low, high),
+                    _mm256_loadu_si256(ptr.add($offset).cast()),
+                );
+            };
+        }
+        for _ in 1..blocks {
+            step!(a, 0);
+            step!(b, 32);
+            step!(c, 64);
+            step!(d, 96);
+            ptr = ptr.add(128);
+        }
+        let factors = _mm256_broadcastsi128_si256(_mm_loadu_si128(
+            const { &folding_factors::<CASTAGNOLI>(32) }.as_ptr().cast(),
+        ));
+        a = _mm256_xor_si256(
+            _mm256_xor_si256(
+                _mm256_clmulepi64_epi128(a, factors, 0),
+                _mm256_clmulepi64_epi128(a, factors, 17),
+            ),
+            b,
+        );
+        c = _mm256_xor_si256(
+            _mm256_xor_si256(
+                _mm256_clmulepi64_epi128(c, factors, 0),
+                _mm256_clmulepi64_epi128(c, factors, 17),
+            ),
+            d,
+        );
+        let factors = _mm256_broadcastsi128_si256(_mm_loadu_si128(
+            const { &folding_factors::<CASTAGNOLI>(64) }.as_ptr().cast(),
+        ));
+        a = _mm256_xor_si256(
+            _mm256_xor_si256(
+                _mm256_clmulepi64_epi128(a, factors, 0),
+                _mm256_clmulepi64_epi128(a, factors, 17),
+            ),
+            c,
+        );
+        let factors = _mm_loadu_si128(const { &folding_factors::<CASTAGNOLI>(16) }.as_ptr().cast());
+        let value = fold(
+            _mm256_castsi256_si128(a),
+            factors,
+            _mm256_extracti128_si256(a, 1),
+        );
+        let state = reduce::<CASTAGNOLI>(value);
+        pclmul::<CASTAGNOLI>(state, &input[blocks * 128..])
     }
 }
 
@@ -402,6 +492,11 @@ mod tests {
                 super::super::test_backend::<false>(pclmul::<false>);
                 super::super::test_backend::<true>(pclmul::<true>);
                 super::super::test_backend::<true>(fusion);
+                #[cfg(crc_vpclmulqdq)]
+                if avx2_available() {
+                    super::super::test_backend::<false>(avx2::<false>);
+                    super::super::test_backend::<true>(avx2::<true>);
+                }
                 #[cfg(crc_vpclmulqdq)]
                 if std::arch::is_x86_feature_detected!("avx512f")
                     && std::arch::is_x86_feature_detected!("vpclmulqdq")
