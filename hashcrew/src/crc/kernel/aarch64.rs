@@ -18,9 +18,6 @@
 //! `neon_eor3 v9s3x2e_s3`, also used by crc-fast. See LICENSE for the
 //! upstream copyright notices and MIT terms.
 
-// These intrinsics are unsafe on the MSRV but safe on newer compilers.
-#![allow(unused_unsafe)]
-
 use core::arch::aarch64::*;
 
 use super::folding_factors;
@@ -94,26 +91,20 @@ pub(super) unsafe fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) ->
 #[inline]
 #[target_feature(enable = "crc")]
 unsafe fn crc64<const CASTAGNOLI: bool>(state: u32, word: u64) -> u32 {
-    // SAFETY: The caller enables CRC; these instructions only use registers.
-    unsafe {
-        if CASTAGNOLI {
-            __crc32cd(state, word)
-        } else {
-            __crc32d(state, word)
-        }
+    if CASTAGNOLI {
+        __crc32cd(state, word)
+    } else {
+        __crc32d(state, word)
     }
 }
 
 #[inline]
 #[target_feature(enable = "crc")]
 unsafe fn crc32<const CASTAGNOLI: bool>(state: u32, word: u32) -> u32 {
-    // SAFETY: The caller enables CRC; these instructions only use registers.
-    unsafe {
-        if CASTAGNOLI {
-            __crc32cw(state, word)
-        } else {
-            __crc32w(state, word)
-        }
+    if CASTAGNOLI {
+        __crc32cw(state, word)
+    } else {
+        __crc32w(state, word)
     }
 }
 
@@ -173,15 +164,12 @@ unsafe fn native<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u3
 #[inline]
 #[target_feature(enable = "aes")]
 unsafe fn fold(value: uint64x2_t, factors: uint64x2_t, next: uint64x2_t) -> uint64x2_t {
-    // SAFETY: The caller enables AES/PMULL; all operands are register values.
-    unsafe {
-        let low = vmull_p64(vgetq_lane_u64(value, 0), vgetq_lane_u64(factors, 0));
-        let high = vmull_high_p64(vreinterpretq_p64_u64(value), vreinterpretq_p64_u64(factors));
-        veorq_u64(
-            vreinterpretq_u64_p128(high),
-            veorq_u64(vreinterpretq_u64_p128(low), next),
-        )
-    }
+    let low = vmull_p64(vgetq_lane_u64(value, 0), vgetq_lane_u64(factors, 0));
+    let high = vmull_high_p64(vreinterpretq_p64_u64(value), vreinterpretq_p64_u64(factors));
+    veorq_u64(
+        vreinterpretq_u64_p128(high),
+        veorq_u64(vreinterpretq_u64_p128(low), next),
+    )
 }
 
 #[inline]
@@ -258,16 +246,13 @@ unsafe fn pmull<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u32
 #[inline]
 #[target_feature(enable = "aes,sha3")]
 unsafe fn fold3(value: uint64x2_t, factors: uint64x2_t, next: uint64x2_t) -> uint64x2_t {
-    // SAFETY: The caller enables AES/PMULL and SHA3; operands are register values.
-    unsafe {
-        let low = vmull_p64(vgetq_lane_u64(value, 0), vgetq_lane_u64(factors, 0));
-        let high = vmull_high_p64(vreinterpretq_p64_u64(value), vreinterpretq_p64_u64(factors));
-        veor3q_u64(
-            vreinterpretq_u64_p128(low),
-            vreinterpretq_u64_p128(high),
-            next,
-        )
-    }
+    let low = vmull_p64(vgetq_lane_u64(value, 0), vgetq_lane_u64(factors, 0));
+    let high = vmull_high_p64(vreinterpretq_p64_u64(value), vreinterpretq_p64_u64(factors));
+    veor3q_u64(
+        vreinterpretq_u64_p128(low),
+        vreinterpretq_u64_p128(high),
+        next,
+    )
 }
 
 #[inline]

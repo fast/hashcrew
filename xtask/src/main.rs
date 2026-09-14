@@ -198,14 +198,7 @@ struct CommandTest {
 impl CommandTest {
     fn run(self) {
         let mut workspace = cargo();
-        // Benchmarks use newer comparison crates and are built by the stable CI jobs.
-        workspace.args([
-            "test",
-            "--workspace",
-            "--exclude",
-            "benchmarks",
-            "--all-features",
-        ]);
+        workspace.args(["test", "--workspace", "--all-features"]);
         add_test_output_args(&mut workspace, self.no_capture);
         run_command(workspace);
 

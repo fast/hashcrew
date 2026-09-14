@@ -17,9 +17,6 @@
 //! Folding schedules follow corsix/fast-crc32 and crc-fast. See LICENSE for
 //! the upstream copyright notices and MIT terms.
 
-// These intrinsics are unsafe on the MSRV but safe on newer compilers.
-#![allow(unused_unsafe)]
-
 use core::arch::x86_64::*;
 
 use super::folding_factors;
@@ -48,7 +45,6 @@ fn pclmul_available() -> bool {
     }
 }
 
-#[cfg(crc_vpclmulqdq)]
 #[inline]
 fn avx2_available() -> bool {
     #[cfg(feature = "std")]
@@ -62,7 +58,6 @@ fn avx2_available() -> bool {
     }
 }
 
-#[cfg(crc_vpclmulqdq)]
 #[inline]
 fn wide_available() -> bool {
     #[cfg(feature = "std")]
@@ -83,13 +78,11 @@ pub(super) fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
         return unsafe { native(state, input) };
     }
     if input.len() >= 16 && crc_available() && pclmul_available() {
-        #[cfg(crc_vpclmulqdq)]
         if input.len() >= 384 && wide_available() {
             // SAFETY: All features used by wide were checked, including OS
             // support for saving the extended vector register state.
             return unsafe { wide::<CASTAGNOLI>(state, input) };
         }
-        #[cfg(crc_vpclmulqdq)]
         if input.len() >= 256 && avx2_available() {
             // SAFETY: AVX2 and VPCLMULQDQ, including OS support, were checked.
             return unsafe { avx2::<CASTAGNOLI>(state, input) };
@@ -111,56 +104,49 @@ pub(super) fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
 #[inline]
 #[target_feature(enable = "sse4.2")]
 unsafe fn native(mut state: u32, mut input: &[u8]) -> u32 {
-    // SAFETY: The caller enables SSE4.2. Fixed-size chunks prove all reads
-    // are in bounds, and from_le_bytes accepts unaligned inputs.
-    unsafe {
-        while let Some((block, tail)) = input.split_first_chunk::<64>() {
-            macro_rules! step {
-                ($offset:expr) => {
-                    state = _mm_crc32_u64(
-                        state as u64,
-                        u64::from_le_bytes(block[$offset..$offset + 8].try_into().unwrap()),
-                    ) as u32;
-                };
-            }
-            step!(0);
-            step!(8);
-            step!(16);
-            step!(24);
-            step!(32);
-            step!(40);
-            step!(48);
-            step!(56);
-            input = tail;
+    while let Some((block, tail)) = input.split_first_chunk::<64>() {
+        macro_rules! step {
+            ($offset:expr) => {
+                state = _mm_crc32_u64(
+                    state as u64,
+                    u64::from_le_bytes(block[$offset..$offset + 8].try_into().unwrap()),
+                ) as u32;
+            };
         }
-        while let Some((word, tail)) = input.split_first_chunk::<8>() {
-            state = _mm_crc32_u64(state as u64, u64::from_le_bytes(*word)) as u32;
-            input = tail;
-        }
-        if let Some((word, tail)) = input.split_first_chunk::<4>() {
-            state = _mm_crc32_u32(state, u32::from_le_bytes(*word));
-            input = tail;
-        }
-        if let Some((word, tail)) = input.split_first_chunk::<2>() {
-            state = _mm_crc32_u16(state, u16::from_le_bytes(*word));
-            input = tail;
-        }
-        if let Some(&byte) = input.first() {
-            state = _mm_crc32_u8(state, byte);
-        }
-        state
+        step!(0);
+        step!(8);
+        step!(16);
+        step!(24);
+        step!(32);
+        step!(40);
+        step!(48);
+        step!(56);
+        input = tail;
     }
+    while let Some((word, tail)) = input.split_first_chunk::<8>() {
+        state = _mm_crc32_u64(state as u64, u64::from_le_bytes(*word)) as u32;
+        input = tail;
+    }
+    if let Some((word, tail)) = input.split_first_chunk::<4>() {
+        state = _mm_crc32_u32(state, u32::from_le_bytes(*word));
+        input = tail;
+    }
+    if let Some((word, tail)) = input.split_first_chunk::<2>() {
+        state = _mm_crc32_u16(state, u16::from_le_bytes(*word));
+        input = tail;
+    }
+    if let Some(&byte) = input.first() {
+        state = _mm_crc32_u8(state, byte);
+    }
+    state
 }
 
 #[inline]
 #[target_feature(enable = "pclmulqdq")]
 unsafe fn fold(value: __m128i, factors: __m128i, next: __m128i) -> __m128i {
-    // SAFETY: PCLMULQDQ is enabled; these operations only use registers.
-    unsafe {
-        let low = _mm_clmulepi64_si128(value, factors, 0);
-        let high = _mm_clmulepi64_si128(value, factors, 17);
-        _mm_xor_si128(_mm_xor_si128(low, high), next)
-    }
+    let low = _mm_clmulepi64_si128(value, factors, 0);
+    let high = _mm_clmulepi64_si128(value, factors, 17);
+    _mm_xor_si128(_mm_xor_si128(low, high), next)
 }
 
 #[inline]
@@ -253,32 +239,29 @@ unsafe fn pclmul<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u3
 #[inline]
 #[target_feature(enable = "sse4.2,pclmulqdq")]
 unsafe fn shift(state: u32, bytes: usize) -> u64 {
-    // SAFETY: The caller enables SSE4.2 and PCLMULQDQ and shifts by at least
-    // eight bytes. Only register operations are used.
-    unsafe {
-        let (mut bits, mut stack) = super::shift_start(bytes);
-        while bits > 191 {
-            stack = (stack << 1) | (bits & 1);
-            bits = (bits >> 1) - 16;
-        }
-        stack = !stack;
-        let mut factor = 0x8000_0000 >> (bits & 31);
-        for _ in 0..bits >> 5 {
-            factor = _mm_crc32_u32(factor, 0);
-        }
-        while stack > 1 {
-            let low = stack & 1;
-            stack >>= 1;
-            let value = _mm_cvtsi32_si128(factor as i32);
-            let square = _mm_cvtsi128_si64(_mm_clmulepi64_si128(value, value, 0)) as u64;
-            factor = _mm_crc32_u64(0, square << low) as u32;
-        }
-        _mm_cvtsi128_si64(_mm_clmulepi64_si128(
-            _mm_cvtsi32_si128(state as i32),
-            _mm_cvtsi32_si128(factor as i32),
-            0,
-        )) as u64
+    // The caller shifts by at least eight bytes.
+    let (mut bits, mut stack) = super::shift_start(bytes);
+    while bits > 191 {
+        stack = (stack << 1) | (bits & 1);
+        bits = (bits >> 1) - 16;
     }
+    stack = !stack;
+    let mut factor = 0x8000_0000 >> (bits & 31);
+    for _ in 0..bits >> 5 {
+        factor = _mm_crc32_u32(factor, 0);
+    }
+    while stack > 1 {
+        let low = stack & 1;
+        stack >>= 1;
+        let value = _mm_cvtsi32_si128(factor as i32);
+        let square = _mm_cvtsi128_si64(_mm_clmulepi64_si128(value, value, 0)) as u64;
+        factor = _mm_crc32_u64(0, square << low) as u32;
+    }
+    _mm_cvtsi128_si64(_mm_clmulepi64_si128(
+        _mm_cvtsi32_si128(state as i32),
+        _mm_cvtsi32_si128(factor as i32),
+        0,
+    )) as u64
 }
 
 #[inline]
@@ -363,8 +346,6 @@ unsafe fn fusion(state: u32, input: &[u8]) -> u32 {
     }
 }
 
-#[cfg(crc_vpclmulqdq)]
-#[allow(clippy::incompatible_msrv)] // Compiled only on Rust 1.89+ by build.rs.
 #[inline]
 #[target_feature(enable = "sse4.2,pclmulqdq,avx2,vpclmulqdq")]
 unsafe fn avx2<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
@@ -443,8 +424,6 @@ unsafe fn avx2<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
     }
 }
 
-#[cfg(crc_vpclmulqdq)]
-#[allow(clippy::incompatible_msrv)] // Compiled only on Rust 1.89+ by build.rs.
 #[inline]
 #[target_feature(enable = "sse4.2,pclmulqdq,avx512f,vpclmulqdq")]
 unsafe fn wide<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
@@ -531,12 +510,10 @@ mod tests {
                 super::super::test_shift::<true>(|state, bytes| {
                     _mm_crc32_u64(0, shift(state, bytes)) as u32
                 });
-                #[cfg(crc_vpclmulqdq)]
                 if avx2_available() {
                     super::super::test_backend::<false>(avx2::<false>);
                     super::super::test_backend::<true>(avx2::<true>);
                 }
-                #[cfg(crc_vpclmulqdq)]
                 if std::arch::is_x86_feature_detected!("avx512f")
                     && std::arch::is_x86_feature_detected!("vpclmulqdq")
                 {

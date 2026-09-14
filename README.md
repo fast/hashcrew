@@ -2,7 +2,7 @@
 
 [![Crates.io][crates-badge]][crates-url]
 [![Documentation][docs-badge]][docs-url]
-[![MSRV 1.85][msrv-badge]](https://www.whatrustisit.com)
+[![MSRV 1.89][msrv-badge]](https://www.whatrustisit.com)
 [![Apache 2.0 licensed][license-badge]][license-url]
 [![Build Status][actions-badge]][actions-url]
 
@@ -10,7 +10,7 @@
 [crates-url]: https://crates.io/crates/hashcrew
 [docs-badge]: https://docs.rs/hashcrew/badge.svg
 [docs-url]: https://docs.rs/hashcrew
-[msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
+[msrv-badge]: https://img.shields.io/badge/MSRV-1.89-green?logo=rust
 [license-badge]: https://img.shields.io/crates/l/hashcrew
 [license-url]: https://www.apache.org/licenses/LICENSE-2.0
 [actions-badge]: https://github.com/fast/hashcrew/actions/workflows/ci.yml/badge.svg
@@ -20,7 +20,7 @@
 
 Hashcrew is a zero-dependency Rust library for fast, deterministic hashing in non-cryptographic applications. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
-Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends. CRC uses AArch64 CRC/PMULL and x86-64 CRC32/PCLMULQDQ acceleration, with VPCLMULQDQ available on Rust 1.89 or newer, and retains a portable slicing-by-8 fallback. The other algorithms use portable Rust cores.
+Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends. CRC uses AArch64 CRC/PMULL and x86-64 CRC32/PCLMULQDQ/VPCLMULQDQ acceleration and retains a portable slicing-by-8 fallback. The other algorithms use portable Rust cores.
 
 > [!WARNING]
 >
@@ -220,9 +220,9 @@ Integration tests compare CityHash, CRC, xxHash, MurmurHash3, and MD5 with indep
 
 ## Minimum Rust version policy
 
-This crate's minimum supported `rustc` version is `1.85.0`.
+This crate's minimum supported `rustc` version is `1.89.0`.
 
-The current policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if `crate 1.0` requires Rust 1.85.0, then `crate 1.0.z` for all values of `z` will also require Rust 1.85.0 or newer. However, `crate 1.y` for `y > 0` may require a newer minimum version of Rust.
+The current policy is that the minimum Rust version required to use this crate can be increased in minor version updates. For example, if `crate 1.0` requires Rust 1.89.0, then `crate 1.0.z` for all values of `z` will also require Rust 1.89.0 or newer. However, `crate 1.y` for `y > 0` may require a newer minimum version of Rust.
 
 ## License and acknowledgements
 

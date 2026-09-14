@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking changes
+
+* Raise the minimum supported Rust version from 1.85 to 1.89.
+
 ### New features
 
 * Add CRC-32/ISO-HDLC (IEEE CRC32) and CRC-32/ISCSI (CRC32C) behind the `crc` feature, with one-shot and incremental checksums, resuming finalized checksums, combining independently checksummed segments, optional `std::io::Write` integration, and AArch64/x86-64 acceleration with a portable scalar fallback.

@@ -29,8 +29,7 @@
 //! AArch64 and x86-64 use hardware acceleration when their required CPU
 //! features are available. With `std`, availability is detected at runtime;
 //! `no_std` uses target features only. Other configurations retain the scalar
-//! implementation. The wide x86-64 VPCLMULQDQ path requires Rust 1.89 or newer;
-//! older compilers retain PCLMULQDQ and scalar support.
+//! implementation.
 //!
 //! States retain only a running checksum. Call `digest` repeatedly or continue
 //! updating afterward. `from_digest` resumes from a finalized checksum of the
