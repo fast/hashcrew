@@ -4,6 +4,8 @@
 
 Use `cargo x` as the source of truth for repository workflows. Read `cargo x --help` and the relevant subcommand's `--help` before running build, test, lint, or formatting commands.
 
+CI compiles benchmark targets without running performance measurements. Check performance regressions locally.
+
 ## Rust Style
 
 Keep the publishable `hashcrew` crate dependency-free, `no_std` compatible, and allocation-free. Isolate architecture-specific unsafe code in each algorithm's kernel layer and preserve a scalar implementation for every accelerated path.
