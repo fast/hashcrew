@@ -74,10 +74,13 @@ jobs:
         run: |
           cargo x --help
           cargo x bench --help
+          bulk='crc32.*::(65536|1048576)$|crc32.*::\((65536|1048576), '
           for repeat in 1 2 3; do
             for target in throughput streaming; do
-              cargo x bench "$target" --crc-fast -- crc32 --min-time 0.1 --max-time 0.25 --bytes-format binary |
-                tee "$RUNNER_TEMP/crc-$target-$repeat.log"
+              cargo x bench "$target" --crc-fast -- crc32 --skip "$bulk" --sample-size 1024 --min-time 0.1 --max-time 0.25 --bytes-format binary |
+                tee "$RUNNER_TEMP/crc-$target-small-$repeat.log"
+              cargo x bench "$target" --crc-fast -- "$bulk" --sample-size 16 --min-time 0.1 --max-time 0.25 --bytes-format binary |
+                tee "$RUNNER_TEMP/crc-$target-bulk-$repeat.log"
             done
           done
 

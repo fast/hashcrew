@@ -69,8 +69,18 @@ pub(super) unsafe fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) ->
     // requires AES/PMULL, checked before entering its target-feature function.
     unsafe {
         if input.len() >= 128 && pmull_available() {
-            // The fused loop amortizes its three stream merges on bulk input.
-            if input.len() > 16_384 && sha3_available() {
+            // Compile-time features let PMULL inline into the caller. Generic
+            // targets reach the fused loop's crossover at a smaller input size.
+            let crossover = if cfg!(all(
+                target_feature = "crc",
+                target_feature = "aes",
+                target_feature = "sha3"
+            )) {
+                16_384
+            } else {
+                4096
+            };
+            if input.len() > crossover && sha3_available() {
                 fusion::<CASTAGNOLI>(state, input)
             } else {
                 pmull::<CASTAGNOLI>(state, input)
@@ -264,12 +274,11 @@ unsafe fn fold3(value: uint64x2_t, factors: uint64x2_t, next: uint64x2_t) -> uin
 #[target_feature(enable = "crc,aes")]
 unsafe fn shift<const CASTAGNOLI: bool>(state: u32, bytes: usize) -> uint64x2_t {
     // SAFETY: CRC and AES/PMULL are enabled. The caller shifts by at least
-    // eight bytes. A wider exponent prevents overflow for very large slices.
+    // eight bytes. shift_start preserves the exponent for very large slices.
     unsafe {
-        let mut bits = bytes as u128 * 8 - 33;
-        let mut stack = !1_u64;
+        let (mut bits, mut stack) = super::shift_start(bytes);
         while bits > 191 {
-            stack = (stack << 1) | (bits as u64 & 1);
+            stack = (stack << 1) | (bits & 1);
             bits = (bits >> 1) - 16;
         }
         stack = !stack;
@@ -346,6 +355,11 @@ unsafe fn fusion<const CASTAGNOLI: bool>(mut state: u32, input: &[u8]) -> u32 {
     // the allocation, including when there is only one group. Scalar loads
     // use read_unaligned; vector loads have no alignment requirement.
     unsafe {
+        // Bulk vector loads that straddle cache lines are costly on some ARM
+        // cores. A short prefix keeps all three scalar streams and vectors aligned.
+        let prefix = input.as_ptr().align_offset(16).min(input.len());
+        state = native::<CASTAGNOLI>(state, &input[..prefix]);
+        let input = &input[prefix..];
         let blocks = input.len() / 192;
         if blocks == 0 {
             return native::<CASTAGNOLI>(state, input);
@@ -444,6 +458,12 @@ mod tests {
                 super::super::test_backend::<true>(pmull::<true>);
                 super::super::test_backend::<false>(tail::<false>);
                 super::super::test_backend::<true>(tail::<true>);
+                super::super::test_shift::<false>(|state, bytes| {
+                    crc64::<false>(0, vgetq_lane_u64(shift::<false>(state, bytes), 0))
+                });
+                super::super::test_shift::<true>(|state, bytes| {
+                    crc64::<true>(0, vgetq_lane_u64(shift::<true>(state, bytes), 0))
+                });
                 if std::arch::is_aarch64_feature_detected!("sha3") {
                     super::super::test_backend::<false>(fusion::<false>);
                     super::super::test_backend::<true>(fusion::<true>);

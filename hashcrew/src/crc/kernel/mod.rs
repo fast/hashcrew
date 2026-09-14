@@ -82,6 +82,27 @@ const fn folding_factors<const CASTAGNOLI: bool>(bytes: usize) -> [u64; 2] {
 }
 
 #[cfg(all(
+    any(target_arch = "aarch64", target_arch = "x86_64"),
+    target_endian = "little",
+    not(miri)
+))]
+#[inline]
+fn shift_start(bytes: usize) -> (u64, u64) {
+    // Shift kernels start with n = 8 * bytes - 33, for bytes >= 8. If that
+    // overflows u64, take initial exponent-reduction steps before multiplying:
+    // floor((m * bytes - 33) / 2) - 16 = (m / 2) * bytes - 33.
+    // Each discarded low bit is one. Ordinary lengths stay in u64 arithmetic.
+    let bytes = bytes as u64;
+    let mut multiplier = 8;
+    let mut stack = !1_u64;
+    while bytes > u64::MAX / multiplier {
+        stack = (stack << 1) | 1;
+        multiplier >>= 1;
+    }
+    (bytes * multiplier - 33, stack)
+}
+
+#[cfg(all(
     test,
     any(target_arch = "aarch64", target_arch = "x86_64"),
     target_endian = "little",
@@ -111,6 +132,43 @@ unsafe fn test_backend<const CASTAGNOLI: bool>(backend: unsafe fn(u32, &[u8]) ->
                     "offset={offset} len={len} state={state:08x}"
                 );
             }
+        }
+    }
+}
+
+#[cfg(all(
+    test,
+    any(target_arch = "aarch64", target_arch = "x86_64"),
+    target_endian = "little",
+    not(miri)
+))]
+fn test_shift<const CASTAGNOLI: bool>(shift: impl Fn(u32, usize) -> u32) {
+    let polynomial = if CASTAGNOLI {
+        super::ISCSI_POLYNOMIAL
+    } else {
+        super::ISO_HDLC_POLYNOMIAL
+    };
+    for bytes in [
+        8,
+        9,
+        16,
+        24,
+        1024,
+        u32::MAX as usize,
+        usize::MAX / 8,
+        usize::MAX / 8 + 1,
+        usize::MAX / 4,
+        usize::MAX / 4 + 1,
+        usize::MAX / 2,
+        usize::MAX / 2 + 1,
+        usize::MAX,
+    ] {
+        for state in [0, 1, u32::MAX, 0x739a_504d] {
+            assert_eq!(
+                shift(state, bytes),
+                super::scalar::combine(state, 0, bytes as u64, polynomial),
+                "bytes={bytes} state={state:08x}",
+            );
         }
     }
 }

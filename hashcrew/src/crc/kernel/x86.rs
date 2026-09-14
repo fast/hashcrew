@@ -114,6 +114,25 @@ unsafe fn native(mut state: u32, mut input: &[u8]) -> u32 {
     // SAFETY: The caller enables SSE4.2. Fixed-size chunks prove all reads
     // are in bounds, and from_le_bytes accepts unaligned inputs.
     unsafe {
+        while let Some((block, tail)) = input.split_first_chunk::<64>() {
+            macro_rules! step {
+                ($offset:expr) => {
+                    state = _mm_crc32_u64(
+                        state as u64,
+                        u64::from_le_bytes(block[$offset..$offset + 8].try_into().unwrap()),
+                    ) as u32;
+                };
+            }
+            step!(0);
+            step!(8);
+            step!(16);
+            step!(24);
+            step!(32);
+            step!(40);
+            step!(48);
+            step!(56);
+            input = tail;
+        }
         while let Some((word, tail)) = input.split_first_chunk::<8>() {
             state = _mm_crc32_u64(state as u64, u64::from_le_bytes(*word)) as u32;
             input = tail;
@@ -237,10 +256,9 @@ unsafe fn shift(state: u32, bytes: usize) -> u64 {
     // SAFETY: The caller enables SSE4.2 and PCLMULQDQ and shifts by at least
     // eight bytes. Only register operations are used.
     unsafe {
-        let mut bits = bytes as u128 * 8 - 33;
-        let mut stack = !1_u64;
+        let (mut bits, mut stack) = super::shift_start(bytes);
         while bits > 191 {
-            stack = (stack << 1) | (bits as u64 & 1);
+            stack = (stack << 1) | (bits & 1);
             bits = (bits >> 1) - 16;
         }
         stack = !stack;
@@ -510,6 +528,9 @@ mod tests {
                 super::super::test_backend::<false>(pclmul::<false>);
                 super::super::test_backend::<true>(pclmul::<true>);
                 super::super::test_backend::<true>(fusion);
+                super::super::test_shift::<true>(|state, bytes| {
+                    _mm_crc32_u64(0, shift(state, bytes)) as u32
+                });
                 #[cfg(crc_vpclmulqdq)]
                 if avx2_available() {
                     super::super::test_backend::<false>(avx2::<false>);
