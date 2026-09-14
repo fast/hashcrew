@@ -83,6 +83,15 @@ jobs:
                 tee "$RUNNER_TEMP/crc-$target-bulk-$repeat.log"
             done
           done
+          for repeat in 1 2 3 4; do
+            if (( repeat % 2 )); then
+              order=--sort
+            else
+              order=--sortr
+            fi
+            cargo x bench throughput --crc-fast -- 'crc32.*::(crc_fast|hashcrew)::1048576$' "$order" name --sample-size 64 --min-time 1 --max-time 2 --bytes-format binary |
+              tee "$RUNNER_TEMP/crc-throughput-paired-$repeat.log"
+          done
 
       - name: Preserve measurements
         if: always()
