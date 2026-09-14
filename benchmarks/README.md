@@ -7,7 +7,7 @@ The benchmark package uses Divan to measure public `hashcrew` APIs alongside `ci
 | `throughput` | Every supported one-shot variant from 0 bytes to 1 MiB, including seeded CityHash, seeded/custom-secret XXH3 APIs, and the XXH3 240/241-byte boundary |
 | `streaming`  | Every streaming-capable variant with short messages, irregular chunks, and bulk input, including borrowed XXH3 custom secrets                         |
 
-Both targets measure complete public-call paths and report byte throughput. The `murmur3` comparison therefore includes its `Read`-based interface rather than treating the compression core as a separate benchmark. CityHash is intentionally absent from `streaming`: a compatible incremental facade would have to retain the complete message.
+Both targets measure complete public-call paths and report byte throughput. Hashcrew enables `std` for runtime CPU detection; `no_std` callers need suitable target features to enable hardware kernels. The `murmur3` comparison therefore includes its `Read`-based interface rather than treating the compression core as a separate benchmark. CityHash is intentionally absent from `streaming`: a compatible incremental facade would have to retain the complete message.
 
 Run both suites locally with `cargo x bench`, or select one:
 

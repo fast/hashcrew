@@ -19,6 +19,9 @@ mod x86;
 
 #[inline]
 pub(super) fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) -> u32 {
+    if input.is_empty() {
+        return state;
+    }
     #[cfg(all(target_arch = "aarch64", target_endian = "little", not(miri)))]
     if aarch64::crc_available() {
         // SAFETY: The availability check covers the CRC instructions; the

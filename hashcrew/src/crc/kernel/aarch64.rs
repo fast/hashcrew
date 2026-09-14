@@ -69,7 +69,8 @@ pub(super) unsafe fn update<const CASTAGNOLI: bool>(state: u32, input: &[u8]) ->
     // requires AES/PMULL, checked before entering its target-feature function.
     unsafe {
         if input.len() >= 128 && pmull_available() {
-            if input.len() > 4096 && sha3_available() {
+            // The fused loop amortizes its three stream merges on bulk input.
+            if input.len() > 16_384 && sha3_available() {
                 fusion::<CASTAGNOLI>(state, input)
             } else {
                 pmull::<CASTAGNOLI>(state, input)
@@ -287,6 +288,55 @@ unsafe fn shift<const CASTAGNOLI: bool>(state: u32, bytes: usize) -> uint64x2_t 
     }
 }
 
+const fn tail_factors<const CASTAGNOLI: bool>() -> [[u64; 2]; 8] {
+    let mut factors = [[0; 2]; 8];
+    let mut groups = 0;
+    while groups < factors.len() {
+        factors[groups] = [
+            super::power::<CASTAGNOLI>(groups * 128 + 31) as u64,
+            super::power::<CASTAGNOLI>(groups * 64 + 31) as u64,
+        ];
+        groups += 1;
+    }
+    factors
+}
+
+#[inline]
+#[target_feature(enable = "crc,aes")]
+unsafe fn tail<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u32 {
+    // Three independent CRC streams avoid a long dependency chain after the
+    // vector loop. Only seven short shifts are possible, so use constant factors.
+    // SAFETY: CRC and AES/PMULL are enabled. Complete 24-byte groups plus the
+    // final eight bytes bound every unaligned load and the factor table index.
+    unsafe {
+        if (32..192).contains(&input.len()) {
+            let groups = (input.len() - 8) / 24;
+            let stride = groups * 8;
+            let ptr = input.as_ptr();
+            let mut second = 0;
+            let mut third = 0;
+            for i in 0..groups {
+                state = crc64::<CASTAGNOLI>(state, ptr.add(i * 8).cast::<u64>().read_unaligned());
+                second = crc64::<CASTAGNOLI>(
+                    second,
+                    ptr.add(stride + i * 8).cast::<u64>().read_unaligned(),
+                );
+                third = crc64::<CASTAGNOLI>(
+                    third,
+                    ptr.add(stride * 2 + i * 8).cast::<u64>().read_unaligned(),
+                );
+            }
+            let factors = const { tail_factors::<CASTAGNOLI>() }[groups];
+            let a = vreinterpretq_u64_p128(vmull_p64(state as u64, factors[0]));
+            let b = vreinterpretq_u64_p128(vmull_p64(second as u64, factors[1]));
+            let last = ptr.add(groups * 24).cast::<u64>().read_unaligned();
+            state = crc64::<CASTAGNOLI>(third, last ^ vgetq_lane_u64(veorq_u64(a, b), 0));
+            input = &input[groups * 24 + 8..];
+        }
+        native::<CASTAGNOLI>(state, input)
+    }
+}
+
 #[inline]
 #[target_feature(enable = "crc,aes,sha3")]
 unsafe fn fusion<const CASTAGNOLI: bool>(mut state: u32, input: &[u8]) -> u32 {
@@ -370,7 +420,7 @@ unsafe fn fusion<const CASTAGNOLI: bool>(mut state: u32, input: &[u8]) -> u32 {
         let shifted = vgetq_lane_u64(veor3q_u64(a, b, c), 0);
         state = crc64::<CASTAGNOLI>(0, vgetq_lane_u64(lanes[0], 0));
         state = crc64::<CASTAGNOLI>(state, vgetq_lane_u64(lanes[0], 1) ^ shifted);
-        native::<CASTAGNOLI>(state, &input[blocks * 192..])
+        tail::<CASTAGNOLI>(state, &input[blocks * 192..])
     }
 }
 
@@ -392,6 +442,8 @@ mod tests {
             {
                 super::super::test_backend::<false>(pmull::<false>);
                 super::super::test_backend::<true>(pmull::<true>);
+                super::super::test_backend::<false>(tail::<false>);
+                super::super::test_backend::<true>(tail::<true>);
                 if std::arch::is_aarch64_feature_detected!("sha3") {
                     super::super::test_backend::<false>(fusion::<false>);
                     super::super::test_backend::<true>(fusion::<true>);

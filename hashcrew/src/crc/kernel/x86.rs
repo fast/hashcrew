@@ -167,6 +167,7 @@ unsafe fn pclmul<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u3
     // SAFETY: SSE4.2 and PCLMULQDQ are enabled. Vector loads are limited to
     // complete 64- or 16-byte blocks and accept unaligned pointers.
     unsafe {
+        let full = input;
         let factors = _mm_loadu_si128(const { &folding_factors::<CASTAGNOLI>(16) }.as_ptr().cast());
         let mut value;
         if input.len() >= 64 {
@@ -203,6 +204,23 @@ unsafe fn pclmul<const CASTAGNOLI: bool>(mut state: u32, mut input: &[u8]) -> u3
         while let Some((block, tail)) = input.split_first_chunk::<16>() {
             value = fold(value, factors, _mm_loadu_si128(block.as_ptr().cast()));
             input = tail;
+        }
+        if !CASTAGNOLI && !input.is_empty() {
+            const SHUFFLE: [u8; 32] = [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0x80, 0x81, 0x82, 0x83, 0x84,
+                0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
+            ];
+            // Move the low n bytes to the end of one vector, then join the
+            // remaining bytes with the new tail in another. Leading zeroes
+            // do not affect a zero-initialized CRC, so one fold consumes n bytes.
+            // full has at least 16 bytes here; this overlapping load ends
+            // exactly at the slice boundary, and n is in 1..16.
+            let right = _mm_loadu_si128(SHUFFLE.as_ptr().add(input.len()).cast());
+            let left = _mm_xor_si128(right, _mm_set1_epi8(i8::MIN));
+            let next = _mm_loadu_si128(full.as_ptr().add(full.len() - 16).cast());
+            let next = _mm_blendv_epi8(next, _mm_shuffle_epi8(value, right), left);
+            value = fold(_mm_shuffle_epi8(value, left), factors, next);
+            return reduce::<false>(value);
         }
         state = reduce::<CASTAGNOLI>(value);
         if CASTAGNOLI {
