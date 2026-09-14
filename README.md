@@ -20,7 +20,7 @@
 
 Hashcrew is a zero-dependency Rust library for fast, deterministic hashing and checksums in non-cryptographic applications. It provides allocation-free one-shot APIs, incremental state where the algorithm supports it, stable cross-platform digests for identical raw byte streams, and hardware-accelerated XXH3 kernels.
 
-Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends; the other algorithms use portable Rust cores. CRC currently uses a scalar slicing-by-8 implementation with compile-time lookup tables.
+Every implementation supports `no_std`. XXH3 inputs longer than 240 bytes use a dedicated kernel layer with scalar, little-endian AArch64 NEON, x86-64 SSE2, and x86-64 AVX2 backends. CRC uses AArch64 CRC/PMULL and x86-64 CRC32/PCLMULQDQ acceleration, with VPCLMULQDQ available on Rust 1.89 or newer, and retains a portable slicing-by-8 fallback. The other algorithms use portable Rust cores.
 
 > [!WARNING]
 >

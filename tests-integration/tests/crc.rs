@@ -110,6 +110,32 @@ macro_rules! variant_tests {
             }
 
             #[test]
+            fn large_unaligned_messages_preserve_streaming_and_resumption() {
+                let mut random = 0x2d98_43c7_e051_a6bf;
+                let bytes = random_input(&mut random, 1_024 * 1_024 + 65);
+                for len in [
+                    16_385, 65_535, 65_536, 65_537, 1_048_575, 1_048_576, 1_048_577,
+                ] {
+                    for offset in [0, 1, 7, 15, 31, 63] {
+                        let input = &bytes[offset..offset + len];
+                        let expected = REFERENCE.checksum(input);
+                        assert_eq!(checksum(input), expected, "len={len} offset={offset}");
+                        assert_eq!(specialized(input), expected);
+                        let split = len / 3;
+                        let mut state = State::from_digest(checksum(&input[..split]));
+                        for chunk in input[split..].chunks(16_387) {
+                            state.update(chunk);
+                        }
+                        assert_eq!(
+                            state.digest(),
+                            expected,
+                            "resumed len={len} offset={offset}"
+                        );
+                    }
+                }
+            }
+
+            #[test]
             fn combining_segments_preserves_concatenation_and_order() {
                 let mut random = 0x082e_fa98_ec4e_6c89;
                 let bytes = random_input(&mut random, 4 * 1_024);

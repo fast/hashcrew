@@ -26,6 +26,12 @@
 //! Use the byte order required by the consuming format when storing a checksum.
 //! CRCs detect accidental corruption; they do not authenticate data.
 //!
+//! AArch64 and x86-64 use hardware acceleration when their required CPU
+//! features are available. With `std`, availability is detected at runtime;
+//! `no_std` uses target features only. Other configurations retain the scalar
+//! implementation. The wide x86-64 VPCLMULQDQ path requires Rust 1.89 or newer;
+//! older compilers retain PCLMULQDQ and scalar support.
+//!
 //! States retain only a running checksum. Call `digest` repeatedly or continue
 //! updating afterward. `from_digest` resumes from a finalized checksum of the
 //! same variant, rather than accepting a raw register value or custom seed.
@@ -50,6 +56,7 @@
 //! assert_eq!(combined, state.digest());
 //! ```
 
+mod kernel;
 mod scalar;
 
 // Reflected forms of the catalogue polynomials 0x04c11db7 and 0x1edc6f41.
@@ -107,7 +114,7 @@ impl Crc32IsoHdlc {
     /// Appends raw bytes to the message. An empty slice leaves the state unchanged.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
-        self.state = scalar::update(self.state, input, &ISO_HDLC_TABLE);
+        self.state = kernel::update::<false>(self.state, input);
     }
 
     /// Returns the finalized checksum of all bytes so far, allowing further updates.
@@ -155,7 +162,7 @@ impl Crc32Iscsi {
     /// Appends raw bytes to the message. An empty slice leaves the state unchanged.
     #[inline]
     pub fn update(&mut self, input: &[u8]) {
-        self.state = scalar::update(self.state, input, &ISCSI_TABLE);
+        self.state = kernel::update::<true>(self.state, input);
     }
 
     /// Returns the finalized checksum of all bytes so far, allowing further updates.
