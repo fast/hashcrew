@@ -95,7 +95,6 @@ mod crc32_iso_hdlc {
             .bench(|| crc32fast::hash(black_box(&bytes)));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_SIZES)]
     fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
@@ -104,7 +103,6 @@ mod crc32_iso_hdlc {
             .bench(|| crc_fast::crc32_iso_hdlc(black_box(&bytes)));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_SIZES)]
     fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
@@ -121,7 +119,6 @@ mod crc32_iso_hdlc {
             .bench(|| hashcrew::crc::crc32_iso_hdlc(black_box(&bytes[1..])));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_UNALIGNED_SIZES)]
     fn crc_fast_unaligned(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len + 1);
@@ -170,7 +167,6 @@ mod crc32_iscsi {
             .bench(|| crc32c::crc32c(black_box(&bytes)));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_SIZES)]
     fn crc_fast(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
@@ -179,7 +175,6 @@ mod crc32_iscsi {
             .bench(|| crc_fast::crc32_iscsi(black_box(&bytes)));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_SIZES)]
     fn crc_fast_generic(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len);
@@ -196,7 +191,6 @@ mod crc32_iscsi {
             .bench(|| hashcrew::crc::crc32_iscsi(black_box(&bytes[1..])));
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CRC_UNALIGNED_SIZES)]
     fn crc_fast_unaligned(bencher: Bencher<'_, '_>, len: usize) {
         let bytes = input(len + 1);

@@ -14,8 +14,8 @@
 
 //! x86-64 CRC32C instructions and polynomial folding for both variants.
 //!
-//! Folding schedules follow corsix/fast-crc32 and crc-fast. See the packaged
-//! THIRD-PARTY-NOTICES for attribution.
+//! Folding schedules follow corsix/fast-crc32 and crc-fast. See LICENSE for
+//! the upstream copyright notices and MIT terms.
 
 // These intrinsics are unsafe on the MSRV but safe on newer compilers.
 #![allow(unused_unsafe)]

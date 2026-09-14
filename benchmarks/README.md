@@ -1,6 +1,6 @@
 # Benchmarks
 
-The benchmark package uses Divan to measure public `hashcrew` APIs alongside `cityhasher`, `cityhash-rs`, `crc`, `crc32fast`, `crc32c`, `twox-hash`, `xxhash-rust`, `murmur3`, `fnv`, and RustCrypto's `md-5`, with an optional `crc-fast` comparison. These comparison crates are development-only dependencies and are not linked into the published library.
+The benchmark package uses Divan to measure public `hashcrew` APIs alongside `cityhasher`, `cityhash-rs`, `crc`, `crc32fast`, `crc32c`, `twox-hash`, `xxhash-rust`, `murmur3`, `fnv`, `crc-fast`, and RustCrypto's `md-5`. These comparison crates are development-only dependencies and are not linked into the published library.
 
 | Target       | Coverage                                                                                                                                              |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,16 +45,11 @@ The streaming cases include 32 B / 8 B chunks, 241 B / 17 B chunks, 4 KiB / 7 B 
 
 CRC comparisons keep the algorithm fixed: `crc32_iso_hdlc` compares IEEE CRC32 against `crc32fast`, and `crc32_iscsi` compares Castagnoli CRC32C against `crc32c`. Both include the default `crc::Table<1>` and `crc::Table<16>` implementations, with tables prepared outside timing. The CRC size matrix includes hardware-path boundaries and a separate one-byte-offset comparison for unaligned input. Each library selects its available hardware acceleration. Hashcrew uses AArch64 CRC/PMULL and x86-64 CRC32/PCLMULQDQ; x86-64 AVX2/AVX-512 VPCLMULQDQ also requires Rust 1.89 or newer. The `crc32c` streaming case uses its finalized-checksum append API.
 
-Add `--crc-fast` to include `crc-fast` 1.10 comparisons on Rust 1.89 or newer. The throughput target measures both its specialized helper and generic algorithm-selector API; the streaming target measures its `Digest`. This optional benchmark dependency does not change Hashcrew's Rust 1.85 minimum:
-
-```shell
-cargo x bench throughput --crc-fast -- crc32
-cargo x bench streaming --crc-fast -- crc32
-```
+Both CRC variants also include `crc-fast` 1.10. The throughput target measures its specialized helper and generic algorithm-selector API; the streaming target measures its `Digest`. Every comparison is enabled by default, and the benchmark package requires Rust 1.89 or newer. Hashcrew itself retains its Rust 1.85 minimum.
 
 The `CRC benchmarks` workflow repeats both suites three times on native macOS and x86-64 Linux runners with Rust 1.98.0, recording CPU details and preserving complete measurements as artifacts. The workflow fixes each sample at 1,024 calls for inputs through the 16 KiB boundary cases and 16 calls for 64 KiB / 1 MiB inputs, using the same batch size for every compared implementation. This avoids automatic calibration settling on a single call near the timer resolution after a slow initial sample. Reproduce these settings with `--sample-size 1024` or `--sample-size 16` when selecting the corresponding sizes. Four additional 1 MiB comparisons use 64-call samples, longer measurements, and alternating implementation order to check shared-runner drift. Compare implementations within a run; shared-runner timings are measurements, not a deterministic CI performance gate.
 
-CI uses `cargo x build --locked` to compile all workspace targets with every Hashcrew family enabled, including both benchmark executables, without running measurements. This leaves optional benchmark-only features disabled for MSRV compatibility; nightly `cargo x lint` also checks the `crc-fast` cases. Use the same build command locally when only a build check is needed.
+Stable CI uses `cargo x build --locked` to compile all workspace targets with every Hashcrew family and comparison enabled, including both benchmark executables, without running measurements. Use the same command with Rust 1.89 or newer when only a build check is needed. `cargo x test` excludes the benchmark package so library and integration tests also run on Hashcrew's Rust 1.85 minimum.
 
 Pass harness options after `--`. For example, `cargo x bench streaming -- --list` lists cases and `cargo x bench streaming -- --help` shows Divan options.
 

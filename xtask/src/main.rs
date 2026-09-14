@@ -60,12 +60,6 @@ struct CommandBench {
     #[arg(value_name = "NAME", help = "Run only the named benchmark target.")]
     bench: Option<String>,
 
-    #[arg(
-        long,
-        help = "Include crc-fast comparisons (requires Rust 1.89 or newer)."
-    )]
-    crc_fast: bool,
-
     #[arg(last = true, help = "Arguments passed to the benchmark harness.")]
     args: Vec<std::ffi::OsString>,
 }
@@ -74,9 +68,6 @@ impl CommandBench {
     fn run(self) {
         let mut cmd = cargo();
         cmd.args(["bench", "--package", "benchmarks"]);
-        if self.crc_fast {
-            cmd.args(["--features", "crc-fast"]);
-        }
         if let Some(bench) = self.bench {
             cmd.args(["--bench", &bench]);
         }
@@ -106,8 +97,8 @@ impl CommandBuild {
             "--examples",
             "--benches",
             "--bins",
+            "--all-features",
         ]);
-        enable_hashcrew_features(&mut cmd);
         if self.locked {
             cmd.arg("--locked");
         }
@@ -207,8 +198,14 @@ struct CommandTest {
 impl CommandTest {
     fn run(self) {
         let mut workspace = cargo();
-        workspace.args(["test", "--workspace"]);
-        enable_hashcrew_features(&mut workspace);
+        // Benchmarks use newer comparison crates and are built by the stable CI jobs.
+        workspace.args([
+            "test",
+            "--workspace",
+            "--exclude",
+            "benchmarks",
+            "--all-features",
+        ]);
         add_test_output_args(&mut workspace, self.no_capture);
         run_command(workspace);
 
@@ -294,17 +291,6 @@ fn family_features() -> Vec<String> {
         .into_keys()
         .filter(|feature| !matches!(feature.as_str(), "default" | "std"))
         .collect()
-}
-
-fn enable_hashcrew_features(cmd: &mut StdCommand) {
-    // Newer benchmark comparisons must not raise the published library's MSRV.
-    let mut features = vec!["hashcrew/std".to_owned()];
-    features.extend(
-        family_features()
-            .into_iter()
-            .map(|family| format!("hashcrew/{family}")),
-    );
-    cmd.args(["--features", &features.join(",")]);
 }
 
 fn make_format_cmd(fix: bool) -> StdCommand {

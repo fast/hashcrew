@@ -15,8 +15,8 @@
 //! AArch64 CRC instructions and parallel polynomial folding.
 //!
 //! The folding schedules follow corsix/fast-crc32's `neon v12e_v1` and
-//! `neon_eor3 v9s3x2e_s3`, also used by crc-fast. See the packaged
-//! THIRD-PARTY-NOTICES for attribution.
+//! `neon_eor3 v9s3x2e_s3`, also used by crc-fast. See LICENSE for the
+//! upstream copyright notices and MIT terms.
 
 // These intrinsics are unsafe on the MSRV but safe on newer compilers.
 #![allow(unused_unsafe)]

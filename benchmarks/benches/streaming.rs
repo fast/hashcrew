@@ -91,7 +91,6 @@ mod crc32_iso_hdlc {
         });
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CASES)]
     fn crc_fast(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
@@ -160,7 +159,6 @@ mod crc32_iscsi {
         });
     }
 
-    #[cfg(feature = "crc-fast")]
     #[divan::bench(args = CASES)]
     fn crc_fast(bencher: Bencher<'_, '_>, (len, chunk_size): (usize, usize)) {
         let bytes = input(len);
