@@ -117,7 +117,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! hashcrew = { version = "0.2", features = ["xxhash", "md5"] }
+//! hashcrew = { version = "0.3", features = ["xxhash", "md5"] }
 //! ```
 //!
 //! All families work without `std`. Enable the independent `std` feature for
@@ -128,7 +128,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! hashcrew = { version = "0.2", features = ["std", "xxhash"] }
+//! hashcrew = { version = "0.3", features = ["std", "xxhash"] }
 //! ```
 //!
 //! The crate is dependency-free and allocation-free in every configuration.
