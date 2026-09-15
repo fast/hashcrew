@@ -93,11 +93,11 @@ impl CommandBuild {
             "--workspace",
             "--exclude",
             env!("CARGO_PKG_NAME"),
-            "--all-features",
             "--tests",
             "--examples",
             "--benches",
             "--bins",
+            "--all-features",
         ]);
         if self.locked {
             cmd.arg("--locked");

@@ -159,7 +159,7 @@ pub fn cityhash32(input: &[u8]) -> u32 {
     f = f.rotate_right(19).wrapping_mul(5).wrapping_add(0xe654_6b64);
 
     let body_len = ((len - 1) / 20) * 20;
-    for chunk in input[..body_len].chunks_exact(20) {
+    for chunk in input[..body_len].as_chunks::<20>().0 {
         let a0 = read_u32(chunk, 0)
             .wrapping_mul(C1)
             .rotate_right(17)
@@ -376,7 +376,7 @@ pub fn cityhash64(input: &[u8]) -> u64 {
     let mut w = weak_hash_len_32_with_seeds(&input[len - 32..], y.wrapping_add(K1), x);
     x = x.wrapping_mul(K1).wrapping_add(read_u64(input, 0));
 
-    for chunk in input[..len - 1].chunks_exact(64) {
+    for chunk in input[..len - 1].as_chunks::<64>().0 {
         x = x
             .wrapping_add(y)
             .wrapping_add(v.0)
@@ -495,9 +495,9 @@ fn cityhash128_with_seed_parts(input: &[u8], seed: (u64, u64)) -> (u64, u64) {
             .wrapping_mul(K1),
     );
 
-    let mut blocks = input.chunks_exact(128);
-    for block in &mut blocks {
-        for chunk in block.chunks_exact(64) {
+    let (blocks, remainder) = input.as_chunks::<128>();
+    for block in blocks {
+        for chunk in block.as_chunks::<64>().0 {
             x = x
                 .wrapping_add(y)
                 .wrapping_add(v.0)
@@ -521,7 +521,7 @@ fn cityhash128_with_seed_parts(input: &[u8], seed: (u64, u64)) -> (u64, u64) {
             core::mem::swap(&mut z, &mut x);
         }
     }
-    let remaining = blocks.remainder().len();
+    let remaining = remainder.len();
     let offset = len - remaining;
 
     x = x.wrapping_add(v.0.wrapping_add(z).rotate_right(49).wrapping_mul(K0));

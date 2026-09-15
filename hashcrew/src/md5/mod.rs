@@ -131,7 +131,7 @@ impl Md5 {
         compress(&mut state, &block);
 
         let mut digest = [0; 16];
-        for (word, bytes) in state.iter().zip(digest.chunks_exact_mut(4)) {
+        for (word, bytes) in state.iter().zip(digest.as_chunks_mut::<4>().0) {
             bytes.copy_from_slice(&word.to_le_bytes());
         }
         digest

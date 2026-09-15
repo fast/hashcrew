@@ -14,11 +14,12 @@
 
 //! Fast, portable hashing for non-cryptographic use.
 //!
-//! APIs are grouped by family under [`cityhash`], [`fnv`], [`md5`], [`murmur`],
+//! APIs are grouped by family under [`cityhash`], [`crc`], [`fnv`], [`md5`], [`murmur`],
 //! and [`xxhash`]. No features are enabled by default; each family requires its
 //! same-named Cargo feature. Use free functions for complete byte slices and
 //! state types for incremental input. CityHash is intentionally one-shot.
-//! Streaming states with 32- or 64-bit digests also implement [`core::hash::Hasher`].
+//! The 32- and 64-bit xxHash, MurmurHash3, and FNV states also implement
+//! [`core::hash::Hasher`].
 //!
 //! Raw digests are stable across platforms for identical byte streams. The
 //! [`core::hash`] adapters use Rust's typed encodings, which can vary across
@@ -28,17 +29,33 @@
 //! defined byte encoding for persistent checksums and cross-language protocols.
 //! These hashes are deterministic and are **not cryptographically secure**.
 //!
-//! # Choosing an algorithm
-//!
-//! Prefer XXH3 for new checksums, cache keys, and trusted-input hash tables.
-//! The CityHash, MurmurHash3, FNV-1a, XXH32, and XXH64 APIs are primarily for
-//! interoperability with an existing format or data set. Choose a 128-bit
-//! variant when the application needs a lower collision probability than a
-//! 64-bit digest provides.
-//! MD5 is available for compatibility with existing formats and protocols that
-//! require its standard digest; it is cryptographically broken.
-//!
 //! # API model
+//!
+//! Choose a family by its role, then choose an interface for the input. Each module is enabled by
+//! its same-named Cargo feature.
+//!
+//! | Area                      | Algorithms                               | Module / feature | Typical use                                                                                                   |
+//! | ------------------------- | ---------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+//! | General-purpose hashing   | XXH3-64 and XXH3-128                     | [`xxhash`]       | Prefer for new byte fingerprints and cache lookups; XXH3-64 also supports trusted-input hash tables.          |
+//! | Error-detecting checksums | IEEE CRC32 and CRC32C                    | [`crc`]          | Detect accidental corruption in records, storage pages, and protocol payloads using the required CRC variant. |
+//! | Compatible hashing        | XXH32 and XXH64                          | [`xxhash`]       | Reproduce existing xxHash values in stored data or interoperating implementations.                            |
+//! |                           | CityHash32, CityHash64, and CityHash128  | [`cityhash`]     | Match existing CityHash keys or fingerprints when the complete input is available.                            |
+//! |                           | MurmurHash3 x86_32, x86_128, and x64_128 | [`murmur`]       | Match partition keys, indexes, or data sets that specify a MurmurHash3 variant.                               |
+//! |                           | FNV-1a 32 and 64                         | [`fnv`]          | Match existing FNV-1a hashes in formats and applications.                                                     |
+//! | Legacy digests            | MD5                                      | [`md5`]          | Reproduce the standard 16-byte digest for formats and protocols that already require MD5.                     |
+//!
+//! These categories describe the recommended role; checksum use can span several families. XXH3 can
+//! check for byte changes when no format prescribes a checksum algorithm. CRCs are designed for
+//! accidental-error detection, with variant-specific guarantees that an arbitrary hash does not
+//! provide. IEEE CRC32 and CRC32C use different polynomials and cannot substitute for one another.
+//! MD5 should be selected only to reproduce an existing digest contract.
+//!
+//! Use a 128-bit digest when collision probability across many distinct inputs matters, and verify
+//! the original bytes when equality must be certain. CRC's 32-bit output is unsuitable as a unique
+//! content identifier, and CRC states deliberately omit hash-table adapters. None of these
+//! algorithms authenticates data or protects hash tables against attacker-chosen keys.
+//!
+//! ## Input and integration
 //!
 //! Choose the interface from the form of input rather than from a separate
 //! implementation:
@@ -53,13 +70,15 @@
 //!   These adapters consume Rust's typed [`core::hash::Hash`] encoding rather than a portable byte
 //!   serialization.
 //!
-//! ## Capability map
+//! ## Variants and capabilities
 //!
 //! | Variant             | Complete input                               | Incremental state                          | Digest     | [`Hasher`](core::hash::Hasher) / builder                                                          |
 //! | ------------------- | -------------------------------------------- | ------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------- |
 //! | CityHash32          | [`cityhash32`](cityhash::cityhash32)         | —                                          | `u32`      | —                                                                                                 |
 //! | CityHash64          | [`cityhash64`](cityhash::cityhash64)*        | —                                          | `u64`      | —                                                                                                 |
 //! | CityHash128         | [`cityhash128`](cityhash::cityhash128)*      | —                                          | `u128`     | —                                                                                                 |
+//! | CRC-32/ISO-HDLC     | [`crc32_iso_hdlc`](crc::crc32_iso_hdlc)      | [`Crc32IsoHdlc`](crc::Crc32IsoHdlc)        | `u32`      | —                                                                                                 |
+//! | CRC-32/ISCSI        | [`crc32_iscsi`](crc::crc32_iscsi)            | [`Crc32Iscsi`](crc::Crc32Iscsi)            | `u32`      | —                                                                                                 |
 //! | XXH32               | [`xxh32`](xxhash::xxh32)                     | [`Xxh32`](xxhash::Xxh32)                   | `u32`      | [`Xxh32`](xxhash::Xxh32) / [`Xxh32Builder`](xxhash::Xxh32Builder)                                 |
 //! | XXH64               | [`xxh64`](xxhash::xxh64)                     | [`Xxh64`](xxhash::Xxh64)                   | `u64`      | [`Xxh64`](xxhash::Xxh64) / [`Xxh64Builder`](xxhash::Xxh64Builder)                                 |
 //! | XXH3-64             | [`xxh3_64`](xxhash::xxh3_64)*                | [`Xxh3_64`](xxhash::Xxh3_64)               | `u64`      | [`Xxh3_64`](xxhash::Xxh3_64) / [`Xxh3_64Builder`](xxhash::Xxh3_64Builder)                         |
@@ -90,6 +109,7 @@
 //! | Feature    | Hash family                              |
 //! | ---------- | ---------------------------------------- |
 //! | `cityhash` | CityHash32, CityHash64, and CityHash128  |
+//! | `crc`      | CRC-32/ISO-HDLC and CRC-32/ISCSI         |
 //! | `fnv`      | FNV-1a 32 and 64                         |
 //! | `md5`      | MD5                                      |
 //! | `murmur`   | MurmurHash3 x86_32, x86_128, and x64_128 |
@@ -101,8 +121,8 @@
 //! ```
 //!
 //! All families work without `std`. Enable the independent `std` feature for
-//! [`std::io::Write`] adapters and XXH3 runtime CPU-feature detection. It does
-//! not enable any hash family. Without it, XXH3 selects hardware kernels only
+//! [`std::io::Write`] adapters and runtime CPU-feature detection for XXH3 and
+//! CRC. It does not enable any hash family. Without it, hardware kernels are selected only
 //! from features guaranteed by the target, with scalar code as the fallback.
 //! For example, enable xxHash with standard I/O integration using:
 //!
@@ -171,6 +191,8 @@ mod io;
 
 #[cfg(feature = "cityhash")]
 pub mod cityhash;
+#[cfg(feature = "crc")]
+pub mod crc;
 #[cfg(feature = "fnv")]
 pub mod fnv;
 #[cfg(feature = "md5")]

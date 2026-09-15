@@ -621,8 +621,8 @@ fn accumulate_long<K: Xxh3Kernel>(kernel: K, input: &[u8], secret: &[u8]) -> [u6
     // Excluding the final byte leaves the last full or overlapping stripe for
     // the dedicated secret suffix below. `Accumulator` handles block scrambles,
     // so no potentially overflowing secret-derived block size is required.
-    for stripe in input[..input.len() - 1].chunks_exact(STRIPE_SIZE) {
-        accumulator.process(kernel, array_64(stripe, 0), secret);
+    for stripe in input[..input.len() - 1].as_chunks::<STRIPE_SIZE>().0 {
+        accumulator.process(kernel, stripe, secret);
     }
 
     let last_secret_offset = secret.len() - STRIPE_SIZE - SECRET_LAST_ACC_START;
@@ -875,7 +875,7 @@ fn finalize_stream_acc<K: Xxh3Kernel, S>(
     let mut accumulator = state.accumulator;
     let input = &state.buffer[..state.buffered];
     let full_stripes = input.len() / STRIPE_SIZE;
-    let regular_stripes = if !input.is_empty() && input.len() % STRIPE_SIZE == 0 {
+    let regular_stripes = if !input.is_empty() && input.len().is_multiple_of(STRIPE_SIZE) {
         full_stripes - 1
     } else {
         full_stripes

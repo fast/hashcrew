@@ -9,7 +9,7 @@ Only the `hashcrew` workspace package is published. Benchmarks, examples, and in
 3. Run the release-comparison inputs in the [benchmark guide](benchmarks/README.md) when performance-relevant code changed.
 4. Require every CI job to pass.
 
-Select stable once for this release session. The commands below inherit it; `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc, and `cargo +1.85.0 x test` checks the MSRV:
+Select stable once for this release session. The commands below inherit it; `cargo x lint` selects nightly for Clippy, rustfmt, and rustdoc, and `cargo +1.89.0 x test` checks the MSRV:
 
 ```shell
 export RUSTUP_TOOLCHAIN=stable
@@ -17,7 +17,7 @@ cargo x lint
 cargo x check
 cargo x build --locked
 cargo x test
-cargo +1.85.0 x test
+cargo +1.89.0 x test
 cargo release --package hashcrew
 ```
 
